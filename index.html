@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>KOFIRICE Till Close</title>
+<style>
+  :root {
+    --green: #1a7a3c;
+    --green-dark: #135c2d;
+    --red: #c0392b;
+    --amber: #f39c12;
+    --bg: #f4f6f4;
+    --card: #ffffff;
+    --text: #1c2b21;
+    --muted: #6b7a70;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    max-width: 520px;
+    margin: 0 auto;
+    padding-bottom: 90px;
+  }
+  header {
+    background: var(--green);
+    color: #fff;
+    padding: 14px 16px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  header h1 { font-size: 20px; letter-spacing: 0.5px; }
+  header .store { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+
+  /* Tabs */
+  nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    max-width: 520px;
+    margin: 0 auto;
+    display: flex;
+    background: #fff;
+    border-top: 2px solid #d8ded9;
+    z-index: 20;
+  }
+  nav button {
+    flex: 1;
+    padding: 12px 4px 10px;
+    border: none;
+    background: none;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  nav button .ico { display: block; font-size: 22px; margin-bottom: 2px; }
+  nav button.active { color: var(--green); font-weight: 700; }
+
+  .screen { display: none; padding: 14px; }
+  .screen.active { display: block; }
+
+  .step-title {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 6px 0 12px;
+    text-align: center;
+  }
+  .step-title small { display: block; font-weight: 400; color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+  /* Total bar */
+  .totalbar {
+    background: var(--green-dark);
+    color: #fff;
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    position: sticky;
+    top: 62px;
+    z-index: 5;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .totalbar .lbl { font-size: 13px; opacity: 0.9; }
+  .totalbar .amt { font-size: 26px; font-weight: 800; }
+
+  /* Denomination cards */
+  .denom {
+    background: var(--card);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .note-chip {
+    width: 74px;
+    height: 40px;
+    border-radius: 6px;
+    color: #fff;
+    font-weight: 800;
+    font-size: 17px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.35);
+  }
+  .denom .mid { flex: 1; text-align: center; }
+  .denom .subtotal { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .stepper { display: flex; align-items: center; gap: 6px; }
+  .stepper button {
+    width: 46px; height: 46px;
+    border-radius: 10px;
+    border: none;
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+  }
+  .stepper .minus { background: #b3bdb6; }
+  .stepper .plus { background: var(--green); }
+  .stepper input {
+    width: 64px; height: 46px;
+    text-align: center;
+    font-size: 20px;
+    font-weight: 700;
+    border: 2px solid #d8ded9;
+    border-radius: 10px;
+  }
+  .coins-row input {
+    width: 110px; height: 46px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    border: 2px solid #d8ded9;
+    border-radius: 10px;
+  }
+
+  .bigbtn {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 14px;
+    background: var(--green);
+    color: #fff;
+    font-size: 19px;
+    font-weight: 800;
+    cursor: pointer;
+    margin-top: 14px;
+  }
+  .bigbtn.gray { background: #8a958d; }
+  .bigbtn:active { transform: scale(0.98); }
+
+  /* Result table */
+  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  th, td { padding: 10px 8px; text-align: center; font-size: 15px; }
+  thead th { background: var(--green); color: #fff; font-size: 13px; }
+  tbody tr { border-top: 1px solid #eef1ee; }
+  td.keep { color: var(--green); font-weight: 800; }
+  td.safe { color: var(--red); font-weight: 800; }
+  .note-mini {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 52px; height: 28px; border-radius: 4px;
+    color: #fff; font-weight: 700; font-size: 13px;
+  }
+  .warn {
+    background: #fff6e0;
+    border: 2px solid var(--amber);
+    border-radius: 12px;
+    padding: 12px;
+    margin: 12px 0;
+    font-size: 14px;
+  }
+  .warn b { color: #b06f00; }
+
+  .summary { display: flex; gap: 8px; margin: 14px 0; }
+  .sumcard {
+    flex: 1;
+    border-radius: 12px;
+    padding: 12px 8px;
+    text-align: center;
+    color: #fff;
+  }
+  .sumcard .t { font-size: 11px; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px; }
+  .sumcard .v { font-size: 19px; font-weight: 800; margin-top: 4px; }
+  .sc-total { background: #34495e; }
+  .sc-keep { background: var(--green); }
+  .sc-safe { background: var(--red); }
+
+  .field { margin: 10px 0; }
+  .field label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 4px; }
+  .field input {
+    width: 100%; padding: 12px; font-size: 17px;
+    border: 2px solid #d8ded9; border-radius: 10px;
+  }
+
+  /* Done screen */
+  .done-wrap { text-align: center; padding: 30px 10px; }
+  .done-wrap .check { font-size: 72px; }
+  .done-wrap h2 { margin: 10px 0; font-size: 22px; }
+  .done-safe {
+    background: var(--red); color: #fff;
+    border-radius: 14px; padding: 18px; margin: 16px 0;
+    font-size: 18px; font-weight: 700;
+  }
+  .done-safe .big { font-size: 34px; font-weight: 800; display: block; margin-top: 4px; }
+
+  /* History */
+  .hist-item {
+    background: #fff; border-radius: 12px; padding: 12px 14px;
+    margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    font-size: 14px;
+  }
+  .hist-item .d { font-weight: 800; font-size: 15px; }
+  .hist-item .row { display: flex; justify-content: space-between; margin-top: 6px; }
+  .hist-item .sales { color: var(--green); font-weight: 800; }
+  .pill { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: #eef1ee; color: var(--muted); }
+
+  /* Settings */
+  .set-row {
+    background: #fff; border-radius: 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px; margin-bottom: 8px;
+  }
+  .set-row input {
+    width: 76px; height: 42px; text-align: center;
+    font-size: 18px; font-weight: 700;
+    border: 2px solid #d8ded9; border-radius: 10px;
+  }
+  .float-total { text-align: center; font-size: 15px; margin: 12px 0; color: var(--muted); }
+  .float-total b { color: var(--text); font-size: 18px; }
+
+  /* Staff selection */
+  .staff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .staff-grid button {
+    padding: 16px 8px;
+    font-size: 18px;
+    font-weight: 800;
+    border: 3px solid #d8ded9;
+    border-radius: 12px;
+    background: #fff;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .staff-grid button.sel {
+    background: var(--green);
+    border-color: var(--green-dark);
+    color: #fff;
+  }
+
+  /* Done summary */
+  .done-sum {
+    background: #fff; border-radius: 12px; padding: 12px 16px;
+    margin: 14px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    text-align: left; font-size: 15px;
+  }
+  .done-sum .row { display: flex; justify-content: space-between; padding: 6px 0; }
+  .done-sum .row.total { border-top: 2px solid #eef1ee; font-weight: 800; font-size: 17px; }
+
+  /* Toast (replaces alert() which some in-app browsers like WhatsApp/Lark suppress) */
+  #toast {
+    position: fixed;
+    left: 50%; bottom: 78px;
+    transform: translateX(-50%) translateY(20px);
+    max-width: 90%;
+    background: #1c2b21;
+    color: #fff;
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s, transform 0.25s;
+    z-index: 100;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast.error { background: var(--red); }
+
+  .highlight-warn { animation: hw-pulse 1.4s ease-in-out 2; }
+  @keyframes hw-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(192,57,43,0); }
+    50% { box-shadow: 0 0 0 4px rgba(192,57,43,0.6); border-radius: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<noscript>
+  <div style="background:#c0392b;color:#fff;padding:20px;font-size:17px;line-height:1.5;text-align:center;">
+    ⚠️ <b>Please open this app in a web browser</b><br><br>
+    Tap the <b>Share button</b> (top of the screen)<br>then choose <b>“Open in Safari”</b> or <b>“Open in Chrome”</b>.<br><br>
+    The app does not work in the file preview.
+  </div>
+</noscript>
+
+<header>
+  <h1>💵 TILL CLOSE</h1>
+  <div class="store" id="storeName">KOFIRICE — Shop 2</div>
+</header>
+
+<!-- STEP 1: COUNT -->
+<div class="screen active" id="scr-count">
+  <div class="step-title">STEP 1 — Count the money in the till
+    <small>How many of each note? Press + / −</small>
+  </div>
+  <div class="totalbar">
+    <span class="lbl">TOTAL CASH</span>
+    <span class="amt" id="liveTotal">GH₵ 0</span>
+  </div>
+  <div id="denomList">
+    <div class="denom"><div class="note-chip" style="background:#c2418f">₵200</div><div class="mid"><div class="stepper" style="justify-content:center"><button class="minus" onclick="bump(200,-1)">−</button><input type="number" id="cnt-200" min="0" value="" placeholder="0" inputmode="numeric" oninput="updateTotal()"><button class="plus" onclick="bump(200,1)">+</button></div><div class="subtotal" id="sub-200">= GH₵ 0</div></div></div>
+    <div class="denom"><div class="note-chip" style="background:#00838f">₵100</div><div class="mid"><div class="stepper" style="justify-content:center"><button class="minus" onclick="bump(100,-1)">−</button><input type="number" id="cnt-100" min="0" value="" placeholder="0" inputmode="numeric" oninput="updateTotal()"><button class="plus" onclick="bump(100,1)">+</button></div><div class="subtotal" id="sub-100">= GH₵ 0</div></div></div>
+    <div class="denom"><div class="note-chip" style="background:#b3661b">₵50</div><div class="mid"><div class="stepper" style="justify-content:center"><button class="minus" onclick="bump(50,-1)">−</button><input type="number" id="cnt-50" min="0" value="" placeholder="0" inputmode="numeric" oninput="updateTotal()"><button class="plus" onclick="bump(50,1)">+</button></div><div class="subtotal" id="sub-50">= GH₵ 0</div></div></div>
+    <div class="denom"><div class="note-chip" style="background:#6a4fa3">₵20</div><div class="mid"><div class="stepper" style="justify-content:center"><button class="minus" onclick="bump(20,-1)">−</button><input type="number" id="cnt-20" min="0" value="" placeholder="0" inputmode="numeric" oninput="updateTotal()"><button class="plus" onclick="bump(20,1)">+</button></div><div class="subtotal" id="sub-20">= GH₵ 0</div></div></div>
+    <div class="denom"><div class="note-chip" style="background:#7a8f1f">₵10</div><div class="mid"><div class="stepper" style="justify-content:center"><button class="minus" onclick="bump(10,-1)">−</button><input type="number" id="cnt-10" min="0" value="" placeholder="0" inputmode="numeric" oninput="updateTotal()"><button class="plus" onclick="bump(10,1)">+</button></div><div class="subtotal" id="sub-10">= GH₵ 0</div></div></div>
+    <div class="denom"><div class="note-chip" style="background:#2456a8">₵5</div><div class="mid"><div class="stepper" style="justify-content:center"><button class="minus" onclick="bump(5,-1)">−</button><input type="number" id="cnt-5" min="0" value="" placeholder="0" inputmode="numeric" oninput="updateTotal()"><button class="plus" onclick="bump(5,1)">+</button></div><div class="subtotal" id="sub-5">= GH₵ 0</div></div></div>
+    <div class="denom"><div class="note-chip" style="background:#8a7040">₵2</div><div class="mid"><div class="stepper" style="justify-content:center"><button class="minus" onclick="bump(2,-1)">−</button><input type="number" id="cnt-2" min="0" value="" placeholder="0" inputmode="numeric" oninput="updateTotal()"><button class="plus" onclick="bump(2,1)">+</button></div><div class="subtotal" id="sub-2">= GH₵ 0</div></div></div>
+    <div class="denom"><div class="note-chip" style="background:#b03a3a">₵1</div><div class="mid"><div class="stepper" style="justify-content:center"><button class="minus" onclick="bump(1,-1)">−</button><input type="number" id="cnt-1" min="0" value="" placeholder="0" inputmode="numeric" oninput="updateTotal()"><button class="plus" onclick="bump(1,1)">+</button></div><div class="subtotal" id="sub-1">= GH₵ 0</div></div></div>
+  </div>
+  <div class="denom coins-row">
+    <div class="note-chip" style="background:#8d6e63">🪙</div>
+    <div class="mid">Coins total (GH₵)<div class="subtotal">all pesewas + coins</div></div>
+    <input type="number" id="coinsTotal" min="0" step="0.1" placeholder="0" inputmode="decimal" oninput="updateTotal()">
+  </div>
+  <button class="bigbtn" onclick="goAdjust()">NEXT ➜ STEP 2</button>
+</div>
+
+<!-- STEP 2: TAKE FROM SAFE -->
+<div class="screen" id="scr-adjust">
+  <div class="step-title">STEP 2 — Take change from the SAFE
+    <small>Put these notes INTO the till (for tomorrow's change)</small>
+  </div>
+  <div id="adjustList"></div>
+  <button class="bigbtn" onclick="goResult()">DONE ➜ STEP 3</button>
+  <button class="bigbtn gray" onclick="show('count')">⬅ Back</button>
+</div>
+
+<!-- STEP 3: PUT IN SAFE -->
+<div class="screen" id="scr-result">
+  <div class="step-title">STEP 3 — Put money in the SAFE
+    <small>🔴 SAFE = put in safe now &nbsp; 🟢 TILL = stays in till for tomorrow</small>
+  </div>
+  <div class="summary">
+    <div class="sumcard sc-total"><div class="t">Total</div><div class="v" id="rTotal">—</div></div>
+    <div class="sumcard sc-keep"><div class="t">Stays in till</div><div class="v" id="rKeep">—</div></div>
+    <div class="sumcard sc-safe"><div class="t">To safe</div><div class="v" id="rSafe">—</div></div>
+  </div>
+  <table>
+    <thead><tr><th>Note</th><th>Counted</th><th>🟢 TILL</th><th>🔴 SAFE</th></tr></thead>
+    <tbody id="resultRows"></tbody>
+  </table>
+  <div class="field">
+    <label>Cash sales today (auto) — GH₵</label>
+    <input type="text" id="salesAuto" readonly>
+  </div>
+  <div class="field">
+    <label>Sales on POS / book (optional — to check difference)</label>
+    <input type="number" id="posSales" min="0" step="0.01" placeholder="e.g. 1250" inputmode="decimal">
+  </div>
+  <div class="field">
+    <label>📱 MoMo payments today (GH₵)</label>
+    <input type="number" id="momoSales" min="0" step="0.01" placeholder="0" inputmode="decimal">
+  </div>
+  <div class="field">
+    <label>Who closed the till? Tap your name</label>
+    <div class="staff-grid" id="staffGrid"></div>
+  </div>
+  <button class="bigbtn" onclick="saveRecord()">✅ SAVE &amp; FINISH</button>
+  <button class="bigbtn gray" onclick="show('count')">⬅ Back</button>
+</div>
+
+<!-- STEP 3: DONE -->
+<div class="screen" id="scr-done">
+  <div class="done-wrap">
+    <div class="check">✅</div>
+    <h2>Till closed. Well done!</h2>
+    <div class="done-safe">Put this amount in the SAFE:<span class="big" id="doneSafe">GH₵ 0</span></div>
+    <div class="done-sum" id="doneSummary"></div>
+    <div id="doneNote" style="color:var(--muted);font-size:14px;"></div>
+    <div id="larkStatus" style="margin-top:10px;font-size:14px;color:var(--muted);"></div>
+    <button class="bigbtn" onclick="resetAll()">🔄 New count</button>
+  </div>
+</div>
+
+<!-- HISTORY -->
+<div class="screen" id="scr-history">
+  <div class="step-title">📒 Sales record</div>
+  <div id="histList"></div>
+  <button class="bigbtn gray" onclick="exportCSV()">⬇ Download CSV</button>
+</div>
+
+<!-- SETTINGS -->
+<div class="screen" id="scr-settings">
+  <div class="step-title">⚙ Float — notes to KEEP for tomorrow
+    <small>Manager only. How many of each note stays in the till every night.</small>
+  </div>
+  <div id="setList"></div>
+  <div class="float-total">Standard float total: <b id="floatTotal">GH₵ 0</b></div>
+  <div class="field">
+    <label>Store name</label>
+    <input type="text" id="setStore">
+  </div>
+  <div class="field">
+    <label>📲 Lark group webhook URL</label>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Auto-send is already ON (built-in). Leave blank to use the default group. Only fill this to send to a different group.</div>
+    <input type="text" id="setLarkWebhook" placeholder="(using built-in default)">
+  </div>
+  <button class="bigbtn" onclick="saveSettings()">💾 Save settings</button>
+  <button class="bigbtn gray" onclick="testLarkWebhook()">📤 Send test message</button>
+</div>
+
+<nav>
+  <button id="tab-count" class="active" onclick="show('count')"><span class="ico">🧮</span>Close till</button>
+  <button id="tab-history" onclick="show('history')"><span class="ico">📒</span>Record</button>
+  <button id="tab-settings" onclick="show('settings')"><span class="ico">⚙️</span>Settings</button>
+</nav>
+
+<div id="toast"></div>
+
+<script>
+// ---------- Config ----------
+const DENOMS = [200, 100, 50, 20, 10, 5, 2, 1];
+const COLORS = { 200:"#c2418f", 100:"#00838f", 50:"#b3661b", 20:"#6a4fa3", 10:"#7a8f1f", 5:"#2456a8", 2:"#8a7040", 1:"#b03a3a" };
+const DEFAULT_FLOAT = { 200:0, 100:0, 50:5, 20:5, 10:5, 5:10, 2:10, 1:30 };
+const STAFF = ["Ruth", "Evelyn", "Elizabeth", "Jacky"];
+const LS_SET = "kofirice_till_settings_v1";
+const LS_HIST = "kofirice_till_history_v1";
+// Built-in Lark group webhook. Every device sends here with no setup needed.
+// A device can still override it in Settings if the group ever changes.
+const DEFAULT_LARK_WEBHOOK = "https://open.larksuite.com/open-apis/bot/v2/hook/0d635a45-2f0a-4fcc-a710-03daffe1d260";
+
+let settings = loadJSON(LS_SET) || { float: {...DEFAULT_FLOAT}, store: "KOFIRICE — Shop 2", larkWebhook: "" };
+if (settings.larkWebhook === undefined) settings.larkWebhook = "";
+let lastResult = null;
+let selectedStaff = "";
+
+// Effective webhook = the one saved on this device if set, otherwise the built-in default.
+function larkUrl(){ return (settings.larkWebhook && settings.larkWebhook.trim()) || DEFAULT_LARK_WEBHOOK; }
+
+function renderStaff(){
+  const grid = document.getElementById("staffGrid");
+  grid.innerHTML = "";
+  for (const name of STAFF){
+    grid.insertAdjacentHTML("beforeend",
+      `<button type="button" id="staff-${name}" onclick="pickStaff('${name}')">${name}</button>`);
+  }
+}
+function pickStaff(name){
+  selectedStaff = name;
+  for (const n of STAFF) document.getElementById("staff-" + n).classList.toggle("sel", n === name);
+}
+
+function loadJSON(k){ try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } }
+function saveJSON(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
+function fmt(n){ return "GH₵ " + (Math.round(n*100)/100).toLocaleString("en-GH"); }
+
+// On-screen message banner. Some in-app browsers (WhatsApp/Lark's built-in
+// viewer) silently block window.alert(), which makes buttons look "dead" —
+// this always renders, since it is just a normal DOM element.
+let toastTimer = null;
+function showToast(msg, isError){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.toggle("error", !!isError);
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
+}
+
+// ---------- Lark group notification ----------
+function buildLarkMessage(rec){
+  const dt = new Date(rec.ts);
+  const dstr = dt.toLocaleDateString("en-GB", { day:"2-digit", month:"short", year:"numeric" }) +
+               " " + dt.toLocaleTimeString("en-GB", { hour:"2-digit", minute:"2-digit" });
+  let lines = [
+    "💵 TILL CLOSED — " + rec.store,
+    dstr + "   👤 " + rec.staff,
+    "",
+    "Cash sales:   " + fmt(rec.sales),
+    "MoMo sales:   " + fmt(rec.momo || 0),
+    "TOTAL SALES:  " + fmt(rec.totalSales ?? rec.sales),
+    "",
+    "Put in safe:  " + fmt(rec.toSafe)
+  ];
+  if (rec.fromSafe > 0) lines.push("Taken from safe: " + fmt(rec.fromSafe));
+  if (rec.diff !== null && rec.diff !== undefined){
+    lines.push(rec.diff === 0 ? "vs POS: ✔ match" : "vs POS: " + (rec.diff > 0 ? "+" : "") + rec.diff);
+  }
+  return lines.join("\n");
+}
+// Fire-and-forget POST to a Lark custom bot webhook. Uses mode:no-cors so it
+// works from a plain static page without a server; we can't read the actual
+// response, only whether the network request itself failed (e.g. offline).
+function sendToLark(rec){
+  const url = larkUrl();
+  if (!url) return Promise.resolve(null); // not configured
+  const payload = JSON.stringify({ msg_type: "text", content: { text: buildLarkMessage(rec) } });
+  // no-cors: request is delivered but the response is opaque (can't be read).
+  // Body is sent as text/plain, which the Lark webhook accepts.
+  return fetch(url, { method: "POST", mode: "no-cors", body: payload })
+    .then(() => true)
+    .catch(() => false);
+}
+function testLarkWebhook(){
+  const url = document.getElementById("setLarkWebhook").value.trim();
+  if (!url){ showToast("⚠️ Paste the webhook URL first.", true); return; }
+  const oldWebhook = settings.larkWebhook;
+  settings.larkWebhook = url;
+  const testRec = {
+    ts: new Date().toISOString(), store: settings.store, staff: "(test)",
+    sales: 0, momo: 0, totalSales: 0, toSafe: 0, fromSafe: 0, diff: null
+  };
+  showToast("📤 Sending test message...");
+  sendToLark(testRec).then(ok => {
+    settings.larkWebhook = oldWebhook;
+    showToast(ok ? "✅ Test sent — check the Lark group" : "⚠️ Could not send — check internet & the URL", !ok);
+  });
+}
+
+// ---------- Core calculation (pure) ----------
+function allocate(counts, floatTarget){
+  const rows = [], shortages = [];
+  let totalNotes = 0, keepTotal = 0, safeTotal = 0;
+  for (const d of DENOMS){
+    const c = Math.max(0, Math.floor(counts[d] || 0));
+    const target = Math.max(0, Math.floor(floatTarget[d] || 0));
+    const keep = Math.min(c, target);
+    const safe = c - keep;
+    if (keep < target) shortages.push({ d, missing: target - keep });
+    rows.push({ d, counted: c, keep, safe });
+    totalNotes += d * c; keepTotal += d * keep; safeTotal += d * safe;
+  }
+  return { rows, shortages, totalNotes, keepTotal, safeTotal };
+}
+function floatTargetTotal(ft){ return DENOMS.reduce((s,d)=> s + d * (ft[d]||0), 0); }
+
+// ---------- Screens ----------
+function show(name){
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById("scr-" + name).classList.add("active");
+  document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+  const tab = document.getElementById("tab-" + (["result","done","adjust"].includes(name) ? "count" : name));
+  if (tab) tab.classList.add("active");
+  if (name === "history") renderHistory();
+  if (name === "settings") renderSettings();
+}
+
+// ---------- Step 1: count ----------
+// The note rows are STATIC HTML (so they render even in limited preview
+// contexts). This only refreshes the store name from settings.
+function renderCount(){
+  document.getElementById("storeName").textContent = settings.store;
+}
+function bump(d, delta){
+  const el = document.getElementById("cnt-" + d);
+  el.value = Math.max(0, (parseInt(el.value) || 0) + delta);
+  updateTotal();
+}
+function getCounts(){
+  const counts = {};
+  for (const d of DENOMS) counts[d] = parseInt(document.getElementById("cnt-" + d).value) || 0;
+  return counts;
+}
+function getCoins(){ return parseFloat(document.getElementById("coinsTotal").value) || 0; }
+function updateTotal(){
+  let t = 0;
+  for (const d of DENOMS){
+    const c = parseInt(document.getElementById("cnt-" + d).value) || 0;
+    document.getElementById("sub-" + d).textContent = "= " + fmt(d * c);
+    t += d * c;
+  }
+  t += getCoins();
+  document.getElementById("liveTotal").textContent = fmt(t);
+}
+
+// ---------- Step 2: take change from safe ----------
+function goAdjust(){
+  const counts = getCounts();
+  const coins = getCoins();
+  const r = allocate(counts, settings.float);
+  const total = r.totalNotes + coins;
+  const ftt = floatTargetTotal(settings.float);
+  const sales = total - ftt;   // assumes till started with the standard float
+  const fromSafe = r.shortages.reduce((s,x) => s + x.d * x.missing, 0);
+  lastResult = { counts, coins, ...r, total, sales, fromSafe };
+
+  const box = document.getElementById("adjustList");
+  if (!r.shortages.length){
+    box.innerHTML = `
+      <div style="background:#e8f5e9;border:2px solid var(--green);border-radius:14px;padding:26px 14px;text-align:center;">
+        <div style="font-size:52px">👍</div>
+        <div style="font-size:19px;font-weight:800;margin-top:8px">Nothing to take!</div>
+        <div style="color:var(--muted);margin-top:6px">The till already has enough change for tomorrow.<br>Go to STEP 3.</div>
+      </div>`;
+  } else {
+    let html = `<div class="warn" style="text-align:center">⚠️ Not enough small notes for tomorrow.<br><b>Take these from the SAFE, put them in the TILL:</b></div>`;
+    for (const s of r.shortages){
+      html += `
+        <div class="denom">
+          <div class="note-chip" style="background:${COLORS[s.d]}">₵${s.d}</div>
+          <div class="mid" style="font-size:24px;font-weight:800">× ${s.missing} notes</div>
+          <div style="color:var(--muted);font-size:14px">= ${fmt(s.d * s.missing)}</div>
+        </div>`;
+    }
+    html += `<div class="float-total">Total from safe: <b>${fmt(fromSafe)}</b></div>`;
+    box.innerHTML = html;
+  }
+  show("adjust");
+  window.scrollTo(0,0);
+}
+
+// ---------- Step 3: put money in safe ----------
+function goResult(){
+  if (!lastResult) return;
+  const r = lastResult;
+  const ftt = floatTargetTotal(settings.float);
+
+  document.getElementById("rTotal").textContent = fmt(r.total);
+  document.getElementById("rKeep").textContent = fmt(ftt + r.coins);
+  document.getElementById("rSafe").textContent = fmt(r.safeTotal);
+  document.getElementById("salesAuto").value = (Math.round(r.sales*100)/100).toLocaleString("en-GH");
+
+  const tb = document.getElementById("resultRows");
+  tb.innerHTML = "";
+  for (const row of r.rows){
+    const target = settings.float[row.d] || 0;
+    if (row.counted === 0 && target === 0) continue;
+    tb.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td><span class="note-mini" style="background:${COLORS[row.d]}">₵${row.d}</span></td>
+        <td>${row.counted}</td>
+        <td class="keep">${target}</td>
+        <td class="safe">${row.safe > 0 ? row.safe : "—"}</td>
+      </tr>`);
+  }
+  show("result");
+  window.scrollTo(0,0);
+}
+
+// ---------- Save ----------
+function saveRecord(){
+  if (!lastResult) return;
+  if (!selectedStaff){
+    showToast("⚠️ Please tap your name first 👆", true);
+    const grid = document.getElementById("staffGrid");
+    grid.scrollIntoView({ behavior: "smooth", block: "center" });
+    grid.classList.remove("highlight-warn");
+    void grid.offsetWidth; // restart animation if triggered twice in a row
+    grid.classList.add("highlight-warn");
+    return;
+  }
+  const pos = parseFloat(document.getElementById("posSales").value);
+  const momo = parseFloat(document.getElementById("momoSales").value) || 0;
+  const ftt = floatTargetTotal(settings.float);
+  const rec = {
+    ts: new Date().toISOString(),
+    store: settings.store,
+    staff: selectedStaff,
+    counts: lastResult.counts,
+    coins: lastResult.coins,
+    total: lastResult.total,
+    keep: ftt + lastResult.coins,
+    fromSafe: lastResult.fromSafe,
+    toSafe: lastResult.safeTotal,
+    sales: lastResult.sales,
+    momo: momo,
+    totalSales: Math.round((lastResult.sales + momo)*100)/100,
+    pos: isNaN(pos) ? null : pos,
+    diff: isNaN(pos) ? null : Math.round((lastResult.sales - pos)*100)/100
+  };
+  const hist = loadJSON(LS_HIST) || [];
+  hist.unshift(rec);
+  saveJSON(LS_HIST, hist);
+
+  document.getElementById("larkStatus").textContent = "";
+  if (larkUrl()){
+    document.getElementById("larkStatus").textContent = "📤 Sending to Lark...";
+    sendToLark(rec).then(ok => {
+      document.getElementById("larkStatus").textContent =
+        ok ? "✅ Sent to Lark group" : "⚠️ Could not send to Lark (check internet). You can resend from the Record tab.";
+      const h = loadJSON(LS_HIST) || [];
+      if (h[0] && h[0].ts === rec.ts) { h[0].larkSent = ok; saveJSON(LS_HIST, h); }
+    });
+  }
+
+  document.getElementById("doneSafe").textContent = fmt(rec.toSafe);
+  document.getElementById("doneSummary").innerHTML = `
+    <div class="row"><span>💵 Cash sales</span><span>${fmt(rec.sales)}</span></div>
+    <div class="row"><span>📱 MoMo sales</span><span>${fmt(rec.momo)}</span></div>
+    <div class="row total"><span>TOTAL SALES</span><span>${fmt(rec.totalSales)}</span></div>
+    <div class="row"><span>👤 Closed by</span><span>${rec.staff}</span></div>`;
+  let note = "Till is ready for tomorrow: " + fmt(rec.keep) + " inside.";
+  if (rec.fromSafe > 0) note += " (You took " + fmt(rec.fromSafe) + " from the safe.)";
+  if (rec.diff !== null) note += " — " + (rec.diff === 0 ? "Perfect match with POS ✔" : (rec.diff > 0 ? "Over by " + fmt(rec.diff) : "Short by " + fmt(-rec.diff)));
+  document.getElementById("doneNote").textContent = note;
+  show("done");
+  window.scrollTo(0,0);
+}
+
+function resetAll(){
+  for (const d of DENOMS) document.getElementById("cnt-" + d).value = "";
+  document.getElementById("coinsTotal").value = "";
+  document.getElementById("posSales").value = "";
+  document.getElementById("momoSales").value = "";
+  selectedStaff = "";
+  for (const n of STAFF){ const b = document.getElementById("staff-" + n); if (b) b.classList.remove("sel"); }
+  lastResult = null;
+  updateTotal();
+  show("count");
+}
+
+// ---------- History ----------
+function renderHistory(){
+  const hist = loadJSON(LS_HIST) || [];
+  const box = document.getElementById("histList");
+  if (!hist.length){ box.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px 0">No records yet.</div>'; return; }
+  box.innerHTML = "";
+  hist.slice(0, 60).forEach((r, i) => {
+    const dt = new Date(r.ts);
+    const dstr = dt.toLocaleDateString("en-GB", { day:"2-digit", month:"short", year:"numeric" }) +
+                 " " + dt.toLocaleTimeString("en-GB", { hour:"2-digit", minute:"2-digit" });
+    let larkLine = "";
+    if (larkUrl()){
+      if (r.larkSent === true) larkLine = '<div class="row"><span>Lark</span><span>✅ sent</span></div>';
+      else larkLine = `<div class="row"><span>Lark</span><span><a href="#" onclick="resendToLark(${i});return false;" style="color:var(--red);font-weight:700;text-decoration:none">📤 resend</a></span></div>`;
+    }
+    box.insertAdjacentHTML("beforeend", `
+      <div class="hist-item">
+        <div class="d">${dstr} ${r.staff ? '<span class="pill">👤 ' + r.staff + "</span>" : ""}</div>
+        <div class="row"><span>Cash sales</span><span class="sales">${fmt(r.sales)}</span></div>
+        <div class="row"><span>MoMo sales</span><span>${fmt(r.momo ?? 0)}</span></div>
+        <div class="row"><span>Total sales</span><span class="sales">${fmt(r.totalSales ?? r.sales)}</span></div>
+        <div class="row"><span>Total in till</span><span>${fmt(r.total)}</span></div>
+        <div class="row"><span>Moved to safe</span><span>${fmt(r.toSafe)}</span></div>
+        ${r.fromSafe > 0 ? '<div class="row"><span>Taken from safe</span><span>' + fmt(r.fromSafe) + "</span></div>" : ""}
+        ${r.diff !== null ? '<div class="row"><span>vs POS</span><span>' + (r.diff === 0 ? "✔ match" : (r.diff > 0 ? "+" : "") + r.diff) + "</span></div>" : ""}
+        ${larkLine}
+      </div>`);
+  });
+}
+function resendToLark(i){
+  const hist = loadJSON(LS_HIST) || [];
+  const r = hist[i];
+  if (!r) return;
+  showToast("📤 Sending...");
+  sendToLark(r).then(ok => {
+    hist[i].larkSent = ok;
+    saveJSON(LS_HIST, hist);
+    renderHistory();
+    showToast(ok ? "✅ Sent to Lark group" : "⚠️ Still could not send. Check internet.", !ok);
+  });
+}
+function exportCSV(){
+  const hist = loadJSON(LS_HIST) || [];
+  if (!hist.length){ showToast("No records yet."); return; }
+  let csv = "datetime,store,staff,total_cash,kept_float,from_safe,to_safe,cash_sales,momo_sales,total_sales,pos_sales,difference," + DENOMS.map(d=>"n"+d).join(",") + ",coins\n";
+  for (const r of hist){
+    csv += [ r.ts, q(r.store), q(r.staff), r.total, r.keep, r.fromSafe ?? 0, r.toSafe, r.sales,
+             r.momo ?? 0, r.totalSales ?? r.sales, r.pos ?? "", r.diff ?? "", ...DENOMS.map(d => r.counts[d] || 0), r.coins ].join(",") + "\n";
+  }
+  const a = document.createElement("a");
+  a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+  a.download = "till_records.csv";
+  a.click();
+}
+function q(s){ return '"' + String(s || "").replace(/"/g,'""') + '"'; }
+
+// ---------- Settings ----------
+function renderSettings(){
+  const box = document.getElementById("setList");
+  box.innerHTML = "";
+  for (const d of DENOMS){
+    box.insertAdjacentHTML("beforeend", `
+      <div class="set-row">
+        <span class="note-mini" style="background:${COLORS[d]}">₵${d}</span>
+        <span style="flex:1;padding-left:12px;color:var(--muted);font-size:13px">notes kept every night</span>
+        <input type="number" id="set-${d}" min="0" value="${settings.float[d] || 0}" inputmode="numeric" oninput="updateFloatTotal()">
+      </div>`);
+  }
+  document.getElementById("setStore").value = settings.store;
+  document.getElementById("setLarkWebhook").value = settings.larkWebhook || "";
+  updateFloatTotal();
+}
+function updateFloatTotal(){
+  const ft = {};
+  for (const d of DENOMS) ft[d] = parseInt(document.getElementById("set-" + d).value) || 0;
+  document.getElementById("floatTotal").textContent = fmt(floatTargetTotal(ft));
+}
+function saveSettings(){
+  for (const d of DENOMS) settings.float[d] = parseInt(document.getElementById("set-" + d).value) || 0;
+  settings.store = document.getElementById("setStore").value.trim() || "KOFIRICE";
+  settings.larkWebhook = document.getElementById("setLarkWebhook").value.trim();
+  saveJSON(LS_SET, settings);
+  document.getElementById("storeName").textContent = settings.store;
+  showToast("✅ Settings saved");
+  show("count");
+}
+
+// ---------- Init ----------
+renderCount();
+renderStaff();
+updateTotal();
+// Guard: scrolling over a focused number input must not change its value
+document.addEventListener("wheel", function(e){
+  if (document.activeElement && document.activeElement.type === "number") document.activeElement.blur();
+}, { passive: true });
+</script>
+</body>
+</html>
