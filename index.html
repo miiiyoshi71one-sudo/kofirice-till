@@ -324,7 +324,6 @@
     <div class="denom"><div class="note-chip" style="background:#6a4fa3">₵20</div><div class="mid"><div class="stepper" style="justify-content:center"><button class="minus" onclick="bump(20,-1)">−</button><input type="number" id="cnt-20" min="0" value="" placeholder="0" inputmode="numeric" oninput="updateTotal()"><button class="plus" onclick="bump(20,1)">+</button></div><div class="subtotal" id="sub-20">= GH₵ 0</div></div></div>
     <div class="denom"><div class="note-chip" style="background:#7a8f1f">₵10</div><div class="mid"><div class="stepper" style="justify-content:center"><button class="minus" onclick="bump(10,-1)">−</button><input type="number" id="cnt-10" min="0" value="" placeholder="0" inputmode="numeric" oninput="updateTotal()"><button class="plus" onclick="bump(10,1)">+</button></div><div class="subtotal" id="sub-10">= GH₵ 0</div></div></div>
     <div class="denom"><div class="note-chip" style="background:#2456a8">₵5</div><div class="mid"><div class="stepper" style="justify-content:center"><button class="minus" onclick="bump(5,-1)">−</button><input type="number" id="cnt-5" min="0" value="" placeholder="0" inputmode="numeric" oninput="updateTotal()"><button class="plus" onclick="bump(5,1)">+</button></div><div class="subtotal" id="sub-5">= GH₵ 0</div></div></div>
-    <div class="denom"><div class="note-chip" style="background:#8a7040">₵2</div><div class="mid"><div class="stepper" style="justify-content:center"><button class="minus" onclick="bump(2,-1)">−</button><input type="number" id="cnt-2" min="0" value="" placeholder="0" inputmode="numeric" oninput="updateTotal()"><button class="plus" onclick="bump(2,1)">+</button></div><div class="subtotal" id="sub-2">= GH₵ 0</div></div></div>
     <div class="denom"><div class="note-chip" style="background:#b03a3a">₵1</div><div class="mid"><div class="stepper" style="justify-content:center"><button class="minus" onclick="bump(1,-1)">−</button><input type="number" id="cnt-1" min="0" value="" placeholder="0" inputmode="numeric" oninput="updateTotal()"><button class="plus" onclick="bump(1,1)">+</button></div><div class="subtotal" id="sub-1">= GH₵ 0</div></div></div>
   </div>
   <div class="denom coins-row">
@@ -429,9 +428,9 @@
 
 <script>
 // ---------- Config ----------
-const DENOMS = [200, 100, 50, 20, 10, 5, 2, 1];
-const COLORS = { 200:"#c2418f", 100:"#00838f", 50:"#b3661b", 20:"#6a4fa3", 10:"#7a8f1f", 5:"#2456a8", 2:"#8a7040", 1:"#b03a3a" };
-const DEFAULT_FLOAT = { 200:0, 100:0, 50:5, 20:5, 10:5, 5:10, 2:10, 1:30 };
+const DENOMS = [200, 100, 50, 20, 10, 5, 1];
+const COLORS = { 200:"#c2418f", 100:"#00838f", 50:"#b3661b", 20:"#6a4fa3", 10:"#7a8f1f", 5:"#2456a8", 1:"#b03a3a" };
+const DEFAULT_FLOAT = { 200:0, 100:0, 50:5, 20:5, 10:5, 5:10, 1:30 };
 const STAFF = ["Ruth", "Evelyn", "Elizabeth", "Jacky"];
 const LS_SET = "kofirice_till_settings_v1";
 const LS_HIST = "kofirice_till_history_v1";
