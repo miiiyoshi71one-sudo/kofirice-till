@@ -201,6 +201,24 @@
     border: 2px solid #d8ded9; border-radius: 10px;
   }
 
+  /* MoMo payment rows */
+  .momo-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .momo-row input { flex: 1; }
+  .momo-row button {
+    flex: none; width: 46px; height: 46px;
+    border: none; border-radius: 10px;
+    background: #b3bdb6; color: #fff;
+    font-size: 20px; font-weight: 700; cursor: pointer;
+  }
+  .momo-add {
+    width: 100%; padding: 11px;
+    background: #fff; color: var(--muted);
+    border: 2px dashed #d8ded9; border-radius: 10px;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+  }
+  .momo-total { text-align: right; font-size: 14px; margin-top: 8px; color: var(--muted); }
+  .momo-total b { color: var(--text); font-size: 18px; }
+
   /* Done screen */
   .done-wrap { text-align: center; padding: 30px 10px; }
   .done-wrap .check { font-size: 72px; }
@@ -368,7 +386,10 @@
   </div>
   <div class="field">
     <label>📱 MoMo payments today (GH₵)</label>
-    <input type="number" id="momoSales" min="0" step="0.01" placeholder="0" inputmode="decimal">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:6px">One row per MoMo account or payment — they are added up for you.</div>
+    <div id="momoList"></div>
+    <button type="button" class="momo-add" onclick="addMomoRow()">➕ Add another MoMo</button>
+    <div class="momo-total">MoMo total: <b id="momoTotal">GH₵ 0</b></div>
   </div>
   <div class="field">
     <label>Who closed the till? Tap your name</label>
@@ -474,6 +495,38 @@ function showToast(msg, isError){
   t.classList.add("show");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
+}
+
+// ---------- Step 2: MoMo rows ----------
+// One row per MoMo account/payment. Only their sum is stored on the record, so
+// the Lark message, the history screen and the CSV keep the single MoMo figure.
+function addMomoRow(value){
+  const row = document.createElement("div");
+  row.className = "momo-row";
+  row.innerHTML = '<input type="number" min="0" step="0.01" placeholder="0" inputmode="decimal" oninput="updateMomoTotal()">' +
+                  '<button type="button" onclick="removeMomoRow(this)" aria-label="Remove this row">✕</button>';
+  document.getElementById("momoList").appendChild(row);
+  if (value !== undefined) row.querySelector("input").value = value;
+  updateMomoTotal();
+}
+function removeMomoRow(btn){
+  btn.closest(".momo-row").remove();
+  // Always leave one row, otherwise there is nothing left to type into.
+  if (!document.getElementById("momoList").children.length) addMomoRow();
+  updateMomoTotal();
+}
+function getMomoTotal(){
+  const inputs = document.querySelectorAll("#momoList input");
+  let t = 0;
+  for (const i of inputs) t += parseFloat(i.value) || 0;
+  return Math.round(t*100)/100;
+}
+function updateMomoTotal(){
+  document.getElementById("momoTotal").textContent = fmt(getMomoTotal());
+}
+function resetMomoRows(){
+  document.getElementById("momoList").innerHTML = "";
+  addMomoRow();
 }
 
 // ---------- Lark group notification ----------
@@ -659,7 +712,7 @@ function saveRecord(){
     return;
   }
   const pos = parseFloat(document.getElementById("posSales").value);
-  const momo = parseFloat(document.getElementById("momoSales").value) || 0;
+  const momo = getMomoTotal();
   const ftt = floatTargetTotal(settings.float);
   const rec = {
     ts: new Date().toISOString(),
@@ -710,7 +763,7 @@ function resetAll(){
   for (const d of DENOMS) document.getElementById("cnt-" + d).value = "";
   document.getElementById("coinsTotal").value = "";
   document.getElementById("posSales").value = "";
-  document.getElementById("momoSales").value = "";
+  resetMomoRows();
   selectedStaff = "";
   for (const n of STAFF){ const b = document.getElementById("staff-" + n); if (b) b.classList.remove("sel"); }
   lastResult = null;
@@ -809,6 +862,7 @@ function saveSettings(){
 renderCount();
 renderStaff();
 updateTotal();
+resetMomoRows();
 // Guard: scrolling over a focused number input must not change its value
 document.addEventListener("wheel", function(e){
   if (document.activeElement && document.activeElement.type === "number") document.activeElement.blur();
