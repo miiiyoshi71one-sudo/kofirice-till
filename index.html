@@ -437,7 +437,7 @@ const LS_SET = "kofirice_till_settings_v1";
 const LS_HIST = "kofirice_till_history_v1";
 // Built-in Lark group webhook. Every device sends here with no setup needed.
 // A device can still override it in Settings if the group ever changes.
-const DEFAULT_LARK_WEBHOOK = "https://open.larksuite.com/open-apis/bot/v2/hook/0d635a45-2f0a-4fcc-a710-03daffe1d260";
+const DEFAULT_LARK_WEBHOOK = "https://open.larksuite.com/open-apis/bot/v2/hook/e22147c9-66c3-4f59-ac04-9aba8b711b1f";
 
 let settings = loadJSON(LS_SET) || { float: {...DEFAULT_FLOAT}, store: "KOFIRICE — Shop 2", larkWebhook: "" };
 if (settings.larkWebhook === undefined) settings.larkWebhook = "";
