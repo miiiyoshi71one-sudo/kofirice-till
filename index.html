@@ -431,6 +431,11 @@
     <input type="text" id="setStore">
   </div>
   <div class="field">
+    <label>Shop code (must match the safe app)</label>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Letters and numbers only, e.g. S2. Used by the manager's safe app to know which shop this record belongs to.</div>
+    <input type="text" id="setStoreCode" placeholder="S2">
+  </div>
+  <div class="field">
     <label>📲 Lark group webhook URL</label>
     <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Auto-send is already ON (built-in). Leave blank to use the default group. Only fill this to send to a different group.</div>
     <input type="text" id="setLarkWebhook" placeholder="(using built-in default)">
@@ -453,14 +458,19 @@ const DENOMS = [200, 100, 50, 20, 10, 5, 1];
 const COLORS = { 200:"#c2418f", 100:"#00838f", 50:"#b3661b", 20:"#6a4fa3", 10:"#7a8f1f", 5:"#2456a8", 1:"#b03a3a" };
 const DEFAULT_FLOAT = { 200:0, 100:0, 50:5, 20:5, 10:5, 5:10, 1:30 };
 const STAFF = ["Ruth", "Evelyn", "Elizabeth", "Jacky"];
+// Short code identifying this shop. The safe-manager app (used by the Japanese
+// managers) matches records to a shop by this code, so it must be the same
+// string on both sides. Change it in Settings when deploying to a new shop.
+const DEFAULT_STORE_CODE = "S2";
 const LS_SET = "kofirice_till_settings_v1";
 const LS_HIST = "kofirice_till_history_v1";
 // Built-in Lark group webhook. Every device sends here with no setup needed.
 // A device can still override it in Settings if the group ever changes.
 const DEFAULT_LARK_WEBHOOK = "https://open.larksuite.com/open-apis/bot/v2/hook/e22147c9-66c3-4f59-ac04-9aba8b711b1f";
 
-let settings = loadJSON(LS_SET) || { float: {...DEFAULT_FLOAT}, store: "KOFIRICE — Shop 2", larkWebhook: "" };
+let settings = loadJSON(LS_SET) || { float: {...DEFAULT_FLOAT}, store: "KOFIRICE — Shop 2", larkWebhook: "", storeCode: DEFAULT_STORE_CODE };
 if (settings.larkWebhook === undefined) settings.larkWebhook = "";
+if (!settings.storeCode) settings.storeCode = DEFAULT_STORE_CODE;
 let lastResult = null;
 let selectedStaff = "";
 
@@ -529,6 +539,90 @@ function resetMomoRows(){
   addMomoRow();
 }
 
+// ---------- Sync code for the safe-manager app ----------
+// A single compact line appended to the Lark message. The manager copies the
+// whole Lark message into the safe app, which picks this line out and knows
+// exactly which notes left the safe and which notes went into it.
+//   KFR1|<shop>|<epoch>|<staff>|T<notes>|S<notes>|C<cash>|M<momo>|X<checksum>
+// The checksum only guards against a truncated copy-paste; it is not security.
+function encNotes(notes){
+  const parts = [];
+  for (const d of DENOMS){
+    const c = Math.round(Number(notes && notes[d]) || 0);
+    if (c > 0) parts.push(d + "x" + c);
+  }
+  return parts.length ? parts.join(",") : "-";
+}
+function syncChecksum(s){
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 1679616;
+  return h.toString(36);
+}
+// Older records (saved before this feature) don't carry the per-note split, so
+// rebuild it from the counted notes and the current float setting.
+function derivedNotes(rec){
+  const take = {}, safe = {};
+  for (const d of DENOMS){
+    const c = Math.max(0, Math.floor((rec.counts && rec.counts[d]) || 0));
+    const t = Math.max(0, Math.floor(settings.float[d] || 0));
+    const keep = Math.min(c, t);
+    take[d] = t - keep;
+    safe[d] = c - keep;
+  }
+  return { take, safe };
+}
+function buildSyncCode(rec){
+  const der = derivedNotes(rec);
+  const take = rec.takeNotes || der.take;
+  const safe = rec.safeNotes || der.safe;
+  const epoch = Math.floor(new Date(rec.ts).getTime() / 1000);
+  const staff = String(rec.staff || "").replace(/[\s|]+/g, "_") || "-";
+  const body = [
+    "KFR1",
+    // Prefer the code stored on the record so a resend of an old close keeps
+    // pointing at the shop it was actually made in.
+    (rec.storeCode || settings.storeCode || DEFAULT_STORE_CODE).replace(/[^A-Za-z0-9_]/g, ""),
+    epoch,
+    staff,
+    "T" + encNotes(take),
+    "S" + encNotes(safe),
+    "C" + (Math.round((rec.sales || 0) * 100) / 100),
+    "M" + (Math.round((rec.momo || 0) * 100) / 100)
+  ].join("|");
+  return body + "|X" + syncChecksum(body);
+}
+
+function syncCodeBoxHTML(rec){
+  return `<div style="margin-top:12px;text-align:left;background:#fff;border:2px dashed #d8ded9;border-radius:10px;padding:10px">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Send this line to the manager:</div>
+    <div id="syncCodeText" style="font-family:monospace;font-size:12px;word-break:break-all;color:var(--text)">${buildSyncCode(rec)}</div>
+    <button type="button" onclick="copySyncCode()"
+      style="margin-top:8px;padding:9px 14px;border:none;border-radius:9px;background:var(--green);color:#fff;font-size:14px;font-weight:700;cursor:pointer">📋 Copy</button>
+  </div>`;
+}
+function copySyncCode(){
+  const el = document.getElementById("syncCodeText");
+  if (!el) return;
+  const text = el.textContent;
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text)
+      .then(() => showToast("📋 Copied"))
+      .catch(() => selectSyncCode(el));
+  } else {
+    selectSyncCode(el);
+  }
+}
+function selectSyncCode(el){
+  // Clipboard API is unavailable on http:// and in some in-app browsers —
+  // selecting the text lets the user copy it with a long press.
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  showToast("Long-press the highlighted text to copy");
+}
+
 // ---------- Lark group notification ----------
 function buildLarkMessage(rec){
   const dt = new Date(rec.ts);
@@ -548,6 +642,9 @@ function buildLarkMessage(rec){
   if (rec.diff !== null && rec.diff !== undefined){
     lines.push(rec.diff === 0 ? "vs POS: ✔ match" : "vs POS: " + (rec.diff > 0 ? "+" : "") + rec.diff);
   }
+  lines.push("");
+  lines.push("--- 金庫アプリ用 / for safe app ---");
+  lines.push(buildSyncCode(rec));
   return lines.join("\n");
 }
 // Fire-and-forget POST to a Lark custom bot webhook. Uses mode:no-cors so it
@@ -714,11 +811,21 @@ function saveRecord(){
   const pos = parseFloat(document.getElementById("posSales").value);
   const momo = getMomoTotal();
   const ftt = floatTargetTotal(settings.float);
+  // Per-note split, stored so the safe-manager app knows exactly which notes
+  // moved in each direction (and stays right even if the float is changed later).
+  const takeNotes = {}, safeNotes = {};
+  for (const row of lastResult.rows){
+    takeNotes[row.d] = Math.max(0, (settings.float[row.d] || 0) - row.keep);
+    safeNotes[row.d] = row.safe;
+  }
   const rec = {
     ts: new Date().toISOString(),
     store: settings.store,
+    storeCode: settings.storeCode || DEFAULT_STORE_CODE,
     staff: selectedStaff,
     counts: lastResult.counts,
+    takeNotes: takeNotes,
+    safeNotes: safeNotes,
     coins: lastResult.coins,
     total: lastResult.total,
     keep: ftt + lastResult.coins,
@@ -738,8 +845,11 @@ function saveRecord(){
   if (larkUrl()){
     document.getElementById("larkStatus").textContent = "📤 Sending to Lark...";
     sendToLark(rec).then(ok => {
-      document.getElementById("larkStatus").textContent =
-        ok ? "✅ Sent to Lark group" : "⚠️ Could not send to Lark (check internet). You can resend from the Record tab.";
+      // On failure the manager still needs the sync code, so show it here to
+      // be copied by hand (WhatsApp, SMS, whatever is available).
+      document.getElementById("larkStatus").innerHTML = ok
+        ? "✅ Sent to Lark group"
+        : "⚠️ Could not send to Lark (check internet). You can resend from the Record tab." + syncCodeBoxHTML(rec);
       const h = loadJSON(LS_HIST) || [];
       if (h[0] && h[0].ts === rec.ts) { h[0].larkSent = ok; saveJSON(LS_HIST, h); }
     });
@@ -840,6 +950,7 @@ function renderSettings(){
       </div>`);
   }
   document.getElementById("setStore").value = settings.store;
+  document.getElementById("setStoreCode").value = settings.storeCode || DEFAULT_STORE_CODE;
   document.getElementById("setLarkWebhook").value = settings.larkWebhook || "";
   updateFloatTotal();
 }
@@ -851,6 +962,8 @@ function updateFloatTotal(){
 function saveSettings(){
   for (const d of DENOMS) settings.float[d] = parseInt(document.getElementById("set-" + d).value) || 0;
   settings.store = document.getElementById("setStore").value.trim() || "KOFIRICE";
+  settings.storeCode = (document.getElementById("setStoreCode").value.trim().toUpperCase()
+                          .replace(/[^A-Z0-9_]/g, "")) || DEFAULT_STORE_CODE;
   settings.larkWebhook = document.getElementById("setLarkWebhook").value.trim();
   saveJSON(LS_SET, settings);
   document.getElementById("storeName").textContent = settings.store;
