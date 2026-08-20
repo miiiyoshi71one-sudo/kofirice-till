@@ -1490,14 +1490,29 @@
   </div>
 
   <div class="card">
-    <h2>📲 Lark通知<span class="sub">任意</span></h2>
-    <div class="hint">受取・補充・おつり下限アラートを記録したときに、日本人グループへ自動で報告を送ります。空欄なら送信しません。</div>
+    <h2>📲 Lark通知①：金庫アプリからの報告<span class="sub">任意</span></h2>
+    <div class="hint">この端末の金庫・ドライバーアプリで「受取」「補充」「配送受領」「おつり下限アラート」を記録したときに、日本人グループへ自動で報告を送ります。空欄なら送信しません。</div>
     <div class="field">
       <label>Lark webhook URL</label>
       <input type="text" id="setLark" placeholder="https://open.larksuite.com/open-apis/bot/v2/hook/...">
     </div>
     <button class="bigbtn" onclick="saveLark()">💾 保存</button>
     <button class="bigbtn gray" onclick="testLark()">📤 テスト送信</button>
+  </div>
+
+  <div class="card">
+    <h2>📤 Lark通知②：レジ締め完了時の自動送信<span class="sub">シェフが締めるたび</span></h2>
+    <div class="hint">
+      店舗のレジ締めアプリ（Till close）で「SAVE &amp; FINISH」するたびに、売上・金庫入金額・担当者をLarkへ自動送信する設定。①とは別の設定（レジ締めアプリ自身が持つ設定）だが、同じ端末なのでここからまとめて変更できるようにしてある。
+    </div>
+    <div id="tillLarkStatus" class="hint" style="font-weight:700"></div>
+    <div class="field">
+      <label>Lark webhook URL（空欄＝アプリ組み込みの既定グループを使う）</label>
+      <input type="text" id="setTillLark" placeholder="空欄でOK（既定のグループへ送信）">
+    </div>
+    <button class="bigbtn" onclick="saveTillLark()">💾 保存</button>
+    <button class="bigbtn gray" onclick="testTillLark()">📤 テスト送信</button>
+    <button class="bigbtn gray" onclick="resetTillLark()">🔄 既定のグループに戻す</button>
   </div>
 
   <div class="card">
@@ -4075,6 +4090,40 @@ function renderSettings_S(){
       <span class="cd">${esc_S(s.code)}</span>
       <button onclick="openStoreModal(${i})">編集</button>
     </div>`).join("") || `<div class="empty">店舗がありません</div>`;
+
+  // ②レジ締めアプリ自身のLark設定（till appの settings.larkWebhook）を、
+  // 金庫アプリの設定画面からもまとめて見えるようにする（同じ端末なので
+  // 直接読み書きできる）。
+  document.getElementById("setTillLark").value = settings.larkWebhook || "";
+  document.getElementById("tillLarkStatus").innerHTML = settings.larkWebhook
+    ? "✔ カスタムURLへ送信中"
+    : "✔ 既定のグループへ送信中（設定不要・すでに動くはず）";
+}
+function saveTillLark(){
+  settings.larkWebhook = document.getElementById("setTillLark").value.trim();
+  saveJSON_T(LS_SET, settings);
+  renderSettings_S();
+  showToast_S("✅ 保存しました");
+}
+function testTillLark(){
+  const url = document.getElementById("setTillLark").value.trim();
+  const oldWebhook = settings.larkWebhook;
+  settings.larkWebhook = url;   // 空欄なら larkUrl() が既定のURLにフォールバックする
+  showToast_S("📤 送信しています…");
+  const testRec = {
+    ts: new Date().toISOString(), store: settings.store, staff: "(テスト)",
+    sales: 0, momo: 0, totalSales: 0, toSafe: 0, fromSafe: 0, diff: null
+  };
+  sendToLark(testRec).then(ok => {
+    settings.larkWebhook = oldWebhook;
+    showToast_S(ok ? "✅ 送信しました。Larkグループを確認してください" : "⚠️ 送信できませんでした（ネット接続を確認）", !ok);
+  });
+}
+function resetTillLark(){
+  settings.larkWebhook = "";
+  saveJSON_T(LS_SET, settings);
+  renderSettings_S();
+  showToast_S("🔄 アプリ組み込みの既定グループに戻しました");
 }
 function saveConnection(){
   cfg.gasUrl = document.getElementById("setGasUrl").value.trim();
