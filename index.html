@@ -3075,6 +3075,18 @@ function dateJP(iso){
          "（" + "日月火水木金土"[dt.getUTCDay()] + "）" +
          p(dt.getUTCHours()) + ":" + p(dt.getUTCMinutes());
 }
+// ドライバーアプリ(.app-driver)は英語UIなので、日付も英語で出す
+// （dateJP()の日本語版がそのまま使われていた2026-08-22のバグ修正）。
+function dateEN(iso){
+  const dt = new Date(iso);
+  if (isNaN(dt)) return String(iso);
+  const p = n => String(n).padStart(2, "0");
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  return months[dt.getUTCMonth()] + " " + dt.getUTCDate() +
+         " (" + days[dt.getUTCDay()] + ") " +
+         p(dt.getUTCHours()) + ":" + p(dt.getUTCMinutes());
+}
 
 // =============================================================
 // 店舗
@@ -5062,7 +5074,7 @@ function renderDriverChange(){
 
   const cnt = lastBoxCount(st.code);
   document.getElementById("drvChangeBasis").innerHTML = cnt
-    ? `📏 Based on the count from ${esc_S(dateJP(cnt.ts))}${cnt.actor ? " by " + esc_S(cnt.actor) : ""}`
+    ? `📏 Based on the count from ${esc_S(dateEN(cnt.ts))}${cnt.actor ? " by " + esc_S(cnt.actor) : ""}`
     : `⚠️ No count on record yet`;
 
   const needTotal = notesTotal_S(need);
@@ -5178,7 +5190,7 @@ function renderDriverDeliver(){
         return `<div class="lot${checked ? " done" : ""}" style="${checked ? "border-left-color:var(--blue);background:#eef4fb" : ""};cursor:pointer" onclick="toggleDriverLot('${esc_S(l.mov.id)}')">
           <div class="top" style="align-items:center;gap:10px">
             <span style="flex:none;width:26px;height:26px;border-radius:7px;border:2px solid ${checked ? "var(--blue)" : "#c8d2cb"};background:${checked ? "var(--blue)" : "#fff"};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px">${checked ? "✓" : ""}</span>
-            <span class="date" style="flex:1">${esc_S(dateJP(l.mov.ts))}</span>
+            <span class="date" style="flex:1">${esc_S(dateEN(l.mov.ts))}</span>
             <span class="amt">${fmt_S(l.remainingAmount)}</span>
           </div>
           <div class="notes">${esc_S(notesText(l.remaining))}</div>
@@ -5216,7 +5228,7 @@ function renderDriverDeliver(){
     ? mine.map(b => `
       <div class="lot">
         <div class="top">
-          <span class="date">${esc_S(dateJP(b.mov.ts))}</span>
+          <span class="date">${esc_S(dateEN(b.mov.ts))}</span>
           <span class="amt">${fmt_S(b.remainingAmount)}</span>
         </div>
         <div class="meta">${esc_S(storeName(b.mov.store))}${b.mov.note ? " ／ " + esc_S(b.mov.note) : ""}</div>
