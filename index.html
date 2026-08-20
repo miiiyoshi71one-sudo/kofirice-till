@@ -3706,7 +3706,8 @@ function reversedMovementIds(){
   for (const m of allMovements()) if (m.source === "correction" && m.ref) s.add(m.ref);
   return s;
 }
-function movHTML(m, reversedIds){
+function movHTML(m, reversedIds, opts){
+  opts = opts || {};
   const amt = notesTotal_S(m.notes);
   const icon = m.compartment === "change" ? "🧰" : m.compartment === "transit" ? "🚚" : "💰";
   // BOX_COUNT は増減ではなく「そのとき入っていた金額」なので符号を付けない
@@ -3715,18 +3716,16 @@ function movHTML(m, reversedIds){
     : `<span class="v ${amt >= 0 ? "plus" : "minus"}">${amt >= 0 ? "+" : "−"}${fmt_S(Math.abs(amt))}</span>`;
   const isCorrection = m.source === "correction";
   const alreadyReversed = reversedIds ? reversedIds.has(m.id) : false;
-  const reversedLine = alreadyReversed ? `<div class="m" style="color:var(--red);font-weight:700">↩️ 取り消しずみ</div>` : "";
-  // まだサーバーに送っていない記録は、種類を問わず完全に削除できる。
-  const unsynced = m.seq === undefined && queue.some(x => x.id === m.id);
-  let actionBtn = "";
-  if (unsynced){
-    actionBtn = `<button class="minibtn" style="margin-top:6px" onclick="reverseOrDeleteMovement('${esc_S(m.id)}')">🗑 削除（未送信）</button>`;
-  } else if (!alreadyReversed && !isCorrection && m.type !== "BOX_COUNT"){
-    actionBtn = `<button class="minibtn" style="margin-top:6px" onclick="reverseOrDeleteMovement('${esc_S(m.id)}')">↩️ 取り消す</button>`;
-  } else if (!alreadyReversed && m.type === "BOX_COUNT"){
-    actionBtn = `<div class="m" style="color:var(--muted)">直すには「補充」タブで棚卸をやり直してください</div>`;
+  const reversedLine = alreadyReversed ? `<div class="m" style="color:var(--red);font-weight:700">↩️ 訂正ずみ</div>` : "";
+  let actionBtns = "";
+  if (!opts.noActions && !isCorrection && !alreadyReversed){
+    const canDelete = m.type !== "BOX_COUNT";   // 実測値そのものなので「打ち消す」が意味を持たない
+    actionBtns = `<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+      <button class="minibtn" onclick="openRecordAction('${esc_S(m.id)}','correct')">✏️ 訂正</button>
+      ${canDelete ? `<button class="minibtn" onclick="openRecordAction('${esc_S(m.id)}','delete')">🗑 削除</button>` : ""}
+    </div>`;
   }
-  return `<div class="hist-item">
+  return `<div class="${opts.noActions ? "" : "hist-item"}">
     <div class="h">
       <span class="t">${icon} ${esc_S(TYPE_LABEL[m.type] || m.type)}${isCorrection ? " (訂正)" : ""}</span>
       ${val}
@@ -3734,42 +3733,289 @@ function movHTML(m, reversedIds){
     <div class="m">${esc_S(dateJP(m.ts))}${m.actor ? " ／ " + esc_S(m.actor) : ""}${cfg.stores.length > 1 ? " ／ " + esc_S(storeName(m.store)) : ""}</div>
     <div class="m">${esc_S(notesText(m.notes))}${m.note ? " ／ " + esc_S(m.note) : ""}</div>
     ${reversedLine}
-    ${actionBtn}
+    ${actionBtns}
   </div>`;
 }
 
 /**
- * 記録の取り消し（2026-08-21追加）。
- * - まだサーバーに送っていない記録（queueにあり、seqが付いていない）は、
- *   何も残す必要がないので完全に削除する。
- * - すでに送信ずみの記録（movementsにあり、seqが付いている）は、共有台帳が
- *   追記専用（サーバー側で本当に消す手段がない）ため削除できない。代わりに
- *   反対向きの「訂正」記録を1件追加して打ち消す。元の記録も監査のため
- *   そのまま残す（"取り消しずみ"の印だけ付ける）。
- * - BOX_COUNT（そのときの実測値そのもの）は増減の記録ではないため、
- *   このボタンでは扱わない（棚卸をやり直してもらう）。
+ * シェフの直接同期（syncTillRecordDirect）とLark同期コードの貼り付け
+ * （applyPaste）は、1回のレジ締めから SALES_IN／TAKE_CHANGE／BOX_COUNT の
+ * 3件を作る（idは店舗-epoch-in／-take／-box で共通）。履歴タブでバラバラの
+ * 3行に見えると「何のことか分からない」ため、同じ元idを持つものを1つの
+ * 「レジ締め」カードにまとめる（2026-08-22）。
+ * フィルタが「すべて」のときだけグループ化する（区画で絞り込んでいるときは
+ * 3件が揃わないことがあるため、素のリストのまま出す）。
  */
-function reverseOrDeleteMovement(id){
+function groupCloseRecords(raw){
+  const re = /^(.+)-(in|take|box)$/;
+  const groups = {};
+  const used = new Set();
+  for (const m of raw){
+    if (m.source !== "till-direct" && m.source !== "sync") continue;
+    const mt = re.exec(m.id);
+    if (!mt) continue;
+    const baseId = mt[1], kind = mt[2];
+    if (!groups[baseId]) groups[baseId] = {};
+    groups[baseId][kind] = m;
+  }
+  const rows = [];
+  for (const baseId in groups){
+    const subs = groups[baseId];
+    const anchor = subs.in || subs.take || subs.box;
+    if (!anchor) continue;
+    rows.push({ kind: "group", baseId, subs, ts: anchor.ts, staff: anchor.actor, store: anchor.store });
+    if (subs.in) used.add(subs.in.id);
+    if (subs.take) used.add(subs.take.id);
+    if (subs.box) used.add(subs.box.id);
+  }
+  for (const m of raw){
+    if (!used.has(m.id)) rows.push({ kind: "single", mov: m, ts: m.ts });
+  }
+  return rows;
+}
+function toggleHistGroup(gid){
+  const el = document.getElementById(gid);
+  if (el) el.style.display = el.style.display === "none" ? "block" : "none";
+}
+function closeGroupHTML(g, reversedIds){
+  const salesAmt = g.subs.in ? notesTotal_S(g.subs.in.notes) : 0;
+  const anyReversed = ["in", "take", "box"].some(k => g.subs[k] && reversedIds.has(g.subs[k].id));
+  const detailRows = ["in", "take", "box"]
+    .map(k => g.subs[k] ? movHTML(g.subs[k], reversedIds, { noActions: true }) : "")
+    .join("");
+  const gid = "grp-" + g.baseId.replace(/[^A-Za-z0-9_-]/g, "_");
+  return `<div class="hist-item">
+    <div class="h" onclick="toggleHistGroup('${gid}')" style="cursor:pointer">
+      <span class="t">🧮 レジ締め（${esc_S(g.staff || "—")}）${anyReversed ? " (訂正あり)" : ""}</span>
+      <span class="v plus">+${fmt_S(salesAmt)}</span>
+    </div>
+    <div class="m">${esc_S(dateJP(g.ts))}${cfg.stores.length > 1 ? " ／ " + esc_S(storeName(g.store)) : ""} ／ タップで内訳</div>
+    <div id="${gid}" style="display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)">${detailRows}</div>
+    <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+      <button class="minibtn" onclick="openCorrectClose('${esc_S(g.baseId)}')">✏️ 訂正</button>
+      <button class="minibtn" onclick="openDeleteClose('${esc_S(g.baseId)}')">🗑 削除</button>
+    </div>
+  </div>`;
+}
+
+/** 理由の入力欄（クイックチップ2種＋自由入力）。訂正・削除どちらのモーダルでも使う。 */
+function reasonFieldHTML(inputId){
+  return `<div class="field">
+    <label>理由（必須）</label>
+    <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">
+      <button type="button" class="minibtn" onclick="document.getElementById('${inputId}').value='シェフが間違えたため'">シェフが間違えたため</button>
+      <button type="button" class="minibtn" onclick="document.getElementById('${inputId}').value='練習用のデータだったため'">練習用のデータだったため</button>
+    </div>
+    <input type="text" id="${inputId}" placeholder="理由を入力">
+  </div>`;
+}
+
+// =============================================================
+// 記録1件の訂正・削除（2026-08-21〜22）
+// - 「訂正」= 正しい枚数を入力してもらい、差分（BOX_COUNTは実測値そのもの）
+//   を新しい記録として追加する。元の記録は監査のため残す。
+// - 「削除」= まだサーバーに送っていない記録はそのまま消す。送信ずみの
+//   記録は、共有台帳が追記専用（サーバー側で本当に消す手段がない）ため、
+//   全量を打ち消す「訂正」を1件追加する。
+// - どちらも理由の入力を必須にする（シェフが間違えたため／練習用データ
+//   だったため、のクイック入力＋自由記述）。
+// =============================================================
+function openRecordAction(id, mode){
   const m = allMovements().find(x => x.id === id);
   if (!m) return;
-  const unsynced = queue.some(x => x.id === id) && m.seq === undefined;
-  if (unsynced){
-    if (!confirm("この記録はまだサーバーに送信されていません。完全に削除しますか？\n" + notesText(m.notes) + (m.note ? "／" + m.note : ""))) return;
+  const unsynced = m.seq === undefined && queue.some(x => x.id === id);
+  const isCorrect = mode === "correct";
+  const curAbs = {}; for (const d of DENOMS_S) curAbs[d] = Math.abs(Number(m.notes[d]) || 0);
+  const title = isCorrect ? "✏️ この記録を訂正" : (unsynced ? "🗑 この記録を削除" : "↩️ この記録を取り消す");
+  const denomSection = isCorrect ? `
+    <div class="field">
+      <label>正しい枚数</label>
+      <div class="denom-grid" id="raDenoms"></div>
+      <div class="row-between total"><span>合計</span><span id="raTotal">GH₵ 0</span></div>
+    </div>` : "";
+  openModal(`
+    <h3>${title}</h3>
+    <div class="hint">${esc_S(dateJP(m.ts))} ／ ${esc_S(TYPE_LABEL[m.type] || m.type)} ／ 現在: ${esc_S(notesText(m.notes))}${m.note ? " ／ " + esc_S(m.note) : ""}</div>
+    ${!isCorrect && !unsynced ? `<div class="hint">元の記録は残したまま、反対の記録（訂正）を1件追加して打ち消します。</div>` : ""}
+    ${denomSection}
+    ${reasonFieldHTML("raReason")}
+    <button class="bigbtn ${isCorrect ? "" : "red"}" onclick="confirmRecordAction('${esc_S(id)}','${mode}')">${isCorrect ? "💾 訂正を保存" : (unsynced ? "🗑 削除する" : "↩️ 取り消す")}</button>
+    <button class="bigbtn gray" onclick="closeModal()">キャンセル</button>
+  `);
+  if (isCorrect) denomInputs("raDenoms", "ra", curAbs, "updateRaTotal");
+}
+function updateRaTotal(){ updateDenomSubs("ra", "raTotal"); }
+function confirmRecordAction(id, mode){
+  const reason = (document.getElementById("raReason").value || "").trim();
+  if (!reason){ showToast_S("理由を入れてください", true); return; }
+  const m = allMovements().find(x => x.id === id);
+  if (!m) return;
+  const unsynced = m.seq === undefined && queue.some(x => x.id === id);
+
+  if (mode === "delete" && unsynced){
     queue = queue.filter(x => x.id !== id);
     saveQueue();
+    closeModal();
     renderAll();
     showToast_S("🗑 削除しました");
     return;
   }
-  if (!confirm("すでにサーバーへ送信ずみの記録です。元の記録は残したまま、反対の記録（訂正）を1件追加して打ち消します。よろしいですか？\n" + notesText(m.notes) + (m.note ? "／" + m.note : ""))) return;
+  if (mode === "delete"){
+    addMovement({
+      store: m.store, compartment: m.compartment, type: m.type,
+      notes: negNotes(m.notes), ref: m.id, actor: cfg.device || "",
+      note: "削除：" + reason, source: "correction"
+    });
+    closeModal();
+    renderAll(); doSync();
+    showToast_S("✅ 訂正記録を追加しました");
+    return;
+  }
+
+  // 訂正：符号（増減の向き）は元の記録に合わせ、枚数だけ入力してもらう
+  const sign = notesTotal_S(m.notes) < 0 ? -1 : 1;
+  const newAbs = readDenoms("ra");
+  let notes;
+  if (m.type === "BOX_COUNT"){
+    notes = newAbs;   // 実測値そのもの。差分ではない
+  } else {
+    notes = {};
+    for (const d of DENOMS_S) notes[d] = sign * newAbs[d] - (Number(m.notes[d]) || 0);
+    if (!notesNonZero(notes)){ showToast_S("変更がありません", true); return; }
+  }
   addMovement({
     store: m.store, compartment: m.compartment, type: m.type,
-    notes: negNotes(m.notes), ref: m.id, actor: cfg.device || "",
-    note: "訂正：" + (m.note || TYPE_LABEL[m.type] || m.type) + " を打ち消し",
-    source: "correction"
+    notes, ref: m.id, actor: cfg.device || "",
+    note: "訂正：" + reason, source: "correction"
   });
+  closeModal();
   renderAll(); doSync();
-  showToast_S("✅ 訂正記録を追加しました");
+  showToast_S("✅ 訂正を保存しました");
+}
+
+// =============================================================
+// レジ締め1回分（SALES_IN／TAKE_CHANGE／BOX_COUNTの3件）をまとめて訂正・削除
+// =============================================================
+function closeSubMovements(baseId){
+  return {
+    take: allMovements().find(x => x.id === baseId + "-take"),
+    salesIn: allMovements().find(x => x.id === baseId + "-in"),
+    box: allMovements().find(x => x.id === baseId + "-box")
+  };
+}
+function openCorrectClose(baseId){
+  const { take, salesIn, box } = closeSubMovements(baseId);
+  if (!take && !salesIn && !box){ showToast_S("記録が見つかりません", true); return; }
+  const takeVals = take ? negNotes(take.notes) : emptyNotes();
+  const salesVals = salesIn ? salesIn.notes : emptyNotes();
+  const boxVals = box ? box.notes : emptyNotes();
+  openModal(`
+    <h3>✏️ このレジ締めを訂正</h3>
+    <div class="hint">シェフが実際にやった内容と違っていたときに、正しい枚数に直す。元の記録は監査のため残る。</div>
+    ${reasonFieldHTML("corReason")}
+    <div class="field">
+      <label>🧰 おつり箱から持ち出した枚数（正しい値）</label>
+      <div class="denom-grid" id="corTake"></div>
+      <div class="row-between total"><span>合計</span><span id="corTakeTotal">GH₵ 0</span></div>
+    </div>
+    <div class="field">
+      <label>💰 金庫へ入れた売上（正しい値）</label>
+      <div class="denom-grid" id="corSafe"></div>
+      <div class="row-between total"><span>合計</span><span id="corSafeTotal">GH₵ 0</span></div>
+    </div>
+    <div class="field">
+      <label>📏 おつり箱の実測（正しい値）</label>
+      <div class="denom-grid" id="corBox"></div>
+      <div class="row-between total"><span>合計</span><span id="corBoxTotal">GH₵ 0</span></div>
+    </div>
+    <button class="bigbtn" onclick="saveCorrectClose('${esc_S(baseId)}')">💾 訂正を保存</button>
+    <button class="bigbtn gray" onclick="closeModal()">キャンセル</button>
+  `);
+  denomInputs("corTake", "ctk", takeVals, "updateCorTotals");
+  denomInputs("corSafe", "csf", salesVals, "updateCorTotals");
+  denomInputs("corBox", "cbx", boxVals, "updateCorTotals");
+  updateCorTotals();
+}
+function updateCorTotals(){
+  updateDenomSubs("ctk", "corTakeTotal");
+  updateDenomSubs("csf", "corSafeTotal");
+  updateDenomSubs("cbx", "corBoxTotal");
+}
+function saveCorrectClose(baseId){
+  const reason = (document.getElementById("corReason").value || "").trim();
+  if (!reason){ showToast_S("理由を入れてください", true); return; }
+  const { take, salesIn, box } = closeSubMovements(baseId);
+  const anchor = take || salesIn || box;
+  if (!anchor){ showToast_S("記録が見つかりません", true); return; }
+  const store = anchor.store;
+  let n = 0;
+
+  const newTake = readDenoms("ctk");
+  const oldTake = take ? negNotes(take.notes) : emptyNotes();
+  const takeDiff = {}; for (const d of DENOMS_S) takeDiff[d] = newTake[d] - oldTake[d];
+  if (notesNonZero(takeDiff)){
+    addMovement({ store, compartment: "change", type: "TAKE_CHANGE",
+      notes: negNotes(takeDiff), ref: take ? take.id : baseId,
+      actor: cfg.device || "", note: "訂正：" + reason, source: "correction" });
+    n++;
+  }
+
+  const newSales = readDenoms("csf");
+  const oldSales = salesIn ? salesIn.notes : emptyNotes();
+  const salesDiff = {}; for (const d of DENOMS_S) salesDiff[d] = newSales[d] - (Number(oldSales[d]) || 0);
+  if (notesNonZero(salesDiff)){
+    addMovement({ store, compartment: "sales", type: "SALES_IN",
+      notes: salesDiff, ref: salesIn ? salesIn.id : baseId,
+      actor: cfg.device || "", note: "訂正：" + reason, source: "correction" });
+    n++;
+  }
+
+  const newBox = readDenoms("cbx");
+  const oldBox = box ? box.notes : emptyNotes();
+  const boxChanged = DENOMS_S.some(d => (Number(newBox[d]) || 0) !== (Number(oldBox[d]) || 0));
+  if (boxChanged){
+    addMovement({ store, compartment: "change", type: "BOX_COUNT",
+      notes: newBox, ref: box ? box.id : baseId,
+      actor: cfg.device || "", note: "訂正：" + reason, source: "correction" });
+    n++;
+  }
+
+  closeModal();
+  renderAll(); doSync();
+  showToast_S(n ? "✅ 訂正を保存しました" : "変更がありませんでした");
+}
+function openDeleteClose(baseId){
+  const { take, salesIn, box } = closeSubMovements(baseId);
+  if (!take && !salesIn && !box){ showToast_S("記録が見つかりません", true); return; }
+  openModal(`
+    <h3>🗑 このレジ締めを削除</h3>
+    <div class="hint">売上・おつり払出の記録を打ち消します（元は監査のため残ります）。<br>
+    おつり箱の実測はここでは変えません。違っていれば「補充」タブで数え直してください。</div>
+    ${reasonFieldHTML("delReason")}
+    <button class="bigbtn red" onclick="confirmDeleteClose('${esc_S(baseId)}')">🗑 削除する</button>
+    <button class="bigbtn gray" onclick="closeModal()">キャンセル</button>
+  `);
+}
+function confirmDeleteClose(baseId){
+  const reason = (document.getElementById("delReason").value || "").trim();
+  if (!reason){ showToast_S("理由を入れてください", true); return; }
+  const { take, salesIn, box } = closeSubMovements(baseId);
+  for (const m of [take, salesIn]){
+    if (!m) continue;
+    if (m.seq === undefined && queue.some(x => x.id === m.id)){
+      queue = queue.filter(x => x.id !== m.id);
+    } else {
+      addMovement({
+        store: m.store, compartment: m.compartment, type: m.type,
+        notes: negNotes(m.notes), ref: m.id, actor: cfg.device || "",
+        note: "削除：" + reason, source: "correction"
+      });
+    }
+  }
+  saveQueue();
+  closeModal();
+  renderAll(); doSync();
+  showToast_S(box ? "✅ 削除しました（おつり箱の実測は履歴に残ります）" : "✅ 削除しました");
 }
 
 function updateBadges(pendingCount, transitCount){
@@ -4112,11 +4358,22 @@ function renderHistory_S(){
   const st = currentStore();
   if (!st) return;
   const f = document.getElementById("histFilter").value;
-  const list = allMovements()
-    .filter(m => m.store === st.code && (f === "all" || m.compartment === f))
-    .sort((a, b) => String(b.ts).localeCompare(String(a.ts)))
-    .slice(0, 200);
+  const raw = allMovements().filter(m => m.store === st.code && (f === "all" || m.compartment === f));
   const reversedIds = reversedMovementIds();
+
+  // 「すべて」で見ているときだけ、1回のレジ締め（SALES_IN/TAKE_CHANGE/
+  // BOX_COUNTの3件）を1枚のカードにまとめる。区画で絞り込んでいるときは
+  // 3件が揃わないことがあるので素のリストのまま出す。
+  if (f === "all"){
+    const rows = groupCloseRecords(raw)
+      .sort((a, b) => String(b.ts).localeCompare(String(a.ts)))
+      .slice(0, 200);
+    document.getElementById("histList").innerHTML = rows.length
+      ? rows.map(r => r.kind === "group" ? closeGroupHTML(r, reversedIds) : movHTML(r.mov, reversedIds)).join("")
+      : `<div class="empty">記録がありません</div>`;
+    return;
+  }
+  const list = raw.sort((a, b) => String(b.ts).localeCompare(String(a.ts))).slice(0, 200);
   document.getElementById("histList").innerHTML = list.length
     ? list.map(m => movHTML(m, reversedIds)).join("")
     : `<div class="empty">記録がありません</div>`;
