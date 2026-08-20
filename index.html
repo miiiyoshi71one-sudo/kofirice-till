@@ -1433,12 +1433,13 @@
 <div class="screen" id="scr-history">
   <div class="card">
     <h2>📒 履歴・記録の管理</h2>
-    <div class="hint">
+    <div class="hint" id="histIntro">
       間違えた記録・入れ忘れた記録があるときはここで直す。
-      <b>「取り消す」</b> = まだサーバーに送っていない記録は完全に消える。すでに送信ずみの記録は、監査のため元は残したまま<b>反対の記録（訂正）</b>を1件追加して打ち消す（残高はすぐ正しくなる）。
-      入れ忘れた記録の追加は「反映」タブの「✍️ 手入力で記録」から。おつり箱の実測（棚卸）を訂正したいときは「補充」タブの「🔍 実際に数えて合わせる」を使う（BOX_COUNTは打ち消しでは直せないため）。
+      <b>✏️ 訂正</b> = 正しい枚数を入力すると差分を記録する。
+      <b>🗑 削除</b> = ゴミ箱へ移動し、履歴・残高から即座に消える（ゴミ箱タブから元に戻す・完全に削除するができる）。
+      入れ忘れた記録の追加は「反映」タブの「✍️ 手入力で記録」から。
     </div>
-    <div class="field">
+    <div class="field" id="histFilterField">
       <label>絞り込み</label>
       <select id="histFilter" onchange="renderHistory_S()">
         <option value="all">すべて</option>
@@ -1446,6 +1447,7 @@
         <option value="sales">💰 売上保管のみ</option>
       </select>
     </div>
+    <button class="bigbtn gray" id="histTrashToggle" onclick="toggleTrashView()">🗑 ゴミ箱</button>
   </div>
   <div id="histList"></div>
   <button class="bigbtn gray" onclick="exportCSV_S()">⬇ CSVをダウンロード</button>
@@ -3099,8 +3101,15 @@ function onStoreChange(){
 // =============================================================
 // 残高計算
 // =============================================================
-/** キャッシュ済み＋未送信キューをまとめた、いま画面に出すべき全記録。 */
-function allMovements(){ return movements.concat(queue); }
+/** キャッシュ済み＋未送信キューをまとめた、サーバー上の全記録（ゴミ箱ぶんも含む）。 */
+function allMovementsRaw(){ return movements.concat(queue); }
+/**
+ * 残高計算・履歴・CSV書き出しなど、通常の画面すべてがここを使う。
+ * `hidden:true`（ゴミ箱に入れた記録）はここで除外されるので、削除した
+ * 記録は残高計算からも一覧からも一切出てこなくなる（2026-08-22）。
+ * ゴミ箱の中身を見るときだけ allMovementsRaw() を直接使う。
+ */
+function allMovements(){ return allMovementsRaw().filter(m => !m.hidden); }
 
 function cmpMov(a, b){
   const t = String(a.ts).localeCompare(String(b.ts));
@@ -3719,10 +3728,9 @@ function movHTML(m, reversedIds, opts){
   const reversedLine = alreadyReversed ? `<div class="m" style="color:var(--red);font-weight:700">↩️ 訂正ずみ</div>` : "";
   let actionBtns = "";
   if (!opts.noActions && !isCorrection && !alreadyReversed){
-    const canDelete = m.type !== "BOX_COUNT";   // 実測値そのものなので「打ち消す」が意味を持たない
     actionBtns = `<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
       <button class="minibtn" onclick="openRecordAction('${esc_S(m.id)}','correct')">✏️ 訂正</button>
-      ${canDelete ? `<button class="minibtn" onclick="openRecordAction('${esc_S(m.id)}','delete')">🗑 削除</button>` : ""}
+      <button class="minibtn" onclick="openRecordAction('${esc_S(m.id)}','delete')">🗑 削除</button>
     </div>`;
   }
   return `<div class="${opts.noActions ? "" : "hist-item"}">
@@ -3823,10 +3831,9 @@ function reasonFieldHTML(inputId){
 function openRecordAction(id, mode){
   const m = allMovements().find(x => x.id === id);
   if (!m) return;
-  const unsynced = m.seq === undefined && queue.some(x => x.id === id);
   const isCorrect = mode === "correct";
   const curAbs = {}; for (const d of DENOMS_S) curAbs[d] = Math.abs(Number(m.notes[d]) || 0);
-  const title = isCorrect ? "✏️ この記録を訂正" : (unsynced ? "🗑 この記録を削除" : "↩️ この記録を取り消す");
+  const title = isCorrect ? "✏️ この記録を訂正" : "🗑 この記録をゴミ箱へ";
   const denomSection = isCorrect ? `
     <div class="field">
       <label>正しい枚数</label>
@@ -3836,39 +3843,42 @@ function openRecordAction(id, mode){
   openModal(`
     <h3>${title}</h3>
     <div class="hint">${esc_S(dateJP(m.ts))} ／ ${esc_S(TYPE_LABEL[m.type] || m.type)} ／ 現在: ${esc_S(notesText(m.notes))}${m.note ? " ／ " + esc_S(m.note) : ""}</div>
-    ${!isCorrect && !unsynced ? `<div class="hint">元の記録は残したまま、反対の記録（訂正）を1件追加して打ち消します。</div>` : ""}
+    ${!isCorrect ? `<div class="hint">履歴・残高から消えます（ゴミ箱タブから元に戻す・完全に削除するができます）。</div>` : ""}
     ${denomSection}
     ${reasonFieldHTML("raReason")}
-    <button class="bigbtn ${isCorrect ? "" : "red"}" onclick="confirmRecordAction('${esc_S(id)}','${mode}')">${isCorrect ? "💾 訂正を保存" : (unsynced ? "🗑 削除する" : "↩️ 取り消す")}</button>
+    <button class="bigbtn ${isCorrect ? "" : "red"}" onclick="confirmRecordAction('${esc_S(id)}','${mode}')">${isCorrect ? "💾 訂正を保存" : "🗑 ゴミ箱へ移動"}</button>
     <button class="bigbtn gray" onclick="closeModal()">キャンセル</button>
   `);
   if (isCorrect) denomInputs("raDenoms", "ra", curAbs, "updateRaTotal");
 }
 function updateRaTotal(){ updateDenomSubs("ra", "raTotal"); }
+/**
+ * 記録をゴミ箱に入れる（2026-08-22）。サーバー（GAS）は追記専用で本当には
+ * 消せないため、ローカルに hidden フラグを立てて allMovements() から除外
+ * する方式にした。これで残高・履歴・CSV書き出しすべてから即座に消える。
+ * ゴミ箱タブから「元に戻す」（hiddenを外す）「完全に削除」（未送信なら
+ * 配列から本当に取り除く。送信ずみはこれ以上ローカルではできることが
+ * ないので purged フラグでゴミ箱からも隠す）ができる。
+ */
+function hideMovement(m, reason){
+  m.hidden = true;
+  m.hiddenReason = reason;
+  m.hiddenAt = new Date().toISOString();
+  m.hiddenBy = cfg.device || "";
+  if (queue.some(x => x.id === m.id)) saveQueue();
+  if (movements.some(x => x.id === m.id)) saveMovs();
+}
 function confirmRecordAction(id, mode){
   const reason = (document.getElementById("raReason").value || "").trim();
   if (!reason){ showToast_S("理由を入れてください", true); return; }
   const m = allMovements().find(x => x.id === id);
   if (!m) return;
-  const unsynced = m.seq === undefined && queue.some(x => x.id === id);
 
-  if (mode === "delete" && unsynced){
-    queue = queue.filter(x => x.id !== id);
-    saveQueue();
+  if (mode === "delete"){
+    hideMovement(m, reason);
     closeModal();
     renderAll();
-    showToast_S("🗑 削除しました");
-    return;
-  }
-  if (mode === "delete"){
-    addMovement({
-      store: m.store, compartment: m.compartment, type: m.type,
-      notes: negNotes(m.notes), ref: m.id, actor: cfg.device || "",
-      note: "削除：" + reason, source: "correction"
-    });
-    closeModal();
-    renderAll(); doSync();
-    showToast_S("✅ 訂正記録を追加しました");
+    showToast_S("🗑 ゴミ箱に移動しました");
     return;
   }
 
@@ -3988,11 +3998,10 @@ function openDeleteClose(baseId){
   const { take, salesIn, box } = closeSubMovements(baseId);
   if (!take && !salesIn && !box){ showToast_S("記録が見つかりません", true); return; }
   openModal(`
-    <h3>🗑 このレジ締めを削除</h3>
-    <div class="hint">売上・おつり払出の記録を打ち消します（元は監査のため残ります）。<br>
-    おつり箱の実測はここでは変えません。違っていれば「補充」タブで数え直してください。</div>
+    <h3>🗑 このレジ締めをゴミ箱へ</h3>
+    <div class="hint">売上・おつり払出・おつり実測（3件とも）が履歴・残高から消えます。ゴミ箱タブから元に戻す・完全に削除するができます。</div>
     ${reasonFieldHTML("delReason")}
-    <button class="bigbtn red" onclick="confirmDeleteClose('${esc_S(baseId)}')">🗑 削除する</button>
+    <button class="bigbtn red" onclick="confirmDeleteClose('${esc_S(baseId)}')">🗑 ゴミ箱へ移動</button>
     <button class="bigbtn gray" onclick="closeModal()">キャンセル</button>
   `);
 }
@@ -4000,22 +4009,12 @@ function confirmDeleteClose(baseId){
   const reason = (document.getElementById("delReason").value || "").trim();
   if (!reason){ showToast_S("理由を入れてください", true); return; }
   const { take, salesIn, box } = closeSubMovements(baseId);
-  for (const m of [take, salesIn]){
-    if (!m) continue;
-    if (m.seq === undefined && queue.some(x => x.id === m.id)){
-      queue = queue.filter(x => x.id !== m.id);
-    } else {
-      addMovement({
-        store: m.store, compartment: m.compartment, type: m.type,
-        notes: negNotes(m.notes), ref: m.id, actor: cfg.device || "",
-        note: "削除：" + reason, source: "correction"
-      });
-    }
+  for (const m of [take, salesIn, box]){
+    if (m) hideMovement(m, reason);
   }
-  saveQueue();
   closeModal();
-  renderAll(); doSync();
-  showToast_S(box ? "✅ 削除しました（おつり箱の実測は履歴に残ります）" : "✅ 削除しました");
+  renderAll();
+  showToast_S("🗑 ゴミ箱に移動しました");
 }
 
 function updateBadges(pendingCount, transitCount){
@@ -4354,9 +4353,39 @@ function submitCount(){
 // =============================================================
 // 画面：履歴
 // =============================================================
+let histShowTrash = false;
+function toggleTrashView(){
+  histShowTrash = !histShowTrash;
+  renderHistory_S();
+}
 function renderHistory_S(){
   const st = currentStore();
   if (!st) return;
+
+  const intro = document.getElementById("histIntro");
+  const filterField = document.getElementById("histFilterField");
+  const trashBtn = document.getElementById("histTrashToggle");
+  if (histShowTrash){
+    intro.innerHTML = "ここに入っている記録は履歴・残高から除外ずみ。<b>↩️ 元に戻す</b>で普通の記録に戻せる。<b>🔥 完全に削除</b>は、まだサーバーに送っていない記録は本当に消える。送信ずみの記録はサーバー（Googleスプレッドシート）側までは技術的に消せないが、このアプリのどの画面にも二度と出てこなくなる。";
+    filterField.style.display = "none";
+    trashBtn.textContent = "⬅ 履歴に戻る";
+  } else {
+    intro.innerHTML = "間違えた記録・入れ忘れた記録があるときはここで直す。<b>✏️ 訂正</b> = 正しい枚数を入力すると差分を記録する。<b>🗑 削除</b> = ゴミ箱へ移動し、履歴・残高から即座に消える（ゴミ箱タブから元に戻す・完全に削除するができる）。入れ忘れた記録の追加は「反映」タブの「✍️ 手入力で記録」から。";
+    filterField.style.display = "";
+    const trashCount = allMovementsRaw().filter(m => m.hidden && !m.purged && m.store === st.code).length;
+    trashBtn.textContent = "🗑 ゴミ箱" + (trashCount ? `（${trashCount}）` : "");
+  }
+
+  if (histShowTrash){
+    const trash = allMovementsRaw()
+      .filter(m => m.hidden && !m.purged && m.store === st.code)
+      .sort((a, b) => String(b.hiddenAt || b.ts).localeCompare(String(a.hiddenAt || a.ts)));
+    document.getElementById("histList").innerHTML = trash.length
+      ? trash.map(trashItemHTML).join("")
+      : `<div class="empty">ゴミ箱は空です</div>`;
+    return;
+  }
+
   const f = document.getElementById("histFilter").value;
   const raw = allMovements().filter(m => m.store === st.code && (f === "all" || m.compartment === f));
   const reversedIds = reversedMovementIds();
@@ -4377,6 +4406,55 @@ function renderHistory_S(){
   document.getElementById("histList").innerHTML = list.length
     ? list.map(m => movHTML(m, reversedIds)).join("")
     : `<div class="empty">記録がありません</div>`;
+}
+
+function trashItemHTML(m){
+  const amt = notesTotal_S(m.notes);
+  const icon = m.compartment === "change" ? "🧰" : m.compartment === "transit" ? "🚚" : "💰";
+  const unsynced = m.seq === undefined && queue.some(x => x.id === m.id);
+  return `<div class="hist-item">
+    <div class="h">
+      <span class="t">${icon} ${esc_S(TYPE_LABEL[m.type] || m.type)}</span>
+      <span class="v">${fmt_S(Math.abs(amt))}</span>
+    </div>
+    <div class="m">${esc_S(dateJP(m.ts))}${m.actor ? " ／ " + esc_S(m.actor) : ""}${cfg.stores.length > 1 ? " ／ " + esc_S(storeName(m.store)) : ""}</div>
+    <div class="m">${esc_S(notesText(m.notes))}${m.note ? " ／ " + esc_S(m.note) : ""}</div>
+    <div class="m" style="color:var(--red)">🗑 理由: ${esc_S(m.hiddenReason || "—")}${m.hiddenAt ? "（" + esc_S(dateJP(m.hiddenAt)) + "）" : ""}</div>
+    <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+      <button class="minibtn" onclick="restoreFromTrash('${esc_S(m.id)}')">↩️ 元に戻す</button>
+      <button class="minibtn" style="background:#fdeceb;color:var(--red)" onclick="purgeFromTrash('${esc_S(m.id)}')">🔥 完全に削除${unsynced ? "" : "（サーバーには残る）"}</button>
+    </div>
+  </div>`;
+}
+function restoreFromTrash(id){
+  const m = allMovementsRaw().find(x => x.id === id);
+  if (!m) return;
+  m.hidden = false;
+  m.hiddenReason = undefined;
+  m.hiddenAt = undefined;
+  m.hiddenBy = undefined;
+  if (queue.some(x => x.id === id)) saveQueue();
+  if (movements.some(x => x.id === id)) saveMovs();
+  renderHistory_S();
+  showToast_S("↩️ 元に戻しました");
+}
+function purgeFromTrash(id){
+  const m = allMovementsRaw().find(x => x.id === id);
+  if (!m) return;
+  const unsynced = m.seq === undefined && queue.some(x => x.id === id);
+  const msg = unsynced
+    ? "この記録を完全に削除します。元に戻せません。よろしいですか？"
+    : "この記録はすでにサーバー（Googleスプレッドシート）へ送信ずみのため、サーバー側のデータそのものは技術的に消せません。ただしこのアプリのどの画面（ゴミ箱を含む）にも二度と表示されなくなります。よろしいですか？";
+  if (!confirm(msg)) return;
+  if (unsynced){
+    queue = queue.filter(x => x.id !== id);
+    saveQueue();
+  } else {
+    m.purged = true;
+    saveMovs();
+  }
+  renderHistory_S();
+  showToast_S("🔥 完全に削除しました");
 }
 
 function exportCSV_S(){
