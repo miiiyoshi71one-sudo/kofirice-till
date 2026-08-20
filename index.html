@@ -1429,10 +1429,15 @@
   </div>
 </div>
 
-<!-- ================= 履歴 ================= -->
+<!-- ================= 履歴（記録の管理） ================= -->
 <div class="screen" id="scr-history">
   <div class="card">
-    <h2>📒 履歴</h2>
+    <h2>📒 履歴・記録の管理</h2>
+    <div class="hint">
+      間違えた記録・入れ忘れた記録があるときはここで直す。
+      <b>「取り消す」</b> = まだサーバーに送っていない記録は完全に消える。すでに送信ずみの記録は、監査のため元は残したまま<b>反対の記録（訂正）</b>を1件追加して打ち消す（残高はすぐ正しくなる）。
+      入れ忘れた記録の追加は「反映」タブの「✍️ 手入力で記録」から。おつり箱の実測（棚卸）を訂正したいときは「補充」タブの「🔍 実際に数えて合わせる」を使う（BOX_COUNTは打ち消しでは直せないため）。
+    </div>
     <div class="field">
       <label>絞り込み</label>
       <select id="histFilter" onchange="renderHistory_S()">
@@ -3690,21 +3695,81 @@ function renderHome(){
   updateBadges(pending.length, transit.length);
 }
 
-function movHTML(m){
+/**
+ * ある記録がすでに「訂正」で打ち消されているか判定するためのidセット。
+ * 訂正記録は addMovement() で ref: 元のid を付けて作るので、その ref を
+ * 集めるだけでよい（サーバー経由で他端末にも伝わる。ローカルだけの
+ * フラグに頼らない）。
+ */
+function reversedMovementIds(){
+  const s = new Set();
+  for (const m of allMovements()) if (m.source === "correction" && m.ref) s.add(m.ref);
+  return s;
+}
+function movHTML(m, reversedIds){
   const amt = notesTotal_S(m.notes);
   const icon = m.compartment === "change" ? "🧰" : m.compartment === "transit" ? "🚚" : "💰";
   // BOX_COUNT は増減ではなく「そのとき入っていた金額」なので符号を付けない
   const val = m.type === "BOX_COUNT"
     ? `<span class="v">= ${fmt_S(amt)}</span>`
     : `<span class="v ${amt >= 0 ? "plus" : "minus"}">${amt >= 0 ? "+" : "−"}${fmt_S(Math.abs(amt))}</span>`;
+  const isCorrection = m.source === "correction";
+  const alreadyReversed = reversedIds ? reversedIds.has(m.id) : false;
+  const reversedLine = alreadyReversed ? `<div class="m" style="color:var(--red);font-weight:700">↩️ 取り消しずみ</div>` : "";
+  // まだサーバーに送っていない記録は、種類を問わず完全に削除できる。
+  const unsynced = m.seq === undefined && queue.some(x => x.id === m.id);
+  let actionBtn = "";
+  if (unsynced){
+    actionBtn = `<button class="minibtn" style="margin-top:6px" onclick="reverseOrDeleteMovement('${esc_S(m.id)}')">🗑 削除（未送信）</button>`;
+  } else if (!alreadyReversed && !isCorrection && m.type !== "BOX_COUNT"){
+    actionBtn = `<button class="minibtn" style="margin-top:6px" onclick="reverseOrDeleteMovement('${esc_S(m.id)}')">↩️ 取り消す</button>`;
+  } else if (!alreadyReversed && m.type === "BOX_COUNT"){
+    actionBtn = `<div class="m" style="color:var(--muted)">直すには「補充」タブで棚卸をやり直してください</div>`;
+  }
   return `<div class="hist-item">
     <div class="h">
-      <span class="t">${icon} ${esc_S(TYPE_LABEL[m.type] || m.type)}</span>
+      <span class="t">${icon} ${esc_S(TYPE_LABEL[m.type] || m.type)}${isCorrection ? " (訂正)" : ""}</span>
       ${val}
     </div>
     <div class="m">${esc_S(dateJP(m.ts))}${m.actor ? " ／ " + esc_S(m.actor) : ""}${cfg.stores.length > 1 ? " ／ " + esc_S(storeName(m.store)) : ""}</div>
     <div class="m">${esc_S(notesText(m.notes))}${m.note ? " ／ " + esc_S(m.note) : ""}</div>
+    ${reversedLine}
+    ${actionBtn}
   </div>`;
+}
+
+/**
+ * 記録の取り消し（2026-08-21追加）。
+ * - まだサーバーに送っていない記録（queueにあり、seqが付いていない）は、
+ *   何も残す必要がないので完全に削除する。
+ * - すでに送信ずみの記録（movementsにあり、seqが付いている）は、共有台帳が
+ *   追記専用（サーバー側で本当に消す手段がない）ため削除できない。代わりに
+ *   反対向きの「訂正」記録を1件追加して打ち消す。元の記録も監査のため
+ *   そのまま残す（"取り消しずみ"の印だけ付ける）。
+ * - BOX_COUNT（そのときの実測値そのもの）は増減の記録ではないため、
+ *   このボタンでは扱わない（棚卸をやり直してもらう）。
+ */
+function reverseOrDeleteMovement(id){
+  const m = allMovements().find(x => x.id === id);
+  if (!m) return;
+  const unsynced = queue.some(x => x.id === id) && m.seq === undefined;
+  if (unsynced){
+    if (!confirm("この記録はまだサーバーに送信されていません。完全に削除しますか？\n" + notesText(m.notes) + (m.note ? "／" + m.note : ""))) return;
+    queue = queue.filter(x => x.id !== id);
+    saveQueue();
+    renderAll();
+    showToast_S("🗑 削除しました");
+    return;
+  }
+  if (!confirm("すでにサーバーへ送信ずみの記録です。元の記録は残したまま、反対の記録（訂正）を1件追加して打ち消します。よろしいですか？\n" + notesText(m.notes) + (m.note ? "／" + m.note : ""))) return;
+  addMovement({
+    store: m.store, compartment: m.compartment, type: m.type,
+    notes: negNotes(m.notes), ref: m.id, actor: cfg.device || "",
+    note: "訂正：" + (m.note || TYPE_LABEL[m.type] || m.type) + " を打ち消し",
+    source: "correction"
+  });
+  renderAll(); doSync();
+  showToast_S("✅ 訂正記録を追加しました");
 }
 
 function updateBadges(pendingCount, transitCount){
@@ -4051,8 +4116,9 @@ function renderHistory_S(){
     .filter(m => m.store === st.code && (f === "all" || m.compartment === f))
     .sort((a, b) => String(b.ts).localeCompare(String(a.ts)))
     .slice(0, 200);
+  const reversedIds = reversedMovementIds();
   document.getElementById("histList").innerHTML = list.length
-    ? list.map(movHTML).join("")
+    ? list.map(m => movHTML(m, reversedIds)).join("")
     : `<div class="empty">記録がありません</div>`;
 }
 
