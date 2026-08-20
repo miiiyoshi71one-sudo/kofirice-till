@@ -1596,6 +1596,11 @@
     <div class="hint">Only use this if the number above doesn't match what you count.</div>
     <div class="denom-grid" id="drvCountDenoms"></div>
     <div class="row-between total"><span>Counted total</span><span id="drvCountTotal">GH₵ 0</span></div>
+    <div id="drvCountDiffBox"></div>
+    <div class="field" id="drvCountReasonField" style="display:none">
+      <label>Why doesn't it match? (required)</label>
+      <input type="text" id="drvCountReason" placeholder="e.g. gave change for a delivery, box was short this morning...">
+    </div>
     <button class="bigbtn red" onclick="submitDriverCount()">🔍 Match to what I counted</button>
   </div>
 </div>
@@ -3506,7 +3511,14 @@ function applyPaste(){
 // =============================================================
 // 手入力
 // =============================================================
-function denomInputs(containerId, prefix, values, onchange){
+/**
+ * hintValues を渡すと、入力欄には入れず「参考として何枚必要か」を
+ * ラベル横に薄く表示するだけにする（値そのものは自動で埋めない）。
+ * ドライバーの補充画面用（2026-08-22）: 自動入力された数をそのまま
+ * 送信されると、実際に足した枚数と食い違うことがある（多め/少なめに
+ * 入れることもある）ため、参考表示に留めて実入力は必ず本人にさせる。
+ */
+function denomInputs(containerId, prefix, values, onchange, hintValues){
   const box = document.getElementById(containerId);
   box.innerHTML = DENOMS_S.map(d => {
     // 枚数が多い紙幣（特に₵1）は+1連打だと遅いので、till STEP3と同じ「±10・
@@ -3516,11 +3528,12 @@ function denomInputs(containerId, prefix, values, onchange){
       `<button class="qa-minus" onclick="bumpDenomInput('${prefix}-${d}','${onchange}',-${n})">−${n}</button>`).join("")
       + quick.map(n =>
       `<button onclick="bumpDenomInput('${prefix}-${d}','${onchange}',${n})">+${n}</button>`).join("");
+    const hint = hintValues ? ` <b style="color:var(--muted)">（必要 ${Number(hintValues[d]) || 0}枚）</b>` : "";
     return `
     <div>
       <div class="denom-row">
         <span class="note-mini" style="background:${COLORS_S[d]}">₵${d}</span>
-        <span class="lbl">枚</span>
+        <span class="lbl">枚${hint}</span>
         <input type="number" min="0" step="1" inputmode="numeric" id="${prefix}-${d}"
                value="${values && values[d] ? values[d] : ""}" placeholder="0" oninput="${onchange}()">
         <span class="sub" id="${prefix}sub-${d}">GH₵ 0</span>
@@ -5076,7 +5089,10 @@ function renderDriverChange(){
   }).join("") || `<tr><td colspan="4" style="color:var(--muted);padding:16px">No records yet</td></tr>`;
 
   if (driverChangeDenomsStale){
-    denomInputs("drvRefillDenoms", "drf", need, "updateDriverRefillTotal");
+    // 不足数(need)は自動入力せず、参考として枚数ラベルの横に薄く出すだけに
+    // する。実際に足す枚数はドライバー本人が入力する（多少ずれることも
+    // 織り込み済み — 入れられるときに多めに入れることもある）。
+    denomInputs("drvRefillDenoms", "drf", null, "updateDriverRefillTotal", need);
     const cur = balance(st.code, "change");
     const shown = emptyNotes();
     for (const d of DENOMS_S) shown[d] = Math.max(0, cur[d]);
@@ -5105,20 +5121,44 @@ function updateDriverCountTotal(){
   const st = currentStore();
   if (!st) return;
   const counted = updateDenomSubs("dcnt", "drvCountTotal");
-  void counted;
+  const have = balance(st.code, "change");
+  const diff = Math.round((notesTotal_S(counted) - notesTotal_S(have)) * 100) / 100;
+  const box = document.getElementById("drvCountDiffBox");
+  const reasonField = document.getElementById("drvCountReasonField");
+  if (diff === 0){
+    box.innerHTML = "";
+    reasonField.style.display = "none";
+  } else {
+    box.innerHTML = `<div class="warn bad"><b>${diff > 0 ? "Over" : "Short"} by ${fmt_S(Math.abs(diff))}</b> vs what the app expects (${fmt_S(notesTotal_S(have))}).</div>`;
+    reasonField.style.display = "";
+  }
 }
 function submitDriverCount(){
   const st = currentStore();
   if (!st || !driverSession) return;
   const counted = readDenoms("dcnt");
+  const have = balance(st.code, "change");
+  const diff = Math.round((notesTotal_S(counted) - notesTotal_S(have)) * 100) / 100;
+  const reason = (document.getElementById("drvCountReason").value || "").trim();
+  if (diff !== 0 && !reason){
+    showToast_S("Please write why it doesn't match first.", true);
+    document.getElementById("drvCountReason").focus();
+    return;
+  }
   addMovement({
     store: st.code, compartment: "change", type: "BOX_COUNT", notes: counted,
-    note: countNote(st.code, counted), actor: driverSession.name, source: "driver"
+    note: countNote(st.code, counted) + (reason ? " ／ " + reason : ""), actor: driverSession.name, source: "driver"
   });
   checkLowStockAlert(st.code);
+  // 数が合わなかったときは、下限アラートの有無に関わらずすぐマネージャーへ
+  // 知らせる（2026-08-22）。
+  if (diff !== 0){
+    notifyLark(`⚠️ ${storeName(st.code)} のおつり箱が数と合いませんでした\nドライバー: ${driverSession.name}\nアプリ上の残高 ${fmt_S(notesTotal_S(have))} → 実測 ${fmt_S(notesTotal_S(counted))}（${diff > 0 ? "+" : ""}${fmt_S(diff)}）\n理由: ${reason}`);
+  }
+  document.getElementById("drvCountReason").value = "";
   driverChangeDenomsStale = true;
   renderAllDriver(); doSync();
-  showToast_S("✅ Matched to your count");
+  showToast_S(diff !== 0 ? "✅ Recorded — the office has been notified" : "✅ Matched to your count");
 }
 
 // ---------- 画面：Deliver ----------
@@ -5132,12 +5172,17 @@ function renderDriverDeliver(){
   document.getElementById("drvPendingList").innerHTML = pending.length
     ? pending.map(l => {
         const checked = !!driverSelectedLots[l.mov.id];
-        return `<div class="lot${checked ? " done" : ""}" style="${checked ? "border-left-color:var(--blue)" : ""}" onclick="toggleDriverLot('${esc_S(l.mov.id)}')">
-          <div class="top">
-            <span class="date">${checked ? "☑" : "☐"} ${esc_S(dateJP(l.mov.ts))}</span>
+        // カード全体がタップ対象だと気づきにくかったので、実際のチェック
+        // ボックスらしい見た目のマークを付け、未選択のときは「タップして
+        // 選択」の案内も出す（2026-08-22）。
+        return `<div class="lot${checked ? " done" : ""}" style="${checked ? "border-left-color:var(--blue);background:#eef4fb" : ""};cursor:pointer" onclick="toggleDriverLot('${esc_S(l.mov.id)}')">
+          <div class="top" style="align-items:center;gap:10px">
+            <span style="flex:none;width:26px;height:26px;border-radius:7px;border:2px solid ${checked ? "var(--blue)" : "#c8d2cb"};background:${checked ? "var(--blue)" : "#fff"};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px">${checked ? "✓" : ""}</span>
+            <span class="date" style="flex:1">${esc_S(dateJP(l.mov.ts))}</span>
             <span class="amt">${fmt_S(l.remainingAmount)}</span>
           </div>
           <div class="notes">${esc_S(notesText(l.remaining))}</div>
+          ${checked ? "" : `<div class="meta" style="color:var(--blue);font-weight:700;margin-top:4px">👆 Tap this card to select</div>`}
         </div>`;
       }).join("")
     : `<div class="empty">Nothing waiting at ${esc_S(st.name)} 👍</div>`;
