@@ -1217,14 +1217,23 @@
 </div>
 
 <!-- HISTORY -->
-<div class="screen" id="scr-history">
+<!-- ⚠️ id="scr-tillhistory"/"tillHistList"（"scr-history"/"histList"にしない）:
+     金庫アプリ側にも同名のidの履歴画面があり、同じidが2つあると
+     getElementByIdは最初に見つかった方（＝このtill側）を返してしまう
+     （scr-settings/scr-tillsettingsと同じ問題。2026-08-21発見・修正）。 -->
+<div class="screen" id="scr-tillhistory">
   <div class="step-title">📒 Sales record</div>
-  <div id="histList"></div>
+  <div id="tillHistList"></div>
   <button class="bigbtn gray" onclick="exportCSV_T()">⬇ Download CSV</button>
 </div>
 
 <!-- SETTINGS -->
-<div class="screen" id="scr-settings">
+<!-- ⚠️ id="scr-tillsettings"（"scr-settings"にしない）: 金庫アプリ(.app-safe)
+     側にも同じ「scr-settings」というidの設定画面があり、同じidが2つあると
+     getElementByIdは最初に見つかった方（＝このtill側）を返してしまう。
+     金庫アプリのマネージャー設定（⚙️ボタン）を開いても何も表示されない
+     バグの原因だった（2026-08-21発見・修正）。 -->
+<div class="screen" id="scr-tillsettings">
   <div class="step-title">⚙ Float — notes to KEEP for tomorrow
     <small>Manager only. How many of each note stays in the till every night.</small>
   </div>
@@ -1250,7 +1259,7 @@
 
 <nav>
   <button id="tab-count" class="active" onclick="show_T('count')"><span class="ico">🧮</span>Close till</button>
-  <button id="tab-history" onclick="show_T('history')"><span class="ico">📒</span>Record</button>
+  <button id="tab-till-history" onclick="show_T('history')"><span class="ico">📒</span>Record</button>
   <button id="tab-settings" onclick="show_T('settings')"><span class="ico">⚙️</span>Settings</button>
 </nav>
 
@@ -1286,7 +1295,7 @@
     </table>
     <div class="hint" id="homeTillFloat" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)"></div>
     <button class="bigbtn" onclick="show_S('refill')">🧰 補充する</button>
-    <button class="bigbtn gray" onclick="openCurrentStoreModal()">⚙️ 紙幣の枚数・目標を設定</button>
+    <button class="bigbtn gray" onclick="openCurrentStoreModal()">⚙️ 紙幣の枚数・目標・アラート額を設定</button>
   </div>
 
   <div class="card">
@@ -1439,6 +1448,29 @@
 
 <!-- ================= 設定 ================= -->
 <div class="screen" id="scr-settings">
+
+  <div class="card" style="background:#eef6f0;border:2px solid var(--green)">
+    <h2>📖 一連の流れ（お金の一生）</h2>
+    <div class="hint" style="font-size:13.5px;line-height:1.8">
+      <b>① お店 → 金庫（店舗保管中）</b><br>
+      シェフが毎晩レジ締め → 売上は店舗の金庫に積まれる（このアプリの「反映」or 自動同期）。同時に、おつり箱の実測枚数もここで更新される。<br><br>
+      <b>② 金庫（店舗保管中） → ドライバー（配送中）</b><br>
+      「🚚 Deliver」画面でドライバーが日ぶんをチェックして持っていく → 「配送中」に変わる。<br><br>
+      <b>③ ドライバー（配送中） → オフィス（受領確認ずみ）</b><br>
+      マネージャーが「🚚 配送確認」タブで受け取った額を確定 → ここで初めて完了。<br><br>
+      <b>④ おつりが減ってきたら</b><br>
+      店舗のおつり箱が「🔔 下限額」を下回ると、自動でLarkに通知が届く（下で設定）→ ドライバーに補充を依頼する。<br><br>
+      ホーム画面の「🗺️ 今どこに・誰がいくら持っているか」で、いま誰がいくら持っているか一覧で確認できる。
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🏪 店舗・数値設定<span class="sub">おつりの目標枚数・アラート額はここ</span></h2>
+    <div class="hint">おつりボックスの「目標在庫（何枚常に置いておくか）」と「🔔 下限額（これを下回ったらドライバーに知らせる）」は、下の店舗を「編集」した先にあります。</div>
+    <div id="storeList"></div>
+    <button class="bigbtn gray" onclick="openStoreModal(null)">➕ 店舗を追加</button>
+  </div>
+
   <div class="card">
     <h2>🔗 サーバー接続<span class="sub">複数端末で共有</span></h2>
     <div class="hint">Google Apps Script のウェブアプリURLと接続キーを入れると、他の端末と同じデータを見られます。空のままでもこの端末だけで使えます。</div>
@@ -1458,14 +1490,8 @@
   </div>
 
   <div class="card">
-    <h2>🏪 店舗</h2>
-    <div id="storeList"></div>
-    <button class="bigbtn gray" onclick="openStoreModal(null)">➕ 店舗を追加</button>
-  </div>
-
-  <div class="card">
     <h2>📲 Lark通知<span class="sub">任意</span></h2>
-    <div class="hint">受取・補充を記録したときに、日本人グループへ自動で報告を送ります。空欄なら送信しません。</div>
+    <div class="hint">受取・補充・おつり下限アラートを記録したときに、日本人グループへ自動で報告を送ります。空欄なら送信しません。</div>
     <div class="field">
       <label>Lark webhook URL</label>
       <input type="text" id="setLark" placeholder="https://open.larksuite.com/open-apis/bot/v2/hook/...">
@@ -2227,10 +2253,14 @@ function openingTillTotal(){
 // ---------- Screens ----------
 function show_T(name){
   document.querySelectorAll("#app-till .screen").forEach(s => s.classList.remove("active"));
-  document.getElementById("scr-" + name).classList.add("active");
+  // "settings"/"history" は金庫アプリ側と同名idの画面があるため、till専用の
+  // idにずらしてある（scr-tillsettings / scr-tillhistory）。
+  const tillScreenId = { settings: "tillsettings", history: "tillhistory" }[name] || name;
+  document.getElementById("scr-" + tillScreenId).classList.add("active");
   document.querySelectorAll("#app-till nav button").forEach(b => b.classList.remove("active"));
   const closeSteps = ["sales", "count", "adjust", "box", "result", "final", "done"];
-  const tab = document.getElementById("tab-" + (closeSteps.includes(name) ? "count" : name));
+  const tillTabId = { history: "till-history" }[name] || (closeSteps.includes(name) ? "count" : name);
+  const tab = document.getElementById("tab-" + tillTabId);
   if (tab) tab.classList.add("active");
   if (name === "history") renderHistory_T();
   if (name === "settings") renderSettings_T();
@@ -2806,7 +2836,7 @@ function resetAll(){
 // ---------- History ----------
 function renderHistory_T(){
   const hist = loadJSON_T(LS_HIST) || [];
-  const box = document.getElementById("histList");
+  const box = document.getElementById("tillHistList");
   if (!hist.length){ box.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px 0">No records yet.</div>'; return; }
   box.innerHTML = "";
   hist.slice(0, 60).forEach((r, i) => {
