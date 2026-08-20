@@ -1480,6 +1480,12 @@
     <button class="bigbtn gray" onclick="document.getElementById('importFile').click()">⬆ データを読み込む</button>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importBackup(this)">
   </div>
+
+  <div class="card">
+    <h2>🧪 テスト用データの消去</h2>
+    <div class="hint">試しに数日ぶんの記録を入れてみたあと、本番運用の前に**この端末の記録だけ**を空にしたいときに使う。サーバー（GAS）につないでいる場合はサーバー側のデータは消えないので、本当に消したい場合はGoogleスプレッドシート側も確認すること。</div>
+    <button class="bigbtn red" onclick="resetAllMovements()">🗑 この端末の記録を全部消す</button>
+  </div>
 </div>
 
 <!-- ================= モーダル ================= -->
@@ -2676,6 +2682,7 @@ function syncTillRecordDirect(rec){
     });
   }
   if (rec.floatTarget) checkFloatDrift(rec.storeCode, rec.floatTarget);
+  checkLowStockAlert(rec.storeCode);
   doSync();
 }
 
@@ -3423,6 +3430,7 @@ function applyPaste(){
         note: countNote(r.store, r.boxCount),
         source: "sync"
       });
+      checkLowStockAlert(r.store);
     }
     // レジに置く枚数が店舗側で変更されていないか照合する
     if (r.floatTarget) checkFloatDrift(r.store, r.floatTarget);
@@ -3981,6 +3989,7 @@ function submitCount(){
     note: countNote(st.code, counted),
     actor: cfg.device || "", source: "count"
   });
+  checkLowStockAlert(st.code);
   refillDenomsStale = true;
   renderAll(); doSync();
   showToast_S("✅ 実数に合わせました");
@@ -4071,7 +4080,7 @@ function openCurrentStoreModal(){
 }
 function openStoreModal(index){
   const s = index === null
-    ? { code: "", name: "", target: emptyNotes() }
+    ? { code: "", name: "", target: emptyNotes(), alertBelow: 0 }
     : JSON.parse(JSON.stringify(cfg.stores[index]));
   const rows = DENOMS_S.map(d => `
     <div class="denom-row">
@@ -4106,6 +4115,11 @@ function openStoreModal(index){
       <label>おつりボックスの目標在庫</label>
       <div class="denom-grid">${rows}</div>
       <div class="row-between total"><span>目標合計</span><span id="tgTotal">GH₵ 0</span></div>
+    </div>
+    <div class="field">
+      <label>🔔 これを下回ったらドライバーに知らせる（下限額）</label>
+      <div class="hint">おつりボックスの合計がこの額を下回った状態で数えたとき、Lark（設定してあれば）へ自動で通知します。0にするとこの通知は使いません。</div>
+      <input type="number" min="0" step="1" inputmode="numeric" id="stAlert" value="${Number(s.alertBelow) || 0}" placeholder="例: 100">
     </div>
     <div class="field">
       <label>🧾 レジに残す枚数（毎晩レジに置くフロート）</label>
@@ -4189,9 +4203,10 @@ function saveStore(index){
   }
   const target = emptyNotes();
   for (const d of DENOMS_S) target[d] = Math.max(0, parseInt(document.getElementById("tg-" + d).value) || 0);
+  const alertBelow = Math.max(0, parseFloat(document.getElementById("stAlert").value) || 0);
 
-  if (index === null) cfg.stores.push({ code, name, target });
-  else { cfg.stores[index].name = name; cfg.stores[index].target = target; }
+  if (index === null) cfg.stores.push({ code, name, target, alertBelow });
+  else { cfg.stores[index].name = name; cfg.stores[index].target = target; cfg.stores[index].alertBelow = alertBelow; }
   cfg.storesDirty = true;
   if (!cfg.currentStore) cfg.currentStore = code;
   saveCfg();
@@ -4243,6 +4258,26 @@ function importBackup(input){
     input.value = "";
   };
   reader.readAsText(file);
+}
+
+/**
+ * この端末が持つ記録（movements/queue/lastSeq）だけを空にする。店舗設定
+ * （cfg.stores）・サーバー接続・Lark設定はそのまま残す。
+ * 三日間ぶんのテストデータを入れて動作確認したあと、本番運用に入る前に
+ * まっさらにし直すための機能（2026-08-21追加）。
+ * ⚠️ サーバー（GAS）に接続している場合、次の同期でサーバー側の記録が
+ * 再びこの端末に降ってくる。サーバー側のテストデータも消したい場合は
+ * Googleスプレッドシート側を直接編集する必要がある（このボタンではできない）。
+ */
+function resetAllMovements(){
+  if (!confirm("この端末に保存されている売上・おつりの記録を全部消します。よろしいですか？\n（店舗設定・サーバー接続・Larkの設定は残ります）")) return;
+  if (!confirm("本当に消してよいですか？元に戻せません。")) return;
+  movements = [];
+  queue = [];
+  lastSeq = 0;
+  saveMovs(); saveQueue();
+  renderStoreSelect(); renderAll();
+  showToast_S("🗑 この端末の記録を消しました");
 }
 
 // =============================================================
@@ -4355,6 +4390,23 @@ function notifyLark(text){
     method: "POST", mode: "no-cors",
     body: JSON.stringify({ msg_type: "text", content: { text } })
   }).then(() => true).catch(() => false);
+}
+
+/**
+ * おつり箱の合計が、店舗設定の「下限額」（store.alertBelow）を下回っていたら
+ * Larkへ通知する。BOX_COUNT（実測）が記録された直後に呼ぶ想定
+ * （シェフのレジ締め直接同期・マネージャーの棚卸・ドライバーの実測、
+ * いずれのタイミングでも同じ関数を使う）。下限額が0（未設定）の店舗は
+ * 何もしない。
+ */
+function checkLowStockAlert(storeCode){
+  const st = cfg.stores.find(s => s.code === storeCode);
+  const floor = Number(st && st.alertBelow) || 0;
+  if (floor <= 0) return;
+  const total = notesTotal_S(balance(storeCode, "change"));
+  if (total < floor){
+    notifyLark(`🚨 ${storeName(storeCode)} のおつり箱が下限を割りました\n現在 ${fmt_S(total)}（下限 ${fmt_S(floor)}）\nドライバーに補充を依頼してください。`);
+  }
 }
 
 // =============================================================
@@ -4522,7 +4574,11 @@ function renderDriverChange(){
 
   const needTotal = notesTotal_S(need);
   const negative = DENOMS_S.some(d => have[d] < 0);
+  const alertFloor = Number(st.alertBelow) || 0;
+  const haveTotal = notesTotal_S(have);
   document.getElementById("drvShortBox").innerHTML =
+    (alertFloor > 0 && haveTotal < alertFloor
+      ? `<div class="warn bad"><b>🚨 Below the alert line: ${fmt_S(haveTotal)} (alert at ${fmt_S(alertFloor)})</b><br>Top up as soon as you can.</div>` : "") +
     (negative ? `<div class="warn bad"><b>The box shows a negative balance</b><br>Count what's really there below and tap "Match to what I counted".</div>` : "") +
     (needTotal > 0
       ? `<div class="warn"><b>Needs topping up: ${fmt_S(needTotal)}</b><br>${esc_S(notesText(need))}</div>`
@@ -4579,6 +4635,7 @@ function submitDriverCount(){
     store: st.code, compartment: "change", type: "BOX_COUNT", notes: counted,
     note: countNote(st.code, counted), actor: driverSession.name, source: "driver"
   });
+  checkLowStockAlert(st.code);
   driverChangeDenomsStale = true;
   renderAllDriver(); doSync();
   showToast_S("✅ Matched to your count");
