@@ -697,6 +697,23 @@
   }
 .app-safe .quickadd button:active{ transform: scale(0.95); }
 .app-safe .quickadd button.qa-minus{ background: #dfe3df; color: #5a6660; }
+  /* 補充の1行。「いま何枚あるか」と「何枚足すか」だけを横に並べる（2026-08-21）。
+     以前は目標・不足の4列テーブルと、不足数を先に入れた入力欄が別々にあって、
+     どこに何を書けばいいのか読み取れなかった。 */
+.app-safe .rf-item{ margin-bottom: 4px; }
+.app-safe .rf-row{
+    display: flex; align-items: center; gap: 9px;
+    background: #f8faf9; border-radius: 10px; padding: 8px 10px;
+  }
+.app-safe .rf-now{ flex: 1; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.app-safe .rf-now b{ font-size: 21px; color: var(--text); margin-left: 5px; }
+.app-safe .rf-sign{ font-size: 20px; font-weight: 800; color: var(--green); }
+.app-safe .rf-row input{
+    width: 86px; height: 48px; text-align: center;
+    font-size: 21px; font-weight: 800;
+    border: 2px solid var(--green); border-radius: 10px;
+    background: #fff; color: var(--text);
+  }
 .app-safe .lot{
     background: #fff; border-radius: 12px; padding: 12px 14px;
     margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
@@ -905,6 +922,21 @@
   }
 .app-driver .quickadd button:active{ transform: scale(0.95); }
 .app-driver .quickadd button.qa-minus{ background: #dfe3df; color: #5a6660; }
+  /* 補充の1行。金庫アプリ側と同じ作り（英語ラベルだけ差し替える）。 */
+.app-driver .rf-item{ margin-bottom: 4px; }
+.app-driver .rf-row{
+    display: flex; align-items: center; gap: 9px;
+    background: #f8faf9; border-radius: 10px; padding: 8px 10px;
+  }
+.app-driver .rf-now{ flex: 1; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.app-driver .rf-now b{ font-size: 21px; color: var(--text); margin-left: 5px; }
+.app-driver .rf-sign{ font-size: 20px; font-weight: 800; color: var(--green); }
+.app-driver .rf-row input{
+    width: 86px; height: 48px; text-align: center;
+    font-size: 21px; font-weight: 800;
+    border: 2px solid var(--green); border-radius: 10px;
+    background: #fff; color: var(--text);
+  }
 .app-driver .lot{
     background: #fff; border-radius: 12px; padding: 12px 14px;
     margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
@@ -1400,7 +1432,7 @@
     <h2>🧰 おつりボックスに補充</h2>
     <div id="refillNeedBox"></div>
     <div class="field">
-      <label>補充する枚数（不足分をあらかじめ入れてあります）</label>
+      <label>足す枚数（「いま」の右に、これから足すぶんだけ入れてください）</label>
       <div class="denom-grid" id="refillDenoms"></div>
       <div class="row-between total"><span>補充合計</span><span id="refillTotal">GH₵ 0</span></div>
     </div>
@@ -1426,6 +1458,23 @@
       <div class="row-between"><span>差異</span><span id="countDiff">GH₵ 0</span></div>
     </div>
     <button class="bigbtn red" onclick="submitCount()">🔍 実数に合わせる</button>
+  </div>
+
+  <!-- 目標枚数・下限額の設定入口。ヘッダーの⚙️マークだけでは気づけないという声があったので、
+       この画面の一番下に「何を決める設定なのか」を書いたボタンとして置いてある（2026-08-21）。 -->
+  <div class="card">
+    <h2>⚙️ 枚数の基準<span class="sub" id="basicsStoreName"></span></h2>
+    <div class="hint">「いくつ置いておきたいか」をここで決めます。上の「いま」と見比べて、足りないぶんが補充の目安になります。<b>直したら下の保存を押してください。</b></div>
+    <div class="denom-grid" id="targetRows"></div>
+    <div class="row-between total"><span>目標の合計</span><span id="targetTotalInline">GH₵ 0</span></div>
+    <div class="field">
+      <label>🔔 これを下回ったらドライバーに知らせる（GH₵・0なら知らせない）</label>
+      <input type="number" min="0" step="1" inputmode="numeric" id="alertInline" placeholder="例: 100" oninput="markBasicsDirty()">
+    </div>
+    <button class="bigbtn" id="basicsSaveBtn" onclick="saveStoreBasics()">💾 基準を保存</button>
+    <div class="hint" id="basicsSavedNote"></div>
+    <div class="hint" style="margin-top:10px">店舗名・店舗コード・「レジに残す枚数」を直すときは
+      <a href="#" onclick="openCurrentStoreModal();return false;" style="color:var(--blue);font-weight:700">こちらの詳しい設定</a>から。</div>
   </div>
 </div>
 
@@ -1577,15 +1626,14 @@
     <div class="amt-big" id="drvChangeTotal">—</div>
     <div class="hint" id="drvChangeBasis"></div>
     <div id="drvShortBox"></div>
-    <table style="margin-top:10px">
-      <thead><tr><th>Note</th><th>Have</th><th>Target</th><th>Need</th></tr></thead>
-      <tbody id="drvChangeRows"></tbody>
-    </table>
   </div>
 
+  <!-- 補充。1行に「いま何枚あるか」と「何枚足すか」だけを出す（2026-08-21）。
+       Have / Target / Need の4列テーブルはここに統合して消した——同じ数字が
+       2か所に出ていて、どこに書き込むのかが分かりにくかった。 -->
   <div class="card">
     <h2>➕ Add to the change box</h2>
-    <div class="hint">Filled in with what's short. Change the numbers if you're adding something else.</div>
+    <div class="hint">Write how many notes you are putting in <b>now</b>. Add as much as you can — it does not have to match the target.</div>
     <div class="denom-grid" id="drvRefillDenoms"></div>
     <div class="row-between total"><span>Total adding</span><span id="drvRefillTotal">GH₵ 0</span></div>
     <button class="bigbtn" onclick="submitDriverRefill()">✅ Record what you added</button>
@@ -3523,14 +3571,7 @@ function applyPaste(){
 // =============================================================
 // 手入力
 // =============================================================
-/**
- * hintValues を渡すと、入力欄には入れず「参考として何枚必要か」を
- * ラベル横に薄く表示するだけにする（値そのものは自動で埋めない）。
- * ドライバーの補充画面用（2026-08-22）: 自動入力された数をそのまま
- * 送信されると、実際に足した枚数と食い違うことがある（多め/少なめに
- * 入れることもある）ため、参考表示に留めて実入力は必ず本人にさせる。
- */
-function denomInputs(containerId, prefix, values, onchange, hintValues){
+function denomInputs(containerId, prefix, values, onchange){
   const box = document.getElementById(containerId);
   box.innerHTML = DENOMS_S.map(d => {
     // 枚数が多い紙幣（特に₵1）は+1連打だと遅いので、till STEP3と同じ「±10・
@@ -3540,17 +3581,52 @@ function denomInputs(containerId, prefix, values, onchange, hintValues){
       `<button class="qa-minus" onclick="bumpDenomInput('${prefix}-${d}','${onchange}',-${n})">−${n}</button>`).join("")
       + quick.map(n =>
       `<button onclick="bumpDenomInput('${prefix}-${d}','${onchange}',${n})">+${n}</button>`).join("");
-    const hint = hintValues ? ` <b style="color:var(--muted)">（必要 ${Number(hintValues[d]) || 0}枚）</b>` : "";
     return `
     <div>
       <div class="denom-row">
         <span class="note-mini" style="background:${COLORS_S[d]}">₵${d}</span>
-        <span class="lbl">枚${hint}</span>
+        <span class="lbl">枚</span>
         <input type="number" min="0" step="1" inputmode="numeric" id="${prefix}-${d}"
                value="${values && values[d] ? values[d] : ""}" placeholder="0" oninput="${onchange}()">
         <span class="sub" id="${prefix}sub-${d}">GH₵ 0</span>
       </div>
       <div class="quickadd">${quickBtns}</div>
+    </div>`;
+  }).join("");
+  if (typeof window[onchange] === "function") window[onchange]();
+}
+/**
+ * 補充の入力欄（2026-08-21に作り直し）。
+ * 1行に「いま何枚あるか」と「何枚足すか」の2つだけを並べる。
+ *
+ * 以前は ①目標・不足の4列テーブル ②不足数をあらかじめ入れた入力欄 が別々にあり、
+ * どこに何を書けばいいのか読み取れなかった。さらに補充する枚数はその日その日で
+ * 変わる（入れられるときに多めに入れる）ので、アプリが枚数を決めつけるのをやめた。
+ * 目標との差はカード上部のまとめ1行だけで見せる。
+ *
+ * current : いま入っている枚数（表示専用）。入力欄は必ず空から始める。
+ * nowLabel: 「いま」/「Now」。ドライバーアプリは英語なので差し替える。
+ */
+function refillRows(containerId, prefix, current, onchange, nowLabel){
+  const box = document.getElementById(containerId);
+  box.innerHTML = DENOMS_S.map(d => {
+    // 枚数が多い紙幣（特に₵1）は+1連打だと遅いので±10、₵1だけ±100も添える
+    const quick = [10, ...(d === 1 ? [100] : [])];
+    const btns = quick.slice().reverse().map(q =>
+      `<button class="qa-minus" onclick="bumpDenomInput('${prefix}-${d}','${onchange}',-${q})">−${q}</button>`).join("")
+      + quick.map(q =>
+      `<button onclick="bumpDenomInput('${prefix}-${d}','${onchange}',${q})">+${q}</button>`).join("");
+    const now = Math.max(0, Number(current && current[d]) || 0);
+    return `
+    <div class="rf-item">
+      <div class="rf-row">
+        <span class="note-mini" style="background:${COLORS_S[d]}">₵${d}</span>
+        <span class="rf-now">${esc_S(nowLabel || "いま")} <b>${now}</b></span>
+        <span class="rf-sign">＋</span>
+        <input type="number" min="0" step="1" inputmode="numeric" id="${prefix}-${d}"
+               value="" placeholder="0" oninput="${onchange}()">
+      </div>
+      <div class="quickadd">${btns}</div>
     </div>`;
   }).join("");
   if (typeof window[onchange] === "function") window[onchange]();
@@ -3722,8 +3798,9 @@ function renderHome(){
     .filter(m => m.store === st.code)
     .sort((a, b) => String(b.ts).localeCompare(String(a.ts)))
     .slice(0, 5);
+  const reversedIds = reversedMovementIds();
   document.getElementById("homeRecent").innerHTML = recent.length
-    ? recent.map(movHTML).join("")
+    ? recent.map(m => movHTML(m, reversedIds, { noActions: true })).join("")
     : `<div class="empty">まだ記録がありません</div>`;
 
   updateBadges(pending.length, transit.length);
@@ -4291,16 +4368,89 @@ function renderRefill(){
     ? "おつりボックスを実際に数えて、アプリの数字とズレていたら合わせます。ズレは差異として履歴に残ります。"
     : "いま金庫のおつりボックスに実際に入っている枚数を数えて入力してください。ここを起点に増減を追いかけます。";
 
+  const cur = balance(st.code, "change");
+  const shown = emptyNotes();
+  for (const d of DENOMS_S) shown[d] = Math.max(0, cur[d]);   // マイナスは初期値に出さない
   if (refillDenomsStale){
-    denomInputs("refillDenoms", "rf", need, "updateRefillTotal");
-    const cur = balance(st.code, "change");
-    const shown = emptyNotes();
-    for (const d of DENOMS_S) shown[d] = Math.max(0, cur[d]);   // マイナスは初期値に出さない
+    // 補充欄は「いま何枚か」を出すだけで、入力は空から始める（不足分を先に入れない）
+    refillRows("refillDenoms", "rf", shown, "updateRefillTotal", "いま");
     denomInputs("countDenoms", "cnt", shown, "updateCountTotal");
+    // 「枚数の基準」も同じタイミングで作り直す（入力中に同期で消えないよう stale 方式）
+    document.getElementById("basicsStoreName").textContent = st.name;
+    document.getElementById("alertInline").value = Number(st.alertBelow) || 0;
+    document.getElementById("basicsSaveBtn").textContent = "💾 基準を保存";
+    targetRows(shown, st.target || {});
     refillDenomsStale = false;
   }
   updateRefillTotal();
   updateCountTotal();
+}
+/**
+ * 「枚数の基準」を補充画面の中で直せるようにするための描画と保存（2026-08-21）。
+ *
+ * もともとは ⚙️ から開くモーダルの中にあったが、
+ *   ①どこにあるのか見つけられない
+ *   ②モーダルが縦に長く（店舗名・コード・目標7行・下限・レジに残す枚数7行）、
+ *     保存ボタンがずっと下にあるので、直したのに保存されないことがある
+ * という2つの問題があった。毎日いじるのは目標枚数と下限額の2つだけなので、
+ * それだけを「いま何枚か」の真下に出して、その場で直せるようにする。
+ * 店舗名・コード・レジに残す枚数（たまにしか触らない）は今までどおりモーダル。
+ */
+function targetRows(current, target){
+  const box = document.getElementById("targetRows");
+  box.innerHTML = DENOMS_S.map(d => {
+    const now = Math.max(0, Number(current && current[d]) || 0);
+    const tg  = Math.max(0, Number(target && target[d]) || 0);
+    return `
+    <div class="rf-item">
+      <div class="rf-row">
+        <span class="note-mini" style="background:${COLORS_S[d]}">₵${d}</span>
+        <span class="rf-now">いま <b>${now}</b></span>
+        <span class="rf-sign" style="font-size:12px;color:var(--muted);font-weight:700">目標</span>
+        <input type="number" min="0" step="1" inputmode="numeric" id="tgi-${d}"
+               value="${tg}" placeholder="0" oninput="markBasicsDirty()">
+      </div>
+    </div>`;
+  }).join("");
+  updateTargetInline();
+}
+function readTargetInline(){
+  const n = emptyNotes();
+  for (const d of DENOMS_S){
+    const el = document.getElementById("tgi-" + d);
+    n[d] = Math.max(0, parseInt(el && el.value) || 0);
+  }
+  return n;
+}
+function updateTargetInline(){
+  const el = document.getElementById("targetTotalInline");
+  if (el) el.textContent = fmt_S(notesTotal_S(readTargetInline()));
+}
+/** 直した瞬間に「保存が要る」と分かるようにする（押し忘れ対策）。 */
+function markBasicsDirty(){
+  updateTargetInline();
+  const btn = document.getElementById("basicsSaveBtn");
+  const note = document.getElementById("basicsSavedNote");
+  if (btn) btn.textContent = "💾 基準を保存（未保存の変更があります）";
+  if (note) note.textContent = "";
+}
+function saveStoreBasics(){
+  const st = currentStore();
+  if (!st){ showToast_S("店舗がありません。設定タブから追加してください", true); return; }
+  const i = cfg.stores.indexOf(st);
+  cfg.stores[i].target = readTargetInline();
+  cfg.stores[i].alertBelow = Math.max(0, parseFloat(document.getElementById("alertInline").value) || 0);
+  cfg.storesDirty = true;
+  saveCfg();
+  // 目標が変わると「不足」の出方も変わるので、補充画面ごと描き直す
+  refillDenomsStale = true;
+  renderAll();
+  doSync();
+  const btn = document.getElementById("basicsSaveBtn");
+  if (btn) btn.textContent = "💾 基準を保存";
+  const note = document.getElementById("basicsSavedNote");
+  if (note) note.textContent = "✅ " + dateJP(new Date().toISOString()) + " に保存しました";
+  showToast_S("✅ 基準を保存しました");
 }
 function updateRefillTotal(){ updateDenomSubs("rf", "refillTotal"); }
 function setRefillSource(src){
@@ -5089,25 +5239,13 @@ function renderDriverChange(){
       ? `<div class="warn"><b>Needs topping up: ${fmt_S(needTotal)}</b><br>${esc_S(notesText(need))}</div>`
       : `<div class="warn" style="background:#e8f5e9;border-color:var(--green)"><b style="color:var(--green)">✔ Matches the target</b></div>`);
 
-  document.getElementById("drvChangeRows").innerHTML = DENOMS_S.map(d => {
-    const t = Number(target[d]) || 0;
-    if (t === 0 && have[d] === 0) return "";
-    return `<tr class="${need[d] > 0 ? "short" : ""}">
-      <td><span class="note-mini" style="background:${COLORS_S[d]}">₵${d}</span></td>
-      <td${have[d] < 0 ? ' style="color:var(--red);font-weight:800"' : ""}>${have[d]}</td>
-      <td style="color:var(--muted)">${t}</td>
-      <td class="${need[d] > 0 ? "need" : "ok"}">${need[d] > 0 ? need[d] : "—"}</td>
-    </tr>`;
-  }).join("") || `<tr><td colspan="4" style="color:var(--muted);padding:16px">No records yet</td></tr>`;
-
+  const shown = emptyNotes();
+  for (const d of DENOMS_S) shown[d] = Math.max(0, have[d]);
   if (driverChangeDenomsStale){
-    // 不足数(need)は自動入力せず、参考として枚数ラベルの横に薄く出すだけに
-    // する。実際に足す枚数はドライバー本人が入力する（多少ずれることも
-    // 織り込み済み — 入れられるときに多めに入れることもある）。
-    denomInputs("drvRefillDenoms", "drf", null, "updateDriverRefillTotal", need);
-    const cur = balance(st.code, "change");
-    const shown = emptyNotes();
-    for (const d of DENOMS_S) shown[d] = Math.max(0, cur[d]);
+    // 補充欄は「いま何枚か」を出すだけで、入力は空から始める。不足数を先に
+    // 入れておくと、実際に足した枚数と食い違ったまま送られる（入れられる
+    // ときに多めに入れることもあり、必要枚数はその日その日で変わる）。
+    refillRows("drvRefillDenoms", "drf", shown, "updateDriverRefillTotal", "Now");
     denomInputs("drvCountDenoms", "dcnt", shown, "updateDriverCountTotal");
     driverChangeDenomsStale = false;
   }
