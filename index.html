@@ -1464,16 +1464,29 @@
        この画面の一番下に「何を決める設定なのか」を書いたボタンとして置いてある（2026-08-21）。 -->
   <div class="card">
     <h2>⚙️ 枚数の基準<span class="sub" id="basicsStoreName"></span></h2>
-    <div class="hint">「いくつ置いておきたいか」をここで決めます。上の「いま」と見比べて、足りないぶんが補充の目安になります。<b>直したら下の保存を押してください。</b></div>
-    <div class="denom-grid" id="targetRows"></div>
-    <div class="row-between total"><span>目標の合計</span><span id="targetTotalInline">GH₵ 0</span></div>
+    <div class="hint">お金の置き場所は<b>2つ</b>あります。それぞれ「いくつにしておきたいか」をここで決めます。<b>直したら一番下の保存を押してください。</b></div>
+
     <div class="field">
-      <label>🔔 これを下回ったらドライバーに知らせる（GH₵・0なら知らせない）</label>
+      <label>🧰 金庫のおつり入れ ── いくつ置いておきたいか</label>
+      <div class="hint" style="margin-bottom:7px">上の「いま」と見比べて、足りないぶんが補充の目安になります。</div>
+      <div class="denom-grid" id="targetRows"></div>
+      <div class="row-between total"><span>おつり入れの目標</span><span id="targetTotalInline">GH₵ 0</span></div>
+    </div>
+    <div class="field">
+      <label>🔔 おつり入れがこれを下回ったらドライバーに知らせる（GH₵・0なら知らせない）</label>
       <input type="number" min="0" step="1" inputmode="numeric" id="alertInline" placeholder="例: 100" oninput="markBasicsDirty()">
     </div>
+
+    <div class="field">
+      <label>🧾 レジ金 ── 毎晩レジに残す枚数</label>
+      <div class="hint" style="margin-bottom:7px">翌朝の釣り銭として、閉店後もレジに残しておく枚数です。シェフのレジ締め STEP4・5 で「レジに残す枚数」としてそのまま使われます。<b>この端末のレジ締めアプリに効きます</b>（別の店舗の端末に配るときは下の「詳しい設定」から送ります）。</div>
+      <div class="denom-grid" id="floatRows"></div>
+      <div class="row-between total"><span>レジ金の合計</span><span id="floatTotalInline">GH₵ 0</span></div>
+    </div>
+
     <button class="bigbtn" id="basicsSaveBtn" onclick="saveStoreBasics()">💾 基準を保存</button>
     <div class="hint" id="basicsSavedNote"></div>
-    <div class="hint" style="margin-top:10px">店舗名・店舗コード・「レジに残す枚数」を直すときは
+    <div class="hint" style="margin-top:10px">店舗名・店舗コードを直したり、別の端末へこの設定を送るときは
       <a href="#" onclick="openCurrentStoreModal();return false;" style="color:var(--blue);font-weight:700">こちらの詳しい設定</a>から。</div>
   </div>
 </div>
@@ -4380,6 +4393,7 @@ function renderRefill(){
     document.getElementById("alertInline").value = Number(st.alertBelow) || 0;
     document.getElementById("basicsSaveBtn").textContent = "💾 基準を保存";
     targetRows(shown, st.target || {});
+    floatRows(settings.float || {});
     refillDenomsStale = false;
   }
   updateRefillTotal();
@@ -4414,6 +4428,44 @@ function targetRows(current, target){
   }).join("");
   updateTargetInline();
 }
+/**
+ * レジ金（毎晩レジに残す枚数）の欄。金庫のおつり入れの目標とは別物なので、
+ * 見出しを分けて並べている。
+ *
+ * ⚠️ 保存先は store ではなく、このレジ締めアプリ自身の設定（settings.float）。
+ *    店舗の端末は共用1台で、マネージャーがその端末にログインして直す運用なので、
+ *    同じ端末の設定をそのまま書き換えるのが一番素直（設定コードを作って
+ *    貼り直す手間が要らない）。別の店舗の端末に配るときだけ、従来どおり
+ *    モーダルの「📤 この設定を店舗に送る」でコードを作る。
+ */
+function floatRows(current){
+  const box = document.getElementById("floatRows");
+  box.innerHTML = DENOMS_S.map(d => {
+    const v = Math.max(0, Number(current && current[d]) || 0);
+    return `
+    <div class="rf-item">
+      <div class="rf-row">
+        <span class="note-mini" style="background:${COLORS_S[d]}">₵${d}</span>
+        <span class="rf-now" style="font-size:12px">毎晩レジに残す</span>
+        <input type="number" min="0" step="1" inputmode="numeric" id="flt-${d}"
+               value="${v}" placeholder="0" oninput="markBasicsDirty()">
+      </div>
+    </div>`;
+  }).join("");
+  updateFloatInline();
+}
+function readFloatInline(){
+  const n = emptyNotes();
+  for (const d of DENOMS_S){
+    const el = document.getElementById("flt-" + d);
+    n[d] = Math.max(0, parseInt(el && el.value) || 0);
+  }
+  return n;
+}
+function updateFloatInline(){
+  const el = document.getElementById("floatTotalInline");
+  if (el) el.textContent = fmt_S(notesTotal_S(readFloatInline()));
+}
 function readTargetInline(){
   const n = emptyNotes();
   for (const d of DENOMS_S){
@@ -4429,6 +4481,7 @@ function updateTargetInline(){
 /** 直した瞬間に「保存が要る」と分かるようにする（押し忘れ対策）。 */
 function markBasicsDirty(){
   updateTargetInline();
+  updateFloatInline();
   const btn = document.getElementById("basicsSaveBtn");
   const note = document.getElementById("basicsSavedNote");
   if (btn) btn.textContent = "💾 基準を保存（未保存の変更があります）";
@@ -4441,6 +4494,17 @@ function saveStoreBasics(){
   cfg.stores[i].target = readTargetInline();
   cfg.stores[i].alertBelow = Math.max(0, parseFloat(document.getElementById("alertInline").value) || 0);
   cfg.storesDirty = true;
+  saveCfg();
+
+  // レジ金は、この端末のレジ締めアプリの設定そのものを書き換える。
+  // 併せて cfg.tillFloats（管理側が把握しているレジ金の控え）も更新しておく
+  // ——ここを揃えておかないと、次のレジ締めで checkFloatDrift が
+  // 「店舗側で勝手に変えられた」と誤って警告する。
+  const newFloat = readFloatInline();
+  settings.float = newFloat;
+  saveJSON_T(LS_SET, settings);
+  if (!cfg.tillFloats) cfg.tillFloats = {};
+  cfg.tillFloats[st.code] = { notes: newFloat, seenAt: new Date().toISOString() };
   saveCfg();
   // 目標が変わると「不足」の出方も変わるので、補充画面ごと描き直す
   refillDenomsStale = true;
