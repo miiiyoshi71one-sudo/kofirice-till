@@ -2052,6 +2052,81 @@ function applyCode(){
 // =============================================================
 // 起動
 // =============================================================
+
+// =============================================================
+// 新しい版が出たら自動で切り替える（2026-08-26）
+// =============================================================
+// これが無いと何が起きるか:
+//   このアプリは1枚のHTMLで、スマホの「ホーム画面に追加」から開くと
+//   一度読み込んだページがそのまま残り続ける。直して本番に出しても、
+//   店舗のスマホは何日も古い画面のままになる（実際にそうなった）。
+//   配信側は Cache-Control: max-age=600（10分）だが、"開き直さない限り"
+//   再取得そのものが起きないので、時間では解決しない。
+//
+// やり方:
+//   自分自身のURLに HEAD を投げ、ETag（無ければ Last-Modified）を見る。
+//   起動時に控えた値と変わっていたら「新しい版が出ている」と判断する。
+//   本文は取りに行かないので通信量はほぼゼロ（ガーナのモバイル回線を考慮）。
+//
+// 切り替えかた:
+//   ⚠️ 勝手に再読込しない。レジ締めの途中で画面が飛ぶと数えた枚数が消える。
+//   ・入口にいて、入力途中も無い → その場で静かに入れ替える
+//   ・作業中 → 画面下に帯を出し、本人が押したときだけ入れ替える
+
+let __verTag = null;
+const VERSION_CHECK_MS = 5 * 60 * 1000;
+
+function readVersionTag(){
+  return fetch(location.href, { method: "HEAD", cache: "no-store" })
+    .then(r => r.headers.get("ETag") || r.headers.get("Last-Modified") || null)
+    .catch(() => null);   // 圏外なら黙って何もしない
+}
+
+/** 打ちかけの入力があるか（あるなら勝手に再読込しない） */
+function __hasTyping(){
+  const els = document.querySelectorAll("input, textarea");
+  for (const el of els){
+    const t = (el.type || "").toLowerCase();
+    if (t === "button" || t === "submit" || t === "hidden") continue;
+    if (t === "checkbox" || t === "radio"){ if (el.checked !== el.defaultChecked) return true; }
+    else if ((el.value || "") !== (el.defaultValue || "")) return true;
+  }
+  return false;
+}
+
+/** 入口の画面にいて、まだ何も始めていないか */
+function __isIdle(){
+  return __openApp === "entry" && !__hasTyping();
+}
+
+function showUpdateBar(){
+  if (document.getElementById("updateBar")) return;
+  const bar = document.createElement("button");
+  bar.id = "updateBar";
+  bar.textContent = "🆕 新しいバージョンがあります — タップで更新";
+  bar.setAttribute("style",
+    "position:fixed;left:0;right:0;bottom:0;z-index:9999;border:none;" +
+    "background:#1a7a3c;color:#fff;font-size:15px;font-weight:800;" +
+    "padding:14px 12px;cursor:pointer;box-shadow:0 -2px 10px rgba(0,0,0,.25)");
+  bar.onclick = () => location.reload();
+  document.body.appendChild(bar);
+}
+
+function checkForUpdate(){
+  if (!__verTag) return;                 // 起動時に取れていなければ比べようがない
+  if (document.hidden) return;
+  readVersionTag().then(tag => {
+    if (!tag || tag === __verTag) return;
+    if (__isIdle()) location.reload();   // 何もしていなければ静かに入れ替える
+    else showUpdateBar();                // 作業中は本人に任せる
+  });
+}
+
+readVersionTag().then(tag => { __verTag = tag; });
+setInterval(checkForUpdate, VERSION_CHECK_MS);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) checkForUpdate(); });
+// ホーム画面から復帰したとき（bfcache）。script が再実行されないので、ここで見に行く
+window.addEventListener("pageshow", (e) => { if (e.persisted) checkForUpdate(); });
 (function init(){
   saveUsers();   // 初回は既定の一覧を保存しておく
   const s = loadJSON_E(LS_SESSION_E);
