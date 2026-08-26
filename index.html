@@ -1013,6 +1013,10 @@
 <!-- 1. WHO ARE YOU -->
 <div class="screen active" id="scr-who">
   <div id="peopleList"></div>
+  <!-- いま端末に乗っている版。ここが空＝古い画面を掴んだまま -->
+  <button id="buildStamp" onclick="forceRefresh()"
+    style="display:block;width:100%;margin-top:22px;border:none;background:none;
+           color:var(--muted);font-size:12px;text-align:center;cursor:pointer;padding:10px"></button>
 </div>
 
 <!-- 2. PIN -->
@@ -2073,8 +2077,29 @@ function applyCode(){
 //   ・入口にいて、入力途中も無い → その場で静かに入れ替える
 //   ・作業中 → 画面下に帯を出し、本人が押したときだけ入れ替える
 
+// ⚠️ till.html を直したら必ずここを上げる。これがスマホに出る「版」の表示になる。
+//    現場で「更新されたのか？」を確かめる唯一の手がかりなので、上げ忘れると意味がなくなる。
+const APP_BUILD = "2026-08-27a";
+
 let __verTag = null;
 const VERSION_CHECK_MS = 5 * 60 * 1000;
+
+/** 名前選択の画面に「版」を出す。古い版にはこの表示自体が無いので、それが見分けになる */
+function showBuildStamp(){
+  const el = document.getElementById("buildStamp");
+  if (!el) return;
+  el.textContent = "版 " + APP_BUILD + " ・ タップで最新にする / Tap to update";
+}
+
+/**
+ * 端末が古い画面を掴んだまま離さないときの最後の手段。
+ * URLに毎回ちがう ?v= を付けて開き直すと、ブラウザの保存済みを一切使わずに取りに行く。
+ * （保存したデータは localStorage にあり、URLが変わっても消えない）
+ */
+function forceRefresh(){
+  if (!confirm("最新の画面に入れ替えます。よろしいですか？\nReload the latest version?")) return;
+  location.replace(location.origin + location.pathname + "?v=" + Date.now());
+}
 
 function readVersionTag(){
   return fetch(location.href, { method: "HEAD", cache: "no-store" })
@@ -2122,6 +2147,7 @@ function checkForUpdate(){
   });
 }
 
+showBuildStamp();
 readVersionTag().then(tag => { __verTag = tag; });
 setInterval(checkForUpdate, VERSION_CHECK_MS);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) checkForUpdate(); });
