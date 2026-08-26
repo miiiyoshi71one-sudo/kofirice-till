@@ -73,6 +73,11 @@
     width: 44px; height: 44px; border-radius: 12px; flex: none;
     display: flex; align-items: center; justify-content: center;
     font-size: 19px; font-weight: 800; color: #fff;
+    overflow: hidden;   /* 写真をはみ出させない */
+  }
+  /* 写真を入れている人。文字のときと同じ枠にぴたりと収める */
+.app-entry .avatar img{
+    width: 100%; height: 100%; object-fit: cover; display: block;
   }
 .app-entry .person .nm{ flex: 1; font-size: 18px; font-weight: 700; }
 .app-entry .person .rl{ font-size: 12px; color: var(--muted); }
@@ -102,6 +107,15 @@
   }
 .app-entry .whoami .nm{ flex: 1; font-size: 18px; font-weight: 800; }
 .app-entry .whoami .rl{ font-size: 12px; color: var(--muted); font-weight: 400; display: block; }
+  /* 名前を選んだあとの「交代」。共用端末なので人が入れ替わるたびに押す＝一番よく使うボタン */
+.app-entry .whoami .avatar{ width: 56px; height: 56px; border-radius: 14px; font-size: 23px; }
+.app-entry .changebtn{
+    flex: none; border: none; background: #eef1ee; color: var(--text);
+    border-radius: 12px; padding: 14px 16px; cursor: pointer;
+    font-size: 15px; font-weight: 800; line-height: 1.25; text-align: center;
+  }
+.app-entry .changebtn span{ display: block; font-size: 11px; font-weight: 700; color: var(--muted); }
+.app-entry .changebtn:active{ transform: scale(0.98); }
 .app-entry .bigbtn{
     display: block; width: 100%;
     padding: 15px; border: none; border-radius: 13px;
@@ -1039,9 +1053,8 @@
   <div class="whoami">
     <div class="avatar" id="jobAvatar"></div>
     <div class="nm" id="jobName"><span class="rl" id="jobRole"></span></div>
-    <button class="urow-btn" onclick="signOut()"
-      style="border:none;background:#eef1ee;border-radius:9px;padding:9px 13px;cursor:pointer;font-size:13px;font-weight:700">
-      🔄 Change
+    <button class="changebtn" onclick="signOut()">
+      🔄 Change<span>交代する</span>
     </button>
   </div>
   <div id="jobList"></div>
@@ -1060,6 +1073,27 @@
   <div class="field">
     <label>名前（この端末に表示されます）</label>
     <input type="text" id="euName" placeholder="例: Ruth / 三好">
+  </div>
+  <div class="field">
+    <label>写真（任意）</label>
+    <div style="display:flex;align-items:center;gap:14px">
+      <span class="avatar" id="euPhotoPrev"
+            style="width:64px;height:64px;border-radius:16px;font-size:26px"></span>
+      <div style="flex:1">
+        <button class="urow-btn" onclick="document.getElementById('euPhotoFile').click()"
+          style="border:none;background:#eef1ee;border-radius:10px;padding:11px 14px;
+                 cursor:pointer;font-size:14px;font-weight:700">📷 写真を選ぶ</button>
+        <button class="urow-btn" id="euPhotoClear" onclick="clearUserPhoto()"
+          style="border:none;background:none;color:var(--muted);border-radius:10px;
+                 padding:11px 6px;cursor:pointer;font-size:13px;font-weight:700">写真を消す</button>
+      </div>
+    </div>
+    <input type="file" id="euPhotoFile" accept="image/*" style="display:none"
+           onchange="pickUserPhoto(this)">
+    <div class="hint" style="margin-top:5px">
+      顔写真を入れると、名前を選ぶ画面が写真になります。写真はこの端末の中だけに保存され、
+      他の端末やサーバーには送られません（端末ごとに入れてください）。
+    </div>
   </div>
   <div class="field">
     <label>役割（できる仕事）</label>
@@ -1817,6 +1851,66 @@ function initials(name){
   return /^[\x20-\x7E]+$/.test(s) ? s.slice(0, 2).toUpperCase() : s.slice(0, 1);
 }
 
+// -------------------------------------------------------------
+// 名前の四角（アバター）— 写真があれば写真、無ければ役割の色＋頭文字
+// -------------------------------------------------------------
+// 名前選択・PIN・仕事一覧・人の管理の4か所に出る。見た目がずれないよう
+// 必ずこの2つを通す（文字列を組み立てる所は avatarHTML、既にある要素は setAvatarEl）。
+function avatarHTML(u, extraStyle){
+  const bg = ROLES[u.role].color;
+  const inner = u.photo ? `<img src="${esc_E(u.photo)}" alt="">` : esc_E(initials(u.name));
+  return `<span class="avatar" style="background:${bg};${extraStyle || ""}">${inner}</span>`;
+}
+function setAvatarEl(el, u){
+  if (!el) return;
+  el.style.background = ROLES[u.role].color;
+  if (u.photo) el.innerHTML = `<img src="${esc_E(u.photo)}" alt="">`;
+  else el.textContent = initials(u.name);
+}
+
+// -------------------------------------------------------------
+// 写真の登録（マネージャーの「人を編集」画面）
+// -------------------------------------------------------------
+// 撮ったままの写真は数MBある。端末の保存領域（localStorage）は数MBしかないので、
+// 中央を正方形に切り出して 160px まで小さくしてから持つ（1人あたり10KB前後）。
+const PHOTO_PX = 160;
+let euPhoto = "";   // 編集中の人の写真。「💾 保存」を押すまで確定しない
+
+function pickUserPhoto(input){
+  const file = input.files && input.files[0];
+  input.value = "";   // 同じ写真をもう一度選び直せるようにする
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onerror = () => showToast_E("写真を読めませんでした", true);
+  reader.onload = () => {
+    const img = new Image();
+    img.onerror = () => showToast_E("この写真は使えませんでした", true);
+    img.onload = () => {
+      const side = Math.min(img.width, img.height);
+      const c = document.createElement("canvas");
+      c.width = c.height = PHOTO_PX;
+      c.getContext("2d").drawImage(
+        img, (img.width - side) / 2, (img.height - side) / 2, side, side,
+        0, 0, PHOTO_PX, PHOTO_PX);
+      euPhoto = c.toDataURL("image/jpeg", 0.75);
+      renderPhotoPrev();
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearUserPhoto(){ euPhoto = ""; renderPhotoPrev(); }
+
+function renderPhotoPrev(){
+  const el = document.getElementById("euPhotoPrev");
+  if (!el) return;
+  const role = document.getElementById("euRole").value || "chef";
+  const name = document.getElementById("euName").value.trim();
+  setAvatarEl(el, { role, name, photo: euPhoto });
+  document.getElementById("euPhotoClear").style.display = euPhoto ? "" : "none";
+}
+
 // =============================================================
 // 1. 名前を選ぶ
 // =============================================================
@@ -1836,7 +1930,7 @@ function renderPeople(){
       const i = users.indexOf(u);
       html += `
         <button class="person" onclick="pickUser(${i})">
-          <span class="avatar" style="background:${ROLES[u.role].color}">${esc_E(initials(u.name))}</span>
+          ${avatarHTML(u)}
           <span class="nm">${esc_E(u.name)}<span class="rl">${esc_E(roleLabel(u))}</span></span>
           ${u.pin ? '<span class="lock">🔒</span>' : ""}
         </button>`;
@@ -1850,8 +1944,7 @@ function pickUser(i){
   if (!u) return;
   pendingUser = u;
   if (u.pin){
-    document.getElementById("pinAvatar").textContent = initials(u.name);
-    document.getElementById("pinAvatar").style.background = ROLES[u.role].color;
+    setAvatarEl(document.getElementById("pinAvatar"), u);
     document.getElementById("pinName").textContent = u.name;
     document.getElementById("pinInput").value = "";
     show_E("pin");
@@ -1914,8 +2007,7 @@ const ROLE_JOBS = {
 };
 
 function renderJobs(u){
-  document.getElementById("jobAvatar").textContent = initials(u.name);
-  document.getElementById("jobAvatar").style.background = ROLES[u.role].color;
+  setAvatarEl(document.getElementById("jobAvatar"), u);
   document.getElementById("jobName").innerHTML =
     esc_E(u.name) + `<span class="rl">${esc_E(roleLabel(u))}</span>`;
   document.getElementById("hdrSub").textContent = "What do you want to do? / 何をしますか";
@@ -1937,7 +2029,7 @@ function renderJobs(u){
 function renderUsers(){
   document.getElementById("userList").innerHTML = users.map((u, i) => `
     <div class="urow">
-      <span class="avatar" style="background:${ROLES[u.role].color};width:34px;height:34px;font-size:14px">${esc_E(initials(u.name))}</span>
+      ${avatarHTML(u, "width:34px;height:34px;font-size:14px")}
       <span class="nm">${esc_E(u.name)}<span class="rl">${esc_E(roleLabel(u))}${u.pin ? " · 🔒" : ""}</span></span>
       <button onclick="editUser(${i})">編集</button>
     </div>`).join("");
@@ -1950,6 +2042,8 @@ function editUser(i){
   document.getElementById("euTitle").value = u.title || "";
   document.getElementById("euPin").value = u.pin || "";
   document.getElementById("euDelete").style.display = i === null ? "none" : "block";
+  euPhoto = u.photo || "";
+  renderPhotoPrev();
   show_E("edituser");
 }
 function saveUser(){
@@ -1964,9 +2058,20 @@ function saveUser(){
 
   const rec = { name, role, pin };
   if (title) rec.title = title;   // 空欄なら役割の既定ラベルをそのまま使う
+  if (euPhoto) rec.photo = euPhoto;
+
+  // 写真は端末の保存領域を使うので、入りきらないことがありうる。
+  // その場合は書き換える前の状態に戻す（半端に消えた一覧を残さない）
+  const before = users.slice();
   if (editingIndex === null) users.push(rec);
   else users[editingIndex] = rec;
-  saveUsers();
+  try {
+    saveUsers();
+  } catch (e) {
+    users = before;
+    showToast_E("端末の保存領域がいっぱいです。写真を減らしてください", true);
+    return;
+  }
   showToast_E("✅ 保存しました");
   show_E("users");
 }
@@ -2079,7 +2184,7 @@ function applyCode(){
 
 // ⚠️ till.html を直したら必ずここを上げる。これがスマホに出る「版」の表示になる。
 //    現場で「更新されたのか？」を確かめる唯一の手がかりなので、上げ忘れると意味がなくなる。
-const APP_BUILD = "2026-08-27a";
+const APP_BUILD = "2026-08-27b";
 
 let __verTag = null;
 const VERSION_CHECK_MS = 5 * 60 * 1000;
