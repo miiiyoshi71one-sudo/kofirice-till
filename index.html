@@ -1021,7 +1021,7 @@
 
 <header>
   <h1>🍚 KOFIRICE</h1>
-  <div class="sub" id="hdrSub">Tap your name / 名前を選んでください</div>
+  <div class="sub" id="hdrSub">Tap your name</div>
 </header>
 
 <!-- 1. WHO ARE YOU -->
@@ -1054,7 +1054,7 @@
     <div class="avatar" id="jobAvatar"></div>
     <div class="nm" id="jobName"><span class="rl" id="jobRole"></span></div>
     <button class="changebtn" onclick="signOut()">
-      🔄 Change<span>交代する</span>
+      🔄 Change<span>switch user</span>
     </button>
   </div>
   <div id="jobList"></div>
@@ -1784,9 +1784,9 @@ const LS_TILLSET = "kofirice_till_settings_v1";   // till-close.html と共有
 // 足す（例: リチャードは role:"driver" のまま title:"マネージャー" にする —
 // 権限はドライバーのまま、呼び方だけ店舗の実態に合わせる）。
 const ROLES = {
-  chef:    { label: "シェフ / Chef",             color: "#1a7a3c" },
-  driver:  { label: "ドライバー / Driver",        color: "#2456a8" },
-  manager: { label: "マネージャー / Manager",     color: "#6a4fa3" }
+  chef:    { label: "Chef",                      color: "#1a7a3c" },
+  driver:  { label: "Driver",                    color: "#2456a8" },
+  manager: { label: "Manager",                   color: "#6a4fa3" }
 };
 function roleLabel(u){ return (u && u.title) || ROLES[u.role].label; }
 
@@ -1799,7 +1799,7 @@ function roleLabel(u){ return (u && u.title) || ROLES[u.role].label; }
 const DEFAULT_USERS = [
   { name: "三好",     role: "manager", pin: "" },
   { name: "木原",     role: "manager", pin: "" },
-  { name: "Richard",  role: "driver",  title: "マネージャー", pin: "" },
+  { name: "Richard",  role: "driver",  title: "Manager", pin: "" },
   { name: "Abdul",    role: "driver",  pin: "" },
   { name: "Ruth",     role: "chef",    pin: "" },
   { name: "Evelyn",   role: "chef",    pin: "" },
@@ -1817,6 +1817,19 @@ let users = loadJSON_E(LS_USERS) || DEFAULT_USERS.slice();
     if (!users.some(u => u.name === def.name)){ users.push({ ...def }); added = true; }
   }
   if (added) saveJSON_E(LS_USERS, users);
+})();
+
+// 入口・レジ締めはガーナのスタッフが使う画面なので、表示は英語だけにする方針
+// （日本語を出してよいのは日本人しか触らない画面＝金庫・人の管理・設定コード）。
+// 役割名はコード側の ROLES から出るので直せばすぐ反映されるが、肩書き(title)だけは
+// 端末に保存されていて古いまま残る。保存ずみの日本語の肩書きを英語に置き換える。
+(function renameJapaneseTitles(){
+  const MAP = { "マネージャー": "Manager", "ドライバー": "Driver", "シェフ": "Chef" };
+  let changed = false;
+  for (const u of users){
+    if (u.title && MAP[u.title]){ u.title = MAP[u.title]; changed = true; }
+  }
+  if (changed) saveJSON_E(LS_USERS, users);
 })();
 let pendingUser = null;
 let editingIndex = null;
@@ -1917,9 +1930,9 @@ function renderPhotoPrev(){
 function renderPeople(){
   const box = document.getElementById("peopleList");
   const groups = [
-    { key: "management", title: "Management / マネジメント",         roles: ["manager"] },
-    { key: "driver",     title: "Driver & delivery / ドライバー・配送", roles: ["driver"] },
-    { key: "shop",       title: "Shop / 店舗",                        roles: ["chef"] }
+    { key: "management", title: "Management",                        roles: ["manager"] },
+    { key: "driver",     title: "Driver & delivery",                  roles: ["driver"] },
+    { key: "shop",       title: "Shop",                               roles: ["chef"] }
   ];
   let html = "";
   for (const g of groups){
@@ -1936,7 +1949,7 @@ function renderPeople(){
         </button>`;
     }
   }
-  box.innerHTML = html || `<div class="warn bad">人が登録されていません。</div>`;
+  box.innerHTML = html || `<div class="warn bad">No one is registered on this device yet.</div>`;
 }
 
 function pickUser(i){
@@ -1958,7 +1971,7 @@ function submitPin(){
   const entered = document.getElementById("pinInput").value.trim();
   if (!pendingUser) return show_E("who");
   if (entered !== pendingUser.pin){
-    showToast_E("⚠️ PIN が違います / Wrong PIN", true);
+    showToast_E("⚠️ Wrong PIN", true);
     document.getElementById("pinInput").value = "";
     return;
   }
@@ -1981,7 +1994,7 @@ function signOut(){
 // 2. できる仕事を出す
 // =============================================================
 const JOBS = {
-  till:    { ico: "🧮", cls: "",     b: "Till close / レジ締め",     s: "Count the till, put money in the safe",           app: "till" },
+  till:    { ico: "🧮", cls: "",     b: "Till close",                s: "Count the till, put money in the safe",           app: "till" },
   // ドライバー用。金庫アプリ本体（日本語・全体管理）とは別の、英語の簡易画面。
   deliver: { ico: "🚚", cls: "safe", b: "Change & delivery",         s: "Change box status, refill, deliver sales to the office", app: "driver" },
   safe:    { ico: "🏦", cls: "safe", b: "金庫・全体管理",             s: "在庫・配送の確認、受領確認、店舗設定",             app: "safe" },
@@ -2010,7 +2023,7 @@ function renderJobs(u){
   setAvatarEl(document.getElementById("jobAvatar"), u);
   document.getElementById("jobName").innerHTML =
     esc_E(u.name) + `<span class="rl">${esc_E(roleLabel(u))}</span>`;
-  document.getElementById("hdrSub").textContent = "What do you want to do? / 何をしますか";
+  document.getElementById("hdrSub").textContent = "What do you want to do?";
 
   document.getElementById("jobList").innerHTML = (ROLE_JOBS[u.role] || []).map(k => {
     const j = JOBS[k];
@@ -2184,7 +2197,7 @@ function applyCode(){
 
 // ⚠️ till.html を直したら必ずここを上げる。これがスマホに出る「版」の表示になる。
 //    現場で「更新されたのか？」を確かめる唯一の手がかりなので、上げ忘れると意味がなくなる。
-const APP_BUILD = "2026-08-27b";
+const APP_BUILD = "2026-08-27c";
 
 let __verTag = null;
 const VERSION_CHECK_MS = 5 * 60 * 1000;
@@ -2193,7 +2206,7 @@ const VERSION_CHECK_MS = 5 * 60 * 1000;
 function showBuildStamp(){
   const el = document.getElementById("buildStamp");
   if (!el) return;
-  el.textContent = "版 " + APP_BUILD + " ・ タップで最新にする / Tap to update";
+  el.textContent = "Version " + APP_BUILD + " · Tap to update";
 }
 
 /**
@@ -2202,7 +2215,7 @@ function showBuildStamp(){
  * （保存したデータは localStorage にあり、URLが変わっても消えない）
  */
 function forceRefresh(){
-  if (!confirm("最新の画面に入れ替えます。よろしいですか？\nReload the latest version?")) return;
+  if (!confirm("Reload the latest version of this app?")) return;
   location.replace(location.origin + location.pathname + "?v=" + Date.now());
 }
 
@@ -2233,7 +2246,7 @@ function showUpdateBar(){
   if (document.getElementById("updateBar")) return;
   const bar = document.createElement("button");
   bar.id = "updateBar";
-  bar.textContent = "🆕 新しいバージョンがあります — タップで更新";
+  bar.textContent = "🆕 New version available — tap to update";
   bar.setAttribute("style",
     "position:fixed;left:0;right:0;bottom:0;z-index:9999;border:none;" +
     "background:#1a7a3c;color:#fff;font-size:15px;font-weight:800;" +
