@@ -1479,14 +1479,14 @@
 
     <div class="field">
       <label>🧾 レジ金 ── 毎晩レジに残す枚数</label>
-      <div class="hint" style="margin-bottom:7px">翌朝の釣り銭として、閉店後もレジに残しておく枚数です。シェフのレジ締め STEP4・5 で「レジに残す枚数」としてそのまま使われます。<b>この端末のレジ締めアプリに効きます</b>（別の店舗の端末に配るときは下の「詳しい設定」から送ります）。</div>
+      <div class="hint" style="margin-bottom:7px">翌朝の釣り銭として、閉店後もレジに残しておく枚数です。シェフのレジ締め STEP4・5 で「レジに残す枚数」としてそのまま使われます。<b>保存すると、この店舗の端末にも次の同期で届きます</b>（サーバー接続をしていない場合は、この端末だけに効きます）。</div>
       <div class="denom-grid" id="floatRows"></div>
       <div class="row-between total"><span>レジ金の合計</span><span id="floatTotalInline">GH₵ 0</span></div>
     </div>
 
     <button class="bigbtn" id="basicsSaveBtn" onclick="saveStoreBasics()">💾 基準を保存</button>
     <div class="hint" id="basicsSavedNote"></div>
-    <div class="hint" style="margin-top:10px">店舗名・店舗コードを直したり、別の端末へこの設定を送るときは
+    <div class="hint" style="margin-top:10px">店舗名・店舗コードを直したり、サーバー接続の無い端末へ設定コードで送るときは
       <a href="#" onclick="openCurrentStoreModal();return false;" style="color:var(--blue);font-weight:700">こちらの詳しい設定</a>から。</div>
   </div>
 </div>
@@ -3021,6 +3021,9 @@ function saveSettings(){
 // openApp('till') から一度だけ呼ばれる。読み込み時に走らせると、まだ名前を
 // 選んでいない状態で入口へ戻され続けてしまう。
 function initTill(){
+  // 最後の同期で降りてきたレジ金が未反映なら、ここで取り込む
+  // （店舗の端末は、金庫アプリを開かないまま何日も使われることがある）
+  applyStoreFloatToTill();
   applySession();
   renderCount();
   updateTotal();
@@ -3480,6 +3483,34 @@ function parseSyncCodes(text){
  * おき、前回と変わっていたら知らせる。この控えは端末ローカルに持つ
  * （cfg.stores はサーバー同期で上書きされるため、そこには入れない）。
  */
+/**
+ * サーバーから降りてきた店舗設定の「レジ金」を、この端末のレジ締めアプリへ反映する。
+ * オフィスの端末でマネージャーが直したレジ金が、店舗の端末にも届くようにするため
+ * （2026-08-21）。どの店舗の端末かは、レジ締めアプリ側の設定 settings.storeCode で決める。
+ *
+ * ⚠️ 決めた人（マネージャー）が正。店舗の端末で勝手に直されていても、次の同期で
+ *    サーバーの値に戻る。これは checkFloatDrift（店舗側の変更を検知して知らせる）と
+ *    同じ考え方＝レジ金はマネージャーが決めるもの、という前提に揃えてある。
+ *    tillFloat を持たない店舗（まだ一度も決めていない）には何もしない。
+ */
+function applyStoreFloatToTill(){
+  const code = (typeof settings === "object" && settings && settings.storeCode) || "";
+  if (!code) return;
+  const st = (cfg.stores || []).find(x => x.code === code);
+  const want = st && st.tillFloat;
+  if (!want) return;
+  const changed = DENOMS_S.some(d => (Number(settings.float[d]) || 0) !== (Number(want[d]) || 0));
+  if (!changed) return;
+  const next = {};
+  for (const d of DENOMS_S) next[d] = Math.max(0, Number(want[d]) || 0);
+  settings.float = next;
+  saveJSON_T(LS_SET, settings);
+  if (!cfg.tillFloats) cfg.tillFloats = {};
+  cfg.tillFloats[code] = { notes: next, seenAt: new Date().toISOString() };
+  saveCfg();
+  if (__inited.till) reloadTillSettings();
+}
+
 function checkFloatDrift(storeCode, reported){
   if (!cfg.tillFloats) cfg.tillFloats = {};
   const prev = cfg.tillFloats[storeCode];
@@ -4496,11 +4527,18 @@ function saveStoreBasics(){
   cfg.storesDirty = true;
   saveCfg();
 
-  // レジ金は、この端末のレジ締めアプリの設定そのものを書き換える。
-  // 併せて cfg.tillFloats（管理側が把握しているレジ金の控え）も更新しておく
-  // ——ここを揃えておかないと、次のレジ締めで checkFloatDrift が
+  // レジ金は2か所に書く。
+  //  ① cfg.stores[i].tillFloat …… 店舗設定の一部としてサーバーに同期される。
+  //     これがあるおかげで、オフィスの端末で直しても店舗の端末に届く（2026-08-21）。
+  //     以前はこの端末の settings.float を書き換えるだけだったので、店舗のスマホで
+  //     設定し直すか、設定コードを作って貼り直すしかなかった。
+  //  ② settings.float …………… いま開いているこの端末のレジ締めアプリの設定。
+  //     同じ端末で直したぶんはすぐ効いてほしいので、その場でも書いておく。
+  // 併せて cfg.tillFloats（管理側が把握しているレジ金の控え）も更新する
+  // ——ここを揃えないと、次のレジ締めで checkFloatDrift が
   // 「店舗側で勝手に変えられた」と誤って警告する。
   const newFloat = readFloatInline();
+  cfg.stores[i].tillFloat = newFloat;
   settings.float = newFloat;
   saveJSON_T(LS_SET, settings);
   if (!cfg.tillFloats) cfg.tillFloats = {};
@@ -5083,6 +5121,8 @@ async function doSync(manual){
     if (!cfg.stores.some(s => s.code === cfg.currentStore) && cfg.stores.length){
       cfg.currentStore = cfg.stores[0].code;
     }
+    // マネージャーが別の端末で決めたレジ金を、この端末のレジ締めアプリへ反映する
+    applyStoreFloatToTill();
 
     saveCfg(); saveMovs(); saveQueue();
     lastSyncOk = true;
