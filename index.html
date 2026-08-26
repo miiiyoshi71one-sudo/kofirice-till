@@ -70,9 +70,9 @@
   }
 .app-entry .person:active{ transform: scale(0.99); }
 .app-entry .avatar{
-    width: 44px; height: 44px; border-radius: 12px; flex: none;
+    width: 72px; height: 72px; border-radius: 18px; flex: none;
     display: flex; align-items: center; justify-content: center;
-    font-size: 19px; font-weight: 800; color: #fff;
+    font-size: 28px; font-weight: 800; color: #fff;
     overflow: hidden;   /* 写真をはみ出させない */
   }
   /* 写真を入れている人。文字のときと同じ枠にぴたりと収める */
@@ -108,7 +108,7 @@
 .app-entry .whoami .nm{ flex: 1; font-size: 18px; font-weight: 800; }
 .app-entry .whoami .rl{ font-size: 12px; color: var(--muted); font-weight: 400; display: block; }
   /* 名前を選んだあとの「交代」。共用端末なので人が入れ替わるたびに押す＝一番よく使うボタン */
-.app-entry .whoami .avatar{ width: 56px; height: 56px; border-radius: 14px; font-size: 23px; }
+.app-entry .whoami .avatar{ width: 84px; height: 84px; border-radius: 20px; font-size: 33px; }
 .app-entry .changebtn{
     flex: none; border: none; background: #eef1ee; color: var(--text);
     border-radius: 12px; padding: 14px 16px; cursor: pointer;
@@ -1850,9 +1850,18 @@ function showToast_E(msg, isError){
   toastTimer_E = setTimeout(() => t.classList.remove("show"), 3200);
 }
 
+// 画面ごとのヘッダー。ここで一括して出さないと、Change で名前選択に戻っても
+// 「What do you want to do?」が残ったままになる（実際にそうなっていた）
+const HDR_SUB = {
+  who:  "Tap your name",
+  pin:  "Enter your PIN",
+  jobs: "What do you want to do?"
+};
+
 function show_E(name){
   document.querySelectorAll("#app-entry .screen").forEach(s => s.classList.remove("active"));
   document.getElementById("scr-" + name).classList.add("active");
+  if (HDR_SUB[name]) document.getElementById("hdrSub").textContent = HDR_SUB[name];
   if (name === "users") renderUsers();
   window.scrollTo(0, 0);
 }
@@ -2023,7 +2032,6 @@ function renderJobs(u){
   setAvatarEl(document.getElementById("jobAvatar"), u);
   document.getElementById("jobName").innerHTML =
     esc_E(u.name) + `<span class="rl">${esc_E(roleLabel(u))}</span>`;
-  document.getElementById("hdrSub").textContent = "What do you want to do?";
 
   document.getElementById("jobList").innerHTML = (ROLE_JOBS[u.role] || []).map(k => {
     const j = JOBS[k];
@@ -2042,7 +2050,7 @@ function renderJobs(u){
 function renderUsers(){
   document.getElementById("userList").innerHTML = users.map((u, i) => `
     <div class="urow">
-      ${avatarHTML(u, "width:34px;height:34px;font-size:14px")}
+      ${avatarHTML(u, "width:52px;height:52px;border-radius:14px;font-size:20px")}
       <span class="nm">${esc_E(u.name)}<span class="rl">${esc_E(roleLabel(u))}${u.pin ? " · 🔒" : ""}</span></span>
       <button onclick="editUser(${i})">編集</button>
     </div>`).join("");
@@ -2197,7 +2205,7 @@ function applyCode(){
 
 // ⚠️ till.html を直したら必ずここを上げる。これがスマホに出る「版」の表示になる。
 //    現場で「更新されたのか？」を確かめる唯一の手がかりなので、上げ忘れると意味がなくなる。
-const APP_BUILD = "2026-08-27c";
+const APP_BUILD = "2026-08-27d";
 
 let __verTag = null;
 const VERSION_CHECK_MS = 5 * 60 * 1000;
