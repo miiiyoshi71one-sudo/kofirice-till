@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#1a7a3c">
 <!-- ⚠️ 版はここが唯一の正。直したら必ず上げる（JSはこの値を読むだけ）。
      更新の確認はファイルの先頭だけを読んで済ませるので、head の中に置くこと。 -->
-<meta name="build" content="2026-08-27e">
+<meta name="build" content="2026-08-27f">
 <title>KOFIRICE</title>
 <style>
 
@@ -1171,7 +1171,7 @@
 
 <!-- STEP 1: COUNT -->
 <div class="screen active" id="scr-count">
-  <div class="step-title">STEP 1 — Count the money in the till
+  <div class="step-title"><span id="st-count">STEP 1 — Count the money in the till</span>
     <small>How many of each note? Press + / −</small>
   </div>
   <div class="totalbar">
@@ -1192,24 +1192,25 @@
     <div class="mid">Coins total (GH₵)<div class="subtotal">all pesewas + coins</div></div>
     <input type="number" id="coinsTotal" min="0" step="0.1" placeholder="0" inputmode="decimal" oninput="updateTotal()">
   </div>
-  <button class="bigbtn" onclick="goAdjust()">NEXT ➜ STEP 2</button>
+  <button class="bigbtn" id="nx-count" onclick="goAdjust()">NEXT ➜ STEP 2</button>
 </div>
 
 <!-- STEP 2: TAKE FROM CHANGE BOX -->
 <div class="screen" id="scr-adjust">
-  <div class="step-title">STEP 2 — Take change from the CHANGE BOX
+  <div class="step-title"><span id="st-adjust">STEP 2 — Take change from the CHANGE BOX</span>
     <small>Put these notes INTO the till (for tomorrow's change)</small>
   </div>
   <div id="adjustList"></div>
-  <button class="bigbtn" onclick="goBoxCount()">DONE ➜ STEP 3</button>
-  <button class="bigbtn gray" onclick="show_T('count')">⬅ Back</button>
+  <button class="bigbtn" id="nx-adjust" onclick="goNext('adjust')">NEXT ➜ STEP 3</button>
+  <button class="bigbtn gray" onclick="goBack('adjust')">⬅ Back</button>
 </div>
 
 <!-- STEP 3: COUNT THE CHANGE BOX INSIDE THE SAFE -->
 <div class="screen" id="scr-box">
-  <div class="step-title">STEP 3 — Count the CHANGE BOX in the safe
+  <div class="step-title"><span id="st-box">STEP 3 — Count the CHANGE BOX in the safe</span>
     <small>The safe is already open. Count what is left in the change box.</small>
   </div>
+  <div id="boxWhy"></div>
   <div class="warn" style="text-align:center">
     🧰 Count the <b>change box only</b>.<br>Do NOT count the sales money in the safe.
   </div>
@@ -1218,25 +1219,25 @@
     <span class="amt" id="boxTotal">GH₵ 0</span>
   </div>
   <div id="boxList"></div>
-  <button class="bigbtn" onclick="goResult()">NEXT ➜ STEP 4</button>
-  <button class="bigbtn gray" onclick="show_T('adjust')">⬅ Back</button>
+  <button class="bigbtn" id="nx-box" onclick="goNext('box')">NEXT ➜ STEP 4</button>
+  <button class="bigbtn gray" onclick="goBack('box')">⬅ Back</button>
 </div>
 
 <!-- STEP 4: PUT IN SAFE -->
 <div class="screen" id="scr-result">
-  <div class="step-title">STEP 4 — Put the sales money in the DROP SAFE
+  <div class="step-title"><span id="st-result">STEP 4 — Put the sales money in the DROP SAFE</span>
     <small>🔴 DROP = into the drop safe &nbsp; 🟢 TILL = stays in till for tomorrow</small>
   </div>
   <div id="splitSummary"></div>
   <div class="cap" style="text-align:center;margin:2px 0 8px">Sort each note like this, then put the 🔴 pile in the drop safe</div>
   <div id="resultRows"></div>
-  <button class="bigbtn" onclick="goFinal()">NEXT ➜ STEP 5</button>
-  <button class="bigbtn gray" onclick="show_T('box')">⬅ Back</button>
+  <button class="bigbtn" id="nx-result" onclick="goNext('result')">NEXT ➜ STEP 5</button>
+  <button class="bigbtn gray" onclick="goBack('result')">⬅ Back</button>
 </div>
 
 <!-- STEP 5: COUNT THE TILL AGAIN, THEN WRITE DOWN TODAY'S SALES -->
 <div class="screen" id="scr-final">
-  <div class="step-title">STEP 5 — Count the till, then write it down
+  <div class="step-title"><span id="st-final">STEP 5 — Count the till, then write it down</span>
     <small>One more count confirms tomorrow's float</small>
   </div>
   <div class="warn" style="text-align:center">
@@ -1273,7 +1274,7 @@
 
   <div id="bookSlip"></div>
   <button class="bigbtn" onclick="saveRecord()">✅ SAVE &amp; FINISH</button>
-  <button class="bigbtn gray" onclick="show_T('result')">⬅ Back</button>
+  <button class="bigbtn gray" onclick="goBack('final')">⬅ Back</button>
 </div>
 
 <!-- DONE -->
@@ -2600,6 +2601,68 @@ function openingTillTotal(){
   return floatTargetTotal(settings.float);
 }
 
+// ---------- 今晩たどる工程 ----------
+// おつり箱は金庫の中にある。開けない晩は中身が変わりようがないので、
+// 毎晩全額を数えるのは手間なだけで、実際には何も守っていない。
+// 数えるのは「箱を開けた晩」「週に一度」「一度も数えていないとき」だけにする。
+// これで普通の晩は 5工程 → 3工程 になる（2026-08-27 三好さんの指示）。
+const BOX_COUNT_EVERY_DAYS = 7;
+const STEP_LABEL = {
+  count:  "Count the money in the till",
+  adjust: "Take change from the CHANGE BOX",
+  box:    "Count the CHANGE BOX in the safe",
+  result: "Put the sales money in the DROP SAFE",
+  final:  "Count the till, then write it down"
+};
+let tonightPlan = ["count", "adjust", "box", "result", "final"];
+
+/** 週に一度の全数チェックの期日が来たか */
+function boxCountDue(){
+  const last = settings.lastBoxCountAt;
+  if (!last) return true;                       // 一度も数えていなければ数える
+  return (Date.now() - last) / 86400000 >= BOX_COUNT_EVERY_DAYS;
+}
+
+/** 箱を数える晩かどうか。理由も返す（画面に出して納得してもらうため） */
+function boxStepReason(hasShortage){
+  if (hasShortage) return "opened";             // 開けたのだから数える
+  if (boxCountDue())  return "weekly";          // 週に一度の全数
+  return null;                                  // 今晩は触らない＝数えない
+}
+
+function planTonight(hasShortage){
+  const p = ["count"];
+  if (hasShortage) p.push("adjust");
+  if (boxStepReason(hasShortage)) p.push("box");
+  p.push("result", "final");
+  return p;
+}
+
+/** 見出しと「次へ」の番号を、今晩の並びに合わせて振り直す */
+function renderStepTitles(){
+  const n = tonightPlan.length;
+  tonightPlan.forEach((name, i) => {
+    const lab = document.getElementById("st-" + name);
+    if (lab) lab.textContent = "STEP " + (i + 1) + " of " + n + " — " + STEP_LABEL[name];
+    const btn = document.getElementById("nx-" + name);
+    if (btn && i + 1 < n) btn.textContent = "NEXT ➜ STEP " + (i + 2);
+  });
+}
+
+function stepAt(from, delta){
+  const i = tonightPlan.indexOf(from);
+  return i < 0 ? null : (tonightPlan[i + delta] || null);
+}
+function enterStep(name){
+  if (name === "count")  return show_T("count");
+  if (name === "adjust") return show_T("adjust");
+  if (name === "box")    return goBoxCount();
+  if (name === "result") return goResult();
+  if (name === "final")  return goFinal();
+}
+function goNext(from){ enterStep(stepAt(from,  1)); }
+function goBack(from){ enterStep(stepAt(from, -1)); }
+
 // ---------- Screens ----------
 function show_T(name){
   document.querySelectorAll("#app-till .screen").forEach(s => s.classList.remove("active"));
@@ -2686,6 +2749,14 @@ function goBoxCount(){
         </div>`;
     }
     box.innerHTML = html;
+  }
+  // なぜ今晩は数えるのか。理由が分からないと「やらされている」感になる
+  const why = document.getElementById("boxWhy");
+  if (why){
+    const opened = tonightPlan.indexOf("adjust") > -1;
+    why.innerHTML = opened
+      ? `<div class="cap" style="text-align:center;margin-bottom:8px">You opened the box tonight, so count what is left.</div>`
+      : `<div class="cap" style="text-align:center;margin-bottom:8px">📅 Weekly check — this happens once a week, not every night.</div>`;
   }
   updateBoxTotal();
   show_T("box");
@@ -2863,14 +2934,14 @@ function goAdjust(){
   for (const s of r.shortages) takenNotes[s.d] = s.missing;
   lastResult = { counts, coins, ...r, total, sales, fromSafe, opening, takenNotes };
 
+  // 今晩の並びを決める。箱を開けないなら、この画面も箱の計数も出さない
+  tonightPlan = planTonight(r.shortages.length > 0);
+  renderStepTitles();
+
   const box = document.getElementById("adjustList");
   if (!r.shortages.length){
-    box.innerHTML = `
-      <div style="background:#e8f5e9;border:2px solid var(--green);border-radius:14px;padding:26px 14px;text-align:center;">
-        <div style="font-size:52px">👍</div>
-        <div style="font-size:19px;font-weight:800;margin-top:8px">Nothing to take!</div>
-        <div style="color:var(--muted);margin-top:6px">The till already has enough change for tomorrow.<br>Go to STEP 3.</div>
-      </div>`;
+    goNext("count");        // 取るものが無いので、この画面は出さずに次へ
+    return;
   } else {
     // Just a number to read, not to edit — if the change box turns out to be
     // short, that shows up on its own at STEP 5's recount, so there's nothing
@@ -2896,7 +2967,8 @@ function goAdjust(){
 function goResult(){
   if (!lastResult) return;
   const r = lastResult;
-  boxCounts = getBoxCounts();
+  // 数えていない晩に前回の入力が残ると、実測していない数字が記録されてしまう
+  boxCounts = tonightPlan.indexOf("box") > -1 ? getBoxCounts() : {};
 
   renderSplitSummary();
   renderPosCheck(r.sales);
@@ -3128,6 +3200,13 @@ function saveRecord(){
     pos: roundedPos,
     diff: Math.round((lastResult.sales - roundedPos)*100)/100
   };
+  // 箱を実測した晩だけ期日を更新する。数えていない晩に更新すると、
+  // 週に一度の全数チェックが永久に来なくなる
+  if (notesNonZero(rec.boxCounts)){
+    settings.lastBoxCountAt = Date.now();
+    saveJSON_T(LS_SET, settings);
+  }
+
   const hist = loadJSON_T(LS_HIST) || [];
   hist.unshift(rec);
   saveJSON_T(LS_HIST, hist);
@@ -3179,6 +3258,7 @@ function resetAll(){
   lastResult = null;
   boxCounts = null;
   bookConfirmed = false;
+  tonightPlan = ["count", "adjust", "box", "result", "final"];
   updateTotal();
   show_T("count");
 }
