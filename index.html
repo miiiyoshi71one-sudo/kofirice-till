@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#1a7a3c">
+<!-- ⚠️ 版はここが唯一の正。直したら必ず上げる（JSはこの値を読むだけ）。
+     更新の確認はファイルの先頭だけを読んで済ませるので、head の中に置くこと。 -->
+<meta name="build" content="2026-08-27e">
 <title>KOFIRICE</title>
 <style>
 
@@ -2205,10 +2208,19 @@ function applyCode(){
 
 // ⚠️ till.html を直したら必ずここを上げる。これがスマホに出る「版」の表示になる。
 //    現場で「更新されたのか？」を確かめる唯一の手がかりなので、上げ忘れると意味がなくなる。
-const APP_BUILD = "2026-08-27d";
+// 版は head の <meta name="build"> が正。ここは読むだけ（2か所に書くとズレるため）
+const APP_BUILD = (document.querySelector('meta[name="build"]') || {}).content || "?";
 
-let __verTag = null;
 const VERSION_CHECK_MS = 5 * 60 * 1000;
+
+/**
+ * 保存済みを一切使わずに開き直す。
+ * ただの reload だと、ブラウザによっては同じ古いページをもう一度出してしまう。
+ * URLに毎回ちがう ?v= を付ければ確実に取りに行く（localStorage は消えない）。
+ */
+function hardReload(){
+  location.replace(location.origin + location.pathname + "?v=" + Date.now());
+}
 
 /** 名前選択の画面に「版」を出す。古い版にはこの表示自体が無いので、それが見分けになる */
 function showBuildStamp(){
@@ -2224,12 +2236,36 @@ function showBuildStamp(){
  */
 function forceRefresh(){
   if (!confirm("Reload the latest version of this app?")) return;
-  location.replace(location.origin + location.pathname + "?v=" + Date.now());
+  hardReload();
 }
 
-function readVersionTag(){
-  return fetch(location.href, { method: "HEAD", cache: "no-store" })
-    .then(r => r.headers.get("ETag") || r.headers.get("Last-Modified") || null)
+// サーバーにある版を読む。
+// ⚠️ 以前は ETag を「起動時のサーバー値」と比べていたが、これには穴があった:
+//    ページ自体がブラウザの保存済み（max-age=600）から表示され、その裏で
+//    サーバーが既に新しくなっていると、起動時に控える ETag は「新しい方」になる。
+//    画面は古いのに「最新を持っている」と誤認し、二度と更新されない端末ができる。
+//    （2026-08-27、三好さんの端末だけ更新されず発覚）
+// なので今は「いま動いている版（APP_BUILD）」と「サーバーの版」を直に比べる。
+// ファイルは270KBあるが、版は head の meta にあるので先頭だけ読んで打ち切る。
+function readServerBuild(){
+  return fetch(location.href, { cache: "no-store", headers: { Range: "bytes=0-8191" } })
+    .then(r => {
+      if (!r.body) return r.text();          // 古いブラウザ向け（Rangeが効けば8KBで済む）
+      const reader = r.body.getReader();
+      const dec = new TextDecoder();
+      let text = "";
+      const pump = () => reader.read().then(({ value, done }) => {
+        if (value) text += dec.decode(value, { stream: true });
+        // 版が見つかった時点で通信を切る（残り260KBは取りに行かない）
+        if (done || text.length >= 8192 || /name="build"/.test(text)){
+          try { reader.cancel(); } catch(e){}
+          return text;
+        }
+        return pump();
+      });
+      return pump();
+    })
+    .then(t => { const m = /<meta name="build" content="([^"]+)">/.exec(t); return m ? m[1] : null; })
     .catch(() => null);   // 圏外なら黙って何もしない
 }
 
@@ -2259,22 +2295,21 @@ function showUpdateBar(){
     "position:fixed;left:0;right:0;bottom:0;z-index:9999;border:none;" +
     "background:#1a7a3c;color:#fff;font-size:15px;font-weight:800;" +
     "padding:14px 12px;cursor:pointer;box-shadow:0 -2px 10px rgba(0,0,0,.25)");
-  bar.onclick = () => location.reload();
+  bar.onclick = () => hardReload();
   document.body.appendChild(bar);
 }
 
 function checkForUpdate(){
-  if (!__verTag) return;                 // 起動時に取れていなければ比べようがない
   if (document.hidden) return;
-  readVersionTag().then(tag => {
-    if (!tag || tag === __verTag) return;
-    if (__isIdle()) location.reload();   // 何もしていなければ静かに入れ替える
+  readServerBuild().then(serverBuild => {
+    if (!serverBuild || serverBuild === APP_BUILD) return;
+    if (__isIdle()) hardReload();        // 何もしていなければ静かに入れ替える
     else showUpdateBar();                // 作業中は本人に任せる
   });
 }
 
 showBuildStamp();
-readVersionTag().then(tag => { __verTag = tag; });
+checkForUpdate();   // 起動した時点で古ければ、その場で直す
 setInterval(checkForUpdate, VERSION_CHECK_MS);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) checkForUpdate(); });
 // ホーム画面から復帰したとき（bfcache）。script が再実行されないので、ここで見に行く
