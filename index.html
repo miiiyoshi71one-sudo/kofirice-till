@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#1a7a3c">
 <!-- ⚠️ 版はここが唯一の正。直したら必ず上げる（JSはこの値を読むだけ）。
      更新の確認はファイルの先頭だけを読んで済ませるので、head の中に置くこと。 -->
-<meta name="build" content="2026-08-27f">
+<meta name="build" content="2026-08-27g">
 <title>KOFIRICE</title>
 <style>
 
@@ -1492,6 +1492,7 @@
   <div class="card">
     <h2 id="countTitle">🔍 実際に数えて合わせる<span class="sub">棚卸</span></h2>
     <div class="hint" id="countHint">おつりボックスを実際に数えて、アプリの数字とズレていたら合わせます。ズレは差異として履歴に残ります。</div>
+    <div id="countAge" style="margin-top:8px"></div>
     <div class="field">
       <label>数えた実際の枚数</label>
       <div class="denom-grid" id="countDenoms"></div>
@@ -2351,6 +2352,7 @@ if (settings.larkWebhook === undefined) settings.larkWebhook = "";
 if (!settings.storeCode) settings.storeCode = DEFAULT_STORE_CODE;
 let lastResult = null;
 let selectedStaff = "";
+let selectedRole  = "";      // おつり箱を数えてよいのはマネージャーだけ（2026-08-27）
 let boxCounts = null;         // notes actually found in the safe's change box
 
 // Effective webhook = the one saved on this device if set, otherwise the built-in default.
@@ -2368,6 +2370,7 @@ function applySession(){
   const s = loadSession();
   if (!s){ openApp('entry'); return null; }
   selectedStaff = s.name;
+  selectedRole  = s.role;
   document.getElementById("hdrUser").textContent = s.name;
   // Only a manager may change the float, the shop code or the Lark group.
   if (s.role !== "manager") document.getElementById("tab-settings").style.display = "none";
@@ -2623,8 +2626,14 @@ function boxCountDue(){
   return (Date.now() - last) / 86400000 >= BOX_COUNT_EVERY_DAYS;
 }
 
-/** 箱を数える晩かどうか。理由も返す（画面に出して納得してもらうため） */
+/**
+ * 箱を数える晩かどうか。理由も返す（画面に出して納得してもらうため）。
+ * ⚠️ 数えてよいのはマネージャーだけ。おつり箱は枚数が多く、シェフには荷が重い
+ * （2026-08-27 三好さんの指示）。シェフは足りないぶんを取り出すだけで、
+ * 実測は金庫アプリの「🔍 実際に数えて合わせる」でマネージャーが行う。
+ */
 function boxStepReason(hasShortage){
+  if (selectedRole !== "manager") return null;  // シェフには数えさせない
   if (hasShortage) return "opened";             // 開けたのだから数える
   if (boxCountDue())  return "weekly";          // 週に一度の全数
   return null;                                  // 今晩は触らない＝数えない
@@ -2948,6 +2957,10 @@ function goAdjust(){
     // to correct here. Fiddling with a number on this screen only confused
     // people.
     let html = `<div class="warn" style="text-align:center">⚠️ Not enough small notes for tomorrow.<br><b>Take these from the CHANGE BOX, put them in the TILL:</b></div>`;
+    // シェフは取り出すだけ。箱の中身を数えるのはマネージャーの仕事だと明示する
+    if (selectedRole !== "manager"){
+      html += `<div class="cap" style="text-align:center;margin:6px 0 10px">Just take these notes and close the box — you do <b>not</b> need to count what is inside.</div>`;
+    }
     for (const s of r.shortages){
       html += `
         <div class="denom">
@@ -4753,6 +4766,22 @@ function renderRefill(){
   document.getElementById("countHint").textContent = opened
     ? "おつりボックスを実際に数えて、アプリの数字とズレていたら合わせます。ズレは差異として履歴に残ります。"
     : "いま金庫のおつりボックスに実際に入っている枚数を数えて入力してください。ここを起点に増減を追いかけます。";
+
+  // 店舗のシェフは箱を数えない運用にしたので、ここを見るのはマネージャーだけ。
+  // 「最後に数えたのはいつか」を出さないと、誰も数えないまま何週間も経つ
+  const lastCnt = lastBoxCount(st.code);
+  const ageBox = document.getElementById("countAge");
+  if (ageBox){
+    if (!lastCnt){
+      ageBox.innerHTML = `<div class="warn"><b>まだ一度も数えていません</b></div>`;
+    } else {
+      const days = Math.floor((Date.now() - new Date(lastCnt.ts).getTime()) / 86400000);
+      const late = days >= 7;
+      ageBox.innerHTML = late
+        ? `<div class="warn"><b>⚠️ 最後に数えてから ${days} 日</b><br>週に一度は数えてください。</div>`
+        : `<div class="hint">最後に数えたのは <b>${days === 0 ? "今日" : days + "日前"}</b>です。</div>`;
+    }
+  }
 
   const cur = balance(st.code, "change");
   const shown = emptyNotes();
