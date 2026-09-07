@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#1a7a3c">
 <!-- ⚠️ 版はここが唯一の正。直したら必ず上げる（JSはこの値を読むだけ）。
      更新の確認はファイルの先頭だけを読んで済ませるので、head の中に置くこと。 -->
-<meta name="build" content="2026-08-27g">
+<meta name="build" content="2026-09-04h">
 <title>KOFIRICE</title>
 <style>
 
@@ -49,6 +49,18 @@
     background: var(--bg); color: var(--text);
     max-width: 560px; margin: 0 auto; padding-bottom: 30px;
   }
+/* 練習モード（2026-09-05）。本番と間違えて本物の数字を打たれるのが一番困るので、
+     4つのアプリすべてでヘッダーの色を変える。色が違えば読めなくても気づく。 */
+body.practice header{ background: #b26a00 !important; }
+body.practice #practiceNote{ display: block; }
+#practiceNote{
+    display: none;
+    margin: 0 0 14px; padding: 12px 14px;
+    background: #fff6e0; border: 2px solid #b26a00; border-radius: 12px;
+    color: #7a4a00; font-size: 13px; line-height: 1.65; font-weight: 700;
+  }
+#practiceNote .en{ font-size: 15px; font-weight: 800; display: block; margin-bottom: 4px; }
+#practiceNote .ja{ font-weight: 600; }
 .app-entry header{
     background: var(--green); color: #fff;
     padding: 16px; text-align: center;
@@ -637,6 +649,64 @@
     border-radius: 9px; font-size: 10px; font-weight: 800;
     padding: 1px 5px; margin-left: 3px; vertical-align: top;
   }
+/* 両替タブ（2026-09-03）。1行に「売上から出す」「change caseから出す」を
+     並べる。マネージャーが現物を前にして左右へ振り分ける動作そのままの形。 */
+.app-safe .xch-head{ display: flex; align-items: center; gap: 6px; padding: 0 2px 6px;
+    font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.app-safe .xch-head .k{ width: 48px; flex: none; }
+.app-safe .xch-head .s{ flex: 1; text-align: center; }
+.app-safe .xch-row{ display: flex; align-items: center; gap: 6px;
+    padding: 7px 2px; border-top: 1px solid var(--line); }
+.app-safe .xch-row .note-mini{ width: 48px; flex: none; }
+.app-safe .xch-side{ flex: 1; display: flex; align-items: center; gap: 5px; min-width: 0; }
+.app-safe .xch-have{ font-size: 11px; color: var(--muted); white-space: nowrap; }
+.app-safe .xch-have b{ font-size: 14px; color: var(--text); }
+.app-safe .xch-side input{ width: 100%; min-width: 0; padding: 8px 4px;
+    font-size: 16px; text-align: center; font-weight: 700;
+    border: 2px solid var(--line); border-radius: 9px; background: #fff; }
+.app-safe .xch-side input.over{ border-color: var(--red); background: #fdeceb; }
+.app-safe .xch-verdict{ margin-top: 12px; padding: 11px 12px; border-radius: 10px;
+    font-size: 14px; font-weight: 800; line-height: 1.6; }
+.app-safe .xch-verdict.idle{ background: var(--bg); color: var(--muted); font-weight: 600; }
+.app-safe .xch-verdict.even{ background: #eef6f0; color: var(--green); }
+.app-safe .xch-verdict.move{ background: #eef2fb; color: var(--blue); }
+.app-safe .xch-verdict.bad{ background: #fdeceb; color: var(--red); }
+.app-safe .xch-verdict.warn{ background: #fff6e0; color: #8a6d00; }
+/* おつりボックス（2026-09-04 作り直し）。1行に「いま」「＋足す」「−持っていく」を
+     並べる。三好さんの指示で、いまの枚数がすべての基準になる。 */
+.app-safe .box-hero{ background: var(--bg); border-radius: 12px;
+    padding: 12px 14px; margin-bottom: 12px; }
+.app-safe .box-hero-lbl{ font-size: 12px; font-weight: 700; color: var(--muted); }
+.app-safe .bx-head{ display: flex; align-items: center; gap: 6px; padding: 0 2px 6px;
+    font-size: 11px; font-weight: 700; color: var(--muted); }
+.app-safe .bx-head .k{ width: 44px; flex: none; }
+.app-safe .bx-head .n{ width: 58px; flex: none; text-align: right; }
+.app-safe .bx-head .s{ flex: 1; text-align: center; }
+.app-safe .bx-row{ display: flex; align-items: center; gap: 6px;
+    padding: 7px 2px; border-top: 1px solid var(--line); }
+.app-safe .bx-row .note-mini{ width: 44px; flex: none; }
+.app-safe .bx-now{ width: 58px; flex: none; text-align: right; line-height: 1.25; }
+.app-safe .bx-now b{ font-size: 16px; }
+.app-safe .bx-now .to{ display: block; font-size: 11px; font-weight: 800; color: var(--blue); }
+.app-safe .bx-side{ flex: 1; min-width: 0; }
+.app-safe .bx-side input{ width: 100%; min-width: 0; padding: 8px 4px;
+    font-size: 16px; text-align: center; font-weight: 700;
+    border: 2px solid var(--line); border-radius: 9px; background: #fff; }
+.app-safe .bx-side input.over{ border-color: var(--red); background: #fdeceb; }
+/* 実測カウントのズレを金種ごとに見せるチップ（2026-09-04）。
+     箱に鍵をかけない運用にしたので、ここに出るズレは「合計は合っているのに
+     金種だけ入れ替わっている」形が普通。合計だけでは記録もれと不足が区別できない。 */
+.app-safe .cnt-break{ display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.app-safe .cnt-chip{ display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 8px 4px 4px; border-radius: 9px;
+    font-size: 13px; font-weight: 800; border: 2px solid var(--line); }
+.app-safe .cnt-chip .note-mini{ width: 40px; height: 22px; font-size: 11px; }
+.app-safe .cnt-chip.plus{ border-color: var(--green); color: var(--green); background: #eef6f0; }
+.app-safe .cnt-chip.minus{ border-color: var(--red); color: var(--red); background: #fdeceb; }
+.app-safe .cnt-read{ margin-top: 8px; padding: 10px 11px; border-radius: 10px;
+    font-size: 12.5px; line-height: 1.65; font-weight: 600; }
+.app-safe .cnt-read.ok{ background: #eef6f0; color: var(--green); }
+.app-safe .cnt-read.bad{ background: #fdeceb; color: var(--red); }
 .app-safe .screen{ display: none; padding: 14px; }
 .app-safe .screen.active{ display: block; }
 .app-safe .card{
@@ -1029,6 +1099,13 @@
 
 <!-- 1. WHO ARE YOU -->
 <div class="screen active" id="scr-who">
+  <!-- 練習モードのときだけ出る。本番では display:none のまま -->
+  <div id="practiceNote">
+    <span class="en">🧪 PRACTICE APP — nothing here is real.</span>
+    Numbers you type here are kept only on this phone. They are never sent to the office,
+    and they do not touch the real records.<br>
+    <span class="ja">練習用です。ここで打った数字はこの端末にだけ残り、本番の記録とは完全に別です。Larkにも飛びません。</span>
+  </div>
   <div id="peopleList"></div>
   <!-- いま端末に乗っている版。ここが空＝古い画面を掴んだまま -->
   <button id="buildStamp" onclick="forceRefresh()"
@@ -1174,6 +1251,12 @@
   <div class="step-title"><span id="st-count">STEP 1 — Count the money in the till</span>
     <small>How many of each note? Press + / −</small>
   </div>
+  <!-- 小さい札は全部レジに残る規則にしたので（2026-09-04）、夜に「足りない」状態は
+       起きない。箱と交換するのは営業中の話。ここではその念押しだけ。 -->
+  <div class="warn" style="text-align:center">
+    Ran out of ₵1 or ₵5 today? <b>Swap with the change box during the day</b>,
+    not now. Take small notes out, put the <b>same amount</b> back in big notes.
+  </div>
   <div class="totalbar">
     <span class="lbl">TOTAL CASH</span>
     <span class="amt" id="liveTotal">GH₵ 0</span>
@@ -1192,92 +1275,69 @@
     <div class="mid">Coins total (GH₵)<div class="subtotal">all pesewas + coins</div></div>
     <input type="number" id="coinsTotal" min="0" step="0.1" placeholder="0" inputmode="decimal" oninput="updateTotal()">
   </div>
-  <button class="bigbtn" id="nx-count" onclick="goAdjust()">NEXT ➜ STEP 2</button>
+  <button class="bigbtn" id="nx-count" onclick="goAfterCount()">NEXT ➜ STEP 2</button>
 </div>
 
-<!-- STEP 2: TAKE FROM CHANGE BOX -->
-<div class="screen" id="scr-adjust">
-  <div class="step-title"><span id="st-adjust">STEP 2 — Take change from the CHANGE BOX</span>
-    <small>Put these notes INTO the till (for tomorrow's change)</small>
+<!-- ================= MORNING CHECK（英語・スタッフが出勤直後にやる） =================
+     ⚠️ 金庫の計数は「ブラインド」にしてある。アプリが期待額を先に見せると、
+        数えずにその数字を打ち込めてしまい、二重計数の意味が消える。
+        差があるかどうかはマネージャー側（金庫アプリ・Lark）で分かればよい。
+        レジのほうは決めた額（₵200）を見せる。現場が自分で直せる数字だから。 -->
+<div class="screen" id="scr-morningen">
+  <div class="step-title"><span>MORNING CHECK</span>
+    <small>Before you open. Count two things.</small>
   </div>
-  <div id="adjustList"></div>
-  <button class="bigbtn" id="nx-adjust" onclick="goNext('adjust')">NEXT ➜ STEP 3</button>
-  <button class="bigbtn gray" onclick="goBack('adjust')">⬅ Back</button>
-</div>
 
-<!-- STEP 3: COUNT THE CHANGE BOX INSIDE THE SAFE -->
-<div class="screen" id="scr-box">
-  <div class="step-title"><span id="st-box">STEP 3 — Count the CHANGE BOX in the safe</span>
-    <small>The safe is already open. Count what is left in the change box.</small>
-  </div>
-  <div id="boxWhy"></div>
   <div class="warn" style="text-align:center">
-    🧰 Count the <b>change box only</b>.<br>Do NOT count the sales money in the safe.
+    <b>1. Money in the SAFE</b><br>
+    Count yesterday's sales money in the safe.<br>Do NOT count the change box.
   </div>
   <div class="totalbar">
-    <span class="lbl">CHANGE BOX</span>
-    <span class="amt" id="boxTotal">GH₵ 0</span>
+    <span class="lbl">IN THE SAFE</span>
+    <span class="amt" id="mgSafeTotal">GH₵ 0</span>
   </div>
-  <div id="boxList"></div>
-  <button class="bigbtn" id="nx-box" onclick="goNext('box')">NEXT ➜ STEP 4</button>
-  <button class="bigbtn gray" onclick="goBack('box')">⬅ Back</button>
+  <div id="mgSafeList"></div>
+
+  <div class="warn" style="text-align:center;margin-top:18px">
+    <b>2. Money in the TILL</b><br>
+    Count the change left in the till from last night.
+  </div>
+  <div class="totalbar">
+    <span class="lbl">IN THE TILL</span>
+    <span class="amt" id="mgTillTotal">GH₵ 0</span>
+  </div>
+  <div id="mgTillCheck"></div>
+  <div id="mgTillList"></div>
+
+  <button class="bigbtn" id="mgCheckBtn" onclick="checkMorning()">🔍 CHECK</button>
+  <div class="cap" style="text-align:center;margin:6px 0 10px">Every count you check is saved.</div>
+  <button class="bigbtn" id="mgDoneBtn" style="display:none" onclick="doneMorning()">✅ DONE — open the shop</button>
+  <button class="bigbtn gray" onclick="openApp('entry')">⬅ Back</button>
 </div>
 
-<!-- STEP 4: PUT IN SAFE -->
+<!-- 最後の画面。仕分け → MoMo → 帳面 → 保存 を1枚にまとめてある（2026-09-03）。
+     以前はここで「もう一度数える」「POS申告額を入れる」もやらせていたが、
+     翌朝ちがう人が金庫とレジを数える工程（Morning check）を入れたので、
+     締めた本人にもう一度数えさせる意味がなくなった。 -->
 <div class="screen" id="scr-result">
-  <div class="step-title"><span id="st-result">STEP 4 — Put the sales money in the DROP SAFE</span>
-    <small>🔴 DROP = into the drop safe &nbsp; 🟢 TILL = stays in till for tomorrow</small>
+  <div class="step-title"><span id="st-result">STEP 2 — Put the big notes in the safe, then write it in the book</span>
+    <small>🔴 ₵50 / ₵100 / ₵200 &nbsp;→ safe &nbsp;&nbsp; 🟢 ₵20 and smaller &nbsp;→ stays in the till</small>
   </div>
   <div id="splitSummary"></div>
-  <div class="cap" style="text-align:center;margin:2px 0 8px">Sort each note like this, then put the 🔴 pile in the drop safe</div>
+  <div id="shortNotice"></div>
+  <div class="cap" style="text-align:center;margin:2px 0 8px">₵50, ₵100 and ₵200 go in the safe. Everything smaller stays in the till.</div>
   <div id="resultRows"></div>
-  <button class="bigbtn" id="nx-result" onclick="goNext('result')">NEXT ➜ STEP 5</button>
-  <button class="bigbtn gray" onclick="goBack('result')">⬅ Back</button>
-</div>
-
-<!-- STEP 5: COUNT THE TILL AGAIN, THEN WRITE DOWN TODAY'S SALES -->
-<div class="screen" id="scr-final">
-  <div class="step-title"><span id="st-final">STEP 5 — Count the till, then write it down</span>
-    <small>One more count confirms tomorrow's float</small>
-  </div>
-  <div class="warn" style="text-align:center">
-    Count what is <b>in the till right now</b>, after you put the sales money in the drop safe.
-  </div>
-  <div class="totalbar">
-    <span class="lbl">IN THE TILL NOW</span>
-    <span class="amt" id="finalTotal">GH₵ 0</span>
-  </div>
-  <div id="finalList"></div>
-  <div class="denom coins-row">
-    <div class="note-chip" style="background:#8d6e63">🪙</div>
-    <div class="mid">Coins total (GH₵)<div class="subtotal">all pesewas + coins</div></div>
-    <input type="number" id="finalCoins" min="0" step="0.1" placeholder="0" inputmode="decimal" oninput="updateFinalTotal()">
-  </div>
-  <div id="finalCheck"></div>
 
   <div class="field">
-    <label>💵 Cash sales today (auto) — GH₵</label>
-    <input type="text" id="salesAuto" readonly>
-  </div>
-  <div class="field">
-    <label>📋 Sales on POS / book (GH₵) — required</label>
-    <input type="number" id="posSales" min="0" step="1" placeholder="e.g. 1250" inputmode="numeric" oninput="updateSalesCheck()">
-  </div>
-  <div id="posCheck"></div>
-  <div class="field">
-    <label>📱 MoMo payments today (GH₵)</label>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:6px">One row per MoMo account or payment — they are added up for you.</div>
-    <div id="momoList"></div>
-    <button type="button" class="momo-add" onclick="addMomoRow()">➕ Add another MoMo</button>
-    <div class="momo-total">MoMo total: <b id="momoTotal">GH₵ 0</b></div>
+    <label>📱 MoMo received today (GH₵)</label>
+    <input type="number" id="momoOne" min="0" step="1" placeholder="0" inputmode="numeric" oninput="updateMomoTotal()">
   </div>
 
   <div id="bookSlip"></div>
   <button class="bigbtn" onclick="saveRecord()">✅ SAVE &amp; FINISH</button>
-  <button class="bigbtn gray" onclick="goBack('final')">⬅ Back</button>
+  <button class="bigbtn gray" onclick="goBack('result')">⬅ Back</button>
 </div>
 
-<!-- DONE -->
 <div class="screen" id="scr-done">
   <div class="done-wrap">
     <div class="check">✅</div>
@@ -1358,6 +1418,14 @@
 
 <!-- ================= ホーム ================= -->
 <div class="screen active" id="scr-home">
+  <!-- 開店前のダブルチェック。毎日やるものなので一番上に置き、今日やったか
+       どうかを一目で出す（2026-09-03）。 -->
+  <div class="card">
+    <h2>🌅 朝の確認<span class="sub" id="morningCardSub"></span></h2>
+    <div class="hint" id="morningCardHint"></div>
+    <button class="bigbtn" onclick="show_S('morning')">🌅 朝の確認をする</button>
+  </div>
+
   <div class="card">
     <h2>🧰 おつりボックス<span class="sub" id="homeChangeSub"></span></h2>
     <div class="amt-big" id="homeChangeTotal">—</div>
@@ -1368,7 +1436,7 @@
       <tbody id="homeChangeRows"></tbody>
     </table>
     <div class="hint" id="homeTillFloat" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)"></div>
-    <button class="bigbtn" onclick="show_S('refill')">🧰 補充する</button>
+    <button class="bigbtn" onclick="show_S('exchange')">💱 おつりを整理する</button>
     <button class="bigbtn gray" onclick="openCurrentStoreModal()">⚙️ 紙幣の枚数・目標・アラート額を設定</button>
   </div>
 
@@ -1385,7 +1453,7 @@
     <div class="amt-big" style="color:var(--blue)" id="homeTransitTotal">—</div>
     <div class="hint">ドライバーが店舗から引き取って、まだオフィスで受領確認していない分。</div>
     <div id="homeTransitByDriver"></div>
-    <button class="bigbtn blue" onclick="show_S('deliverconfirm')">🚚 受領確認へ</button>
+    <button class="bigbtn blue" onclick="show_S('collect')">🚚 受領確認へ</button>
   </div>
 
   <div class="card">
@@ -1452,10 +1520,8 @@
     <h2>✅ 受取済み<span class="sub">直近20件</span></h2>
     <div id="collectedList"></div>
   </div>
-</div>
 
-<!-- ================= 配送確認（ドライバーからの受領） ================= -->
-<div class="screen" id="scr-deliverconfirm">
+
   <div class="card">
     <h2>🚚 配送の受領確認</h2>
     <div class="hint">ドライバーが店舗から引き取って、まだオフィスに届いていない分の一覧です。実際に受け取った金額を数えて確定してください。</div>
@@ -1468,61 +1534,98 @@
   </div>
 </div>
 
-<!-- ================= おつり補充 ================= -->
-<div class="screen" id="scr-refill">
+<!-- ================= 両替（売上 ⇄ change case） ================= -->
+<div class="screen" id="scr-exchange">
+
+  <!-- ===================================================================
+       おつりボックス（2026-09-04 作り直し）
+
+       前は「両替」「レジとの交換」「補充」「実測」の4カードに分かれていて、
+       三好さんに「わかりづらすぎる」と言われた。作りを次のように寄せた:
+         ・一番上に「いま何枚あるか」を出す。これがすべての基準
+         ・操作は ＋足す / −持っていく の2つだけ
+         ・見るのは合計。合計が変わらないなら、小さい札が勝手に減っていても構わない
+       昼の交換はアプリに一切記録しない（記録させても現場は入れない）。
+       小さい札の仕入れ先は「週に一度レジを見て、余った小銭を大きい札と交換」。
+       ₵20以下は全部レジに残る規則（TILL_KEEP_MAX=20）なので、小銭はレジに溜まる。
+       =================================================================== -->
   <div class="card">
-    <h2>🧰 おつりボックスに補充</h2>
-    <div id="refillNeedBox"></div>
-    <div class="field">
-      <label>足す枚数（「いま」の右に、これから足すぶんだけ入れてください）</label>
-      <div class="denom-grid" id="refillDenoms"></div>
-      <div class="row-between total"><span>補充合計</span><span id="refillTotal">GH₵ 0</span></div>
+    <h2>🧰 おつりボックス<span class="sub" id="boxStoreName"></span></h2>
+    <div class="box-hero">
+      <div class="box-hero-lbl">いま入っている合計</div>
+      <div class="amt-big" id="boxNowTotal">GH₵ 0</div>
+      <div class="hint" id="boxNowAge"></div>
+      <button class="minibtn" style="margin-top:8px" onclick="gotoBoxCount()">✏️ いまの枚数がちがう</button>
     </div>
-    <div class="field">
-      <label>この現金はどこから？</label>
-      <div style="display:flex;gap:8px">
-        <button class="minibtn sel" id="src-external" onclick="setRefillSource('external')">外部から用意</button>
-        <button class="minibtn" id="src-sales" onclick="setRefillSource('sales')">金庫の売上袋から</button>
-      </div>
-      <div class="hint" id="refillSrcHint">両替やATMなど、金庫の外から用意した現金を入れる場合。</div>
+    <div class="hint" style="margin-bottom:8px">
+      足した枚数・持っていった枚数を入れて<b>更新</b>してください。
+      <b>合計が変わらなければ</b>、中の小さい札が減っていても直す必要はありません。
     </div>
-    <button class="bigbtn" onclick="submitRefill()">🧰 補充を記録する</button>
+    <div class="bx-head">
+      <span class="k">金種</span>
+      <span class="n">いま</span>
+      <span class="s">＋足す</span>
+      <span class="s">−持っていく</span>
+    </div>
+    <div id="bxRows"></div>
+    <div class="row-between total"><span>更新後の合計</span><span id="boxNextTotal">GH₵ 0</span></div>
+    <div class="field" style="margin-top:12px">
+      <label>メモ（任意）</label>
+      <input type="text" id="boxNote" placeholder="例: レジに余っていた₵1を箱へ、₵100を2枚レジに入れた">
+    </div>
+    <div class="xch-verdict idle" id="boxVerdict">足す枚数・持っていく枚数を入れてください</div>
+    <button class="bigbtn" id="boxSaveBtn" onclick="submitBoxUpdate()">🧰 更新する</button>
+    <div class="hint" style="margin-top:8px">間違えたときは、一番下の「🕐 直近の記録」で「↩️ 逆向きに戻す」を押してください。</div>
+  </div>
+
+  <!-- 箱の小さい札はレジから仕入れる。ここが唯一の供給元になる想定。 -->
+  <div class="card">
+    <h2>🧾 週に一度：レジの小銭を見る<span class="sub">小さい札の仕入れ</span></h2>
+    <div class="hint">
+      店のレジに <b>₵1・₵5 が余っていないか</b>を見ます。余っていたら、<b>同じ額</b>の大きい札を
+      レジに入れて、小さい札を受け取ってください。<br>
+      受け取った小さい札は上の「<b>＋足す</b>」、レジに入れた大きい札は「<b>−持っていく</b>」へ。
+      同じ額なら<b>箱の合計は変わりません</b>。
+    </div>
+    <div id="tillCheckAge" style="margin-top:8px"></div>
+    <button class="bigbtn gray" onclick="markTillCheck()">✔ 今日 レジを見た</button>
   </div>
 
   <div class="card">
-    <h2 id="countTitle">🔍 実際に数えて合わせる<span class="sub">棚卸</span></h2>
-    <div class="hint" id="countHint">おつりボックスを実際に数えて、アプリの数字とズレていたら合わせます。ズレは差異として履歴に残ります。</div>
+    <h2 id="countTitle">🔍 数え直す<span class="sub">棚卸</span></h2>
+    <div class="hint" id="countHint"></div>
     <div id="countAge" style="margin-top:8px"></div>
     <div class="field">
       <label>数えた実際の枚数</label>
       <div class="denom-grid" id="countDenoms"></div>
-      <div class="row-between total"><span>実際の合計</span><span id="countTotal">GH₵ 0</span></div>
-      <div class="row-between"><span>アプリ上の残高</span><span id="countExpected">GH₵ 0</span></div>
+      <div class="row-between total"><span>数えた合計</span><span id="countTotal">GH₵ 0</span></div>
+      <div class="row-between"><span>アプリ上の合計</span><span id="countExpected">GH₵ 0</span></div>
       <div class="row-between"><span>差異</span><span id="countDiff">GH₵ 0</span></div>
+      <div id="countBreak"></div>
     </div>
-    <button class="bigbtn red" onclick="submitCount()">🔍 実数に合わせる</button>
+    <button class="bigbtn red" onclick="submitCount()">🔍 これを新しい基準にする</button>
   </div>
 
   <!-- 目標枚数・下限額の設定入口。ヘッダーの⚙️マークだけでは気づけないという声があったので、
-       この画面の一番下に「何を決める設定なのか」を書いたボタンとして置いてある（2026-08-21）。 -->
+       この画面の中に「何を決める設定なのか」を書いたカードとして置いてある（2026-08-21）。 -->
   <div class="card">
     <h2>⚙️ 枚数の基準<span class="sub" id="basicsStoreName"></span></h2>
     <div class="hint">お金の置き場所は<b>2つ</b>あります。それぞれ「いくつにしておきたいか」をここで決めます。<b>直したら一番下の保存を押してください。</b></div>
 
     <div class="field">
-      <label>🧰 金庫のおつり入れ ── いくつ置いておきたいか</label>
-      <div class="hint" style="margin-bottom:7px">上の「いま」と見比べて、足りないぶんが補充の目安になります。</div>
+      <label>🧰 おつりボックス ── いくつ置いておきたいか</label>
+      <div class="hint" style="margin-bottom:7px">上の「いま」と見比べて、足りないぶんが目安になります。</div>
       <div class="denom-grid" id="targetRows"></div>
-      <div class="row-between total"><span>おつり入れの目標</span><span id="targetTotalInline">GH₵ 0</span></div>
+      <div class="row-between total"><span>おつりボックスの目標</span><span id="targetTotalInline">GH₵ 0</span></div>
     </div>
     <div class="field">
-      <label>🔔 おつり入れがこれを下回ったらドライバーに知らせる（GH₵・0なら知らせない）</label>
+      <label>🔔 おつりボックスがこれを下回ったらドライバーに知らせる（GH₵・0なら知らせない）</label>
       <input type="number" min="0" step="1" inputmode="numeric" id="alertInline" placeholder="例: 100" oninput="markBasicsDirty()">
     </div>
 
     <div class="field">
       <label>🧾 レジ金 ── 毎晩レジに残す枚数</label>
-      <div class="hint" style="margin-bottom:7px">翌朝の釣り銭として、閉店後もレジに残しておく枚数です。シェフのレジ締め STEP4・5 で「レジに残す枚数」としてそのまま使われます。<b>保存すると、この店舗の端末にも次の同期で届きます</b>（サーバー接続をしていない場合は、この端末だけに効きます）。</div>
+      <div class="hint" style="margin-bottom:7px">翌朝の釣り銭として、閉店後もレジに残しておく枚数です。<b>保存すると、この店舗の端末にも次の同期で届きます</b>（サーバー接続をしていない場合は、この端末だけに効きます）。</div>
       <div class="denom-grid" id="floatRows"></div>
       <div class="row-between total"><span>レジ金の合計</span><span id="floatTotalInline">GH₵ 0</span></div>
     </div>
@@ -1531,6 +1634,89 @@
     <div class="hint" id="basicsSavedNote"></div>
     <div class="hint" style="margin-top:10px">店舗名・店舗コードを直したり、サーバー接続の無い端末へ設定コードで送るときは
       <a href="#" onclick="openCurrentStoreModal();return false;" style="color:var(--blue);font-weight:700">こちらの詳しい設定</a>から。</div>
+  </div>
+
+  <!-- ⚠️ このカードだけは金庫の売上袋（sales）の帳簿も動かす。だから箱の
+       「足す・持っていく」とは別に残してある。ふだんは使わない。 -->
+  <div class="card">
+    <h2>💱 金庫の売上袋との両替<span class="sub">ふだんは使わない</span></h2>
+    <div class="hint">
+      金庫にある<b>まだ回収していない売上</b>と、おつりボックスのあいだで紙幣を入れ替えます。
+      売上の帳簿も同時に動くので、<b>売上袋に手を入れたときだけ</b>使ってください。<br>
+      箱にお金を足す・箱からお金を持っていくだけなら、<b>一番上のカード</b>で足ります。
+    </div>
+    <div class="xch-head">
+      <span class="k">金種</span>
+      <span class="s">💰 売上から出す</span>
+      <span class="s">🧰 箱から出す</span>
+    </div>
+    <div id="xchRows"></div>
+    <div class="row-between total"><span>💰 売上から出した合計</span><span id="xchOutTotal">GH₵ 0</span></div>
+    <div class="row-between total"><span>🧰 箱から出した合計</span><span id="xchInTotal">GH₵ 0</span></div>
+    <div class="xch-verdict idle" id="xchVerdict">枚数を入れてください</div>
+    <div class="field" style="margin-top:12px">
+      <label>メモ（任意）</label>
+      <input type="text" id="xchNote" placeholder="例: 小銭が足りなくなったため">
+    </div>
+    <button class="bigbtn" id="xchSaveBtn" onclick="submitExchange()">💱 この入れ替えを記録する</button>
+  </div>
+
+  <div class="card">
+    <h2>🕐 直近の記録</h2>
+    <div id="xchRecent"></div>
+  </div>
+</div>
+
+<!-- ================= 朝の確認（ダブルチェック） ================= -->
+<div class="screen" id="scr-morning">
+  <div class="card">
+    <h2>🌅 朝の確認<span class="sub">ダブルチェック</span></h2>
+    <div class="hint">
+      開店前に<b>金庫の前日売上</b>と<b>レジの釣り銭</b>を数えて、昨夜の締めと合っているかを確かめます。
+      ここで数えた記録は<b>残高を書き換えません</b>（突き合わせるためのメモです）。
+      ズレていたら理由を入れてください。実際に帳簿を直すのは「📒 履歴」タブの ✏️ 訂正から。
+    </div>
+    <div id="morningStatus" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card">
+    <h2>① 💰 金庫の前日売上を数える</h2>
+    <div class="hint">まだ受け取っていない売上が、金庫にいくら入っているかを数えます。</div>
+    <div class="field">
+      <label>数えた実際の枚数</label>
+      <div class="denom-grid" id="mcsDenoms"></div>
+      <div class="row-between total"><span>数えた合計</span><span id="mcsTotal">GH₵ 0</span></div>
+      <div class="row-between"><span>アプリ上の未受取</span><span id="mcsExpected">GH₵ 0</span></div>
+      <div class="row-between"><span>差異</span><span id="mcsDiff">GH₵ 0</span></div>
+    </div>
+    <div class="field" id="mcsReasonField" style="display:none">
+      <label>ズレの理由（必須）</label>
+      <input type="text" id="mcsReason" placeholder="例: 昨夜の締めで₵20を数え間違えた">
+    </div>
+    <button class="bigbtn" onclick="submitMorningSales()">💰 数えた結果を記録する</button>
+  </div>
+
+  <div class="card">
+    <h2>② 🧾 レジの釣り銭（レジ金）を数える</h2>
+    <div class="hint">昨夜レジに残したはずの釣り銭が、そのまま残っているかを数えます。</div>
+    <div class="field">
+      <label>数えた実際の枚数</label>
+      <div class="denom-grid" id="mcfDenoms"></div>
+      <div class="row-between total"><span>数えた合計</span><span id="mcfTotal">GH₵ 0</span></div>
+      <div class="row-between"><span>決めているレジ金</span><span id="mcfExpected">GH₵ 0</span></div>
+      <div class="row-between"><span>差異</span><span id="mcfDiff">GH₵ 0</span></div>
+    </div>
+    <div class="hint" id="mcfBreakdown"></div>
+    <div class="field" id="mcfReasonField" style="display:none">
+      <label>ズレの理由（必須）</label>
+      <input type="text" id="mcfReason" placeholder="例: ₵1が10枚足りない">
+    </div>
+    <button class="bigbtn" onclick="submitMorningFloat()">🧾 数えた結果を記録する</button>
+  </div>
+
+  <div class="card">
+    <h2>🕐 直近の朝の確認</h2>
+    <div id="morningRecent"></div>
   </div>
 </div>
 
@@ -1548,8 +1734,10 @@
       <label>絞り込み</label>
       <select id="histFilter" onchange="renderHistory_S()">
         <option value="all">すべて</option>
-        <option value="change">🧰 おつりボックスのみ</option>
+        <option value="change">🧰 おつりボックス（change case）のみ</option>
         <option value="sales">💰 売上保管のみ</option>
+        <option value="exchange">💱 両替のみ</option>
+        <option value="morning">🌅 朝の確認のみ</option>
       </select>
     </div>
     <button class="bigbtn gray" id="histTrashToggle" onclick="toggleTrashView()">🗑 ゴミ箱</button>
@@ -1627,6 +1815,19 @@
     <button class="bigbtn gray" onclick="resetTillLark()">🔄 既定のグループに戻す</button>
   </div>
 
+  <div class="card" id="larkOffCard">
+    <h2>🔕 この端末からの通知<span class="sub">練習・動作確認のとき</span></h2>
+    <div class="hint">アプリを試すときに、レジ締め・朝の確認・金庫の記録がLarkグループへ流れるのを止めます。<b>この端末だけの設定</b>で、他の端末や記録そのものには影響しません。</div>
+    <div id="larkOffState" style="font-weight:800;margin:10px 0"></div>
+    <button class="bigbtn gray" id="larkOffBtn" onclick="toggleLarkOff()">🔕 通知を止める</button>
+  </div>
+
+  <div class="card">
+    <h2>📥 手で反映する<span class="sub">普段は使わない</span></h2>
+    <div class="hint">レジ締めアプリを置いていない店舗の記録を手で足すときや、Larkに届いた同期コードを貼り付けるときだけ使います。ナビからは外してあります。</div>
+    <button class="bigbtn gray" onclick="show_S('apply')">📥 反映の画面をひらく</button>
+  </div>
+
   <div class="card">
     <h2>💾 バックアップ</h2>
     <button class="bigbtn gray" onclick="exportBackup()">⬇ データを書き出す</button>
@@ -1648,10 +1849,8 @@
 
 <nav>
   <button id="tab-home" class="active" onclick="show_S('home')"><span class="ico">🏦</span>ホーム</button>
-  <button id="tab-apply" onclick="show_S('apply')"><span class="ico">📥</span>反映</button>
-  <button id="tab-collect" onclick="show_S('collect')"><span class="ico">💰</span>受取<span id="badgeCollect"></span></button>
-  <button id="tab-deliverconfirm" onclick="show_S('deliverconfirm')"><span class="ico">🚚</span>配送確認<span id="badgeTransit"></span></button>
-  <button id="tab-refill" onclick="show_S('refill')"><span class="ico">🧰</span>補充</button>
+  <button id="tab-exchange" onclick="show_S('exchange')"><span class="ico">💱</span>おつり整理</button>
+  <button id="tab-collect" onclick="show_S('collect')"><span class="ico">💰</span>売上回収<span id="badgeCollect"></span></button>
   <button id="tab-history" onclick="show_S('history')"><span class="ico">📒</span>履歴</button>
 </nav>
 
@@ -1676,7 +1875,7 @@
 </div>
 
 <!-- ================= おつり（Change box） ================= -->
-<div class="screen active" id="scr-drv-change">
+<div class="screen" id="scr-drv-change">
   <div class="card">
     <h2>🧰 Change box<span class="sub" id="drvChangeSub"></span></h2>
     <div class="amt-big" id="drvChangeTotal">—</div>
@@ -1710,7 +1909,7 @@
 </div>
 
 <!-- ================= 配送（Deliver） ================= -->
-<div class="screen" id="scr-drv-deliver">
+<div class="screen active" id="scr-drv-deliver">
   <div class="card">
     <h2>🚚 Deliver sales to the office</h2>
     <div class="row-between total"><span>💰 Currently sitting at the store</span><span id="drvPendingTotal">GH₵ 0</span></div>
@@ -1734,15 +1933,52 @@
   </div>
 </div>
 
+<!-- ドライバーの仕事の中心は売上の配送。Change box は週に何度かなので
+     2番目に置く（三好さんの指示・2026-09-05）。
+     画面本体の DOM の並びは active クラスで切り替えるので、
+     この nav の順と .screen.active の位置だけが見た目の順を決める。 -->
 <nav>
-  <button id="tab-drv-change" class="active" onclick="show_D('change')"><span class="ico">🧰</span>Change box</button>
-  <button id="tab-drv-deliver" onclick="show_D('deliver')"><span class="ico">🚚</span>Deliver<span id="drvBadge"></span></button>
+  <button id="tab-drv-deliver" class="active" onclick="show_D('deliver')"><span class="ico">🚚</span>Deliver<span id="drvBadge"></span></button>
+  <button id="tab-drv-change" onclick="show_D('change')"><span class="ico">🧰</span>Change box</button>
 </nav>
 
 </div>
 
 <div id="toast"></div>
 <script>
+// =============================================================
+// 練習モード（2026-09-05）
+// =============================================================
+// 店舗のスマホでも安心して試せるようにするための仕組み。
+//
+// GitHub Pages は /kofirice-till/ と /kofirice-till/test/ が **同じ origin** なので、
+// localStorage をそのまま使うと本番と練習が混ざる。店舗の端末で試用URLを開いた
+// 瞬間に、その日の本物のレジ締めデータへ練習の数字が入り込む。パスが違っても
+// localStorage は分かれない（origin 単位なので）。
+//
+// 対策: 練習モードのときだけ localStorage のキーに接尾辞を付けて、まるごと別の
+// 入れ物にする。本番（ルート配信）は今までと同じキーのままなので、すでに店舗の
+// 端末に入っているデータはそのまま読める。切り替えても消えない。
+//
+// 練習モードになる条件:
+//   ・URL の path に /test/ を含む … GitHub Pages の試用URL
+//   ・localhost / 127.0.0.1        … 開発中の端末
+//     2026-09-04 に、練習中の通知が実際のLarkグループへ10回以上飛ぶ事故を起こした。
+//     手で larkOff を立て忘れても止まるように、ここで機械的に落とす。
+const PRACTICE = (function(){
+  try {
+    const p = location.pathname || "";
+    const h = location.hostname || "";
+    return /(^|\/)test\//.test(p) || h === "localhost" || h === "127.0.0.1";
+  } catch (e){ return false; }
+})();
+
+/**
+ * localStorage のキー名。練習モードのときだけ別名にする。
+ * ⚠️ 新しいキーを足すときは必ずこれを通すこと。素の文字列で書くと、
+ *    そのキーだけ本番と練習で共有されてしまう。
+ */
+function LSK(name){ return PRACTICE ? name + "__practice" : name; }
 
 // ===================== アプリの切り替え =====================
 // 3つの画面群（入口・レジ締め・金庫管理）を1ファイルに入れてある。
@@ -1764,9 +2000,14 @@ function openApp(name){
     if (name === 'till'){
       reloadTillSettings();
       applySession();
-      // 前回の完了画面のまま戻ってくると、次の人が別人の締め結果を見ることになる
-      var done = document.getElementById('scr-done');
-      if (done && done.classList.contains('active')) resetAll();
+      // レジ締めアプリに入り直したとき、開きっぱなしの画面をどうするか。
+      //  - 完了画面のまま … 次の人が別人の締め結果を見ることになる
+      //  - 朝のチェックの画面のまま … Till close を押したのに朝の画面が出る（2026-09-04）
+      // どちらも STEP1 から始め直す。数えかけ（scr-count 等）のときは触らない
+      // ——入口に一度戻ってから続きを数えられるようにしておきたいため。
+      var act = document.querySelector('#app-till .screen.active');
+      var actId = act ? act.id : '';
+      if (actId === 'scr-done' || actId === 'scr-morningen') resetAll();
     }
     if (name === 'safe') refreshSafe();
     if (name === 'driver') refreshDriver();
@@ -1780,9 +2021,9 @@ function openApp(name){
 // このファイルは「入口」。誰が使っているかを決めて、その人ができる
 // 仕事だけを見せ、実際の作業は till-close.html / safe-manager.html に渡す。
 // =============================================================
-const LS_USERS   = "kofirice_users_v1";
-const LS_SESSION_E = "kofirice_session_v1";
-const LS_TILLSET = "kofirice_till_settings_v1";   // till-close.html と共有
+const LS_USERS   = LSK("kofirice_users_v1");
+const LS_SESSION_E = LSK("kofirice_session_v1");
+const LS_TILLSET = LSK("kofirice_till_settings_v1");   // till-close.html と共有
 
 // role = できる仕事（権限）。label はその役割の既定の肩書き。
 // 個人ごとに見た目の肩書きだけ変えたいときは、その人のレコードに title を
@@ -2008,6 +2249,8 @@ function signOut(){
 // 2. できる仕事を出す
 // =============================================================
 const JOBS = {
+  // 出勤したら最初にこれ。英語（数えるのはガーナ人スタッフなので）。
+  morning: { ico: "🌅", cls: "",     b: "Morning check",             s: "Before you open — count the safe and the till",   fn: "startMorningCheck()" },
   till:    { ico: "🧮", cls: "",     b: "Till close",                s: "Count the till, put money in the safe",           app: "till" },
   // ドライバー用。金庫アプリ本体（日本語・全体管理）とは別の、英語の簡易画面。
   deliver: { ico: "🚚", cls: "safe", b: "Change & delivery",         s: "Change box status, refill, deliver sales to the office", app: "driver" },
@@ -2028,9 +2271,9 @@ const JOBS = {
 // 続けて「till」job → ⚙️ Settings（manager役割のときだけ出るタブ）から
 // 直接編集することもできるし、貼り付けコードで反映することもできる。
 const ROLE_JOBS = {
-  chef:    ["till"],
+  chef:    ["morning", "till"],
   driver:  ["deliver"],
-  manager: ["till", "safe", "users", "code"]
+  manager: ["morning", "till", "safe", "users", "code"]
 };
 
 function renderJobs(u){
@@ -2040,7 +2283,7 @@ function renderJobs(u){
 
   document.getElementById("jobList").innerHTML = (ROLE_JOBS[u.role] || []).map(k => {
     const j = JOBS[k];
-    const go = j.app ? `openApp('${j.app}')` : `show_E('${j.action}')`;
+    const go = j.fn ? j.fn : j.app ? `openApp('${j.app}')` : `show_E('${j.action}')`;
     return `<button class="job ${j.cls}" onclick="${go}">
       <span class="ico">${j.ico}</span>
       <span class="t"><b>${esc_E(j.b)}</b><span>${esc_E(j.s)}</span></span>
@@ -2341,8 +2584,8 @@ const DEFAULT_FLOAT = { 200:0, 100:0, 50:5, 20:5, 10:5, 5:10, 1:30 };
 // managers) matches records to a shop by this code, so it must be the same
 // string on both sides. Change it in Settings when deploying to a new shop.
 const DEFAULT_STORE_CODE = "S2";
-const LS_SET = "kofirice_till_settings_v1";
-const LS_HIST = "kofirice_till_history_v1";
+const LS_SET = LSK("kofirice_till_settings_v1");
+const LS_HIST = LSK("kofirice_till_history_v1");
 // Built-in Lark group webhook. Every device sends here with no setup needed.
 // A device can still override it in Settings if the group ever changes.
 const DEFAULT_LARK_WEBHOOK = "https://open.larksuite.com/open-apis/bot/v2/hook/e22147c9-66c3-4f59-ac04-9aba8b711b1f";
@@ -2352,15 +2595,21 @@ if (settings.larkWebhook === undefined) settings.larkWebhook = "";
 if (!settings.storeCode) settings.storeCode = DEFAULT_STORE_CODE;
 let lastResult = null;
 let selectedStaff = "";
-let selectedRole  = "";      // おつり箱を数えてよいのはマネージャーだけ（2026-08-27）
 let boxCounts = null;         // notes actually found in the safe's change box
 
 // Effective webhook = the one saved on this device if set, otherwise the built-in default.
-function larkUrl(){ return (settings.larkWebhook && settings.larkWebhook.trim()) || DEFAULT_LARK_WEBHOOK; }
+// ⚠️ settings.larkOff が立っている端末からは一切送らない（2026-09-04）。
+//    練習・動作確認で本番のグループに通知が流れるのを止めるためのスイッチ。
+//    既定のwebhookが組み込みで入っているので、webhook欄を空にしただけでは止まらない。
+function larkUrl(){
+  if (PRACTICE) return "";              // 練習モードは設定に関わらず送らない
+  if (settings.larkOff) return "";
+  return (settings.larkWebhook && settings.larkWebhook.trim()) || DEFAULT_LARK_WEBHOOK;
+}
 
 // Who is using the app comes from the launcher (index.html), so the name can no
 // longer be picked — or mis-picked — at the end of the close.
-const LS_SESSION_T = "kofirice_session_v1";
+const LS_SESSION_T = LSK("kofirice_session_v1");
 function loadSession(){
   const s = loadJSON_T(LS_SESSION_T);
   if (!s || !s.name || ["chef", "manager"].indexOf(s.role) === -1) return null;
@@ -2370,7 +2619,6 @@ function applySession(){
   const s = loadSession();
   if (!s){ openApp('entry'); return null; }
   selectedStaff = s.name;
-  selectedRole  = s.role;
   document.getElementById("hdrUser").textContent = s.name;
   // Only a manager may change the float, the shop code or the Lark group.
   if (s.role !== "manager") document.getElementById("tab-settings").style.display = "none";
@@ -2397,36 +2645,19 @@ function showToast_T(msg, isError){
 // ---------- Step 2: MoMo rows ----------
 // One row per MoMo account/payment. Only their sum is stored on the record, so
 // the Lark message, the history screen and the CSV keep the single MoMo figure.
-function addMomoRow(value){
-  const row = document.createElement("div");
-  row.className = "momo-row";
-  // Whole cedis only — MoMo amounts don't need pesewa-level precision, and a
-  // decimal keypad (inputmode="decimal") was more fiddly than needed here.
-  row.innerHTML = '<input type="number" min="0" step="1" placeholder="0" inputmode="numeric" oninput="updateMomoTotal()">' +
-                  '<button type="button" onclick="removeMomoRow(this)" aria-label="Remove this row">✕</button>';
-  document.getElementById("momoList").appendChild(row);
-  if (value !== undefined) row.querySelector("input").value = value;
-  updateMomoTotal();
-}
-function removeMomoRow(btn){
-  btn.closest(".momo-row").remove();
-  // Always leave one row, otherwise there is nothing left to type into.
-  if (!document.getElementById("momoList").children.length) addMomoRow();
-  updateMomoTotal();
-}
+// MoMoは合計1欄だけ（2026-09-03）。以前はアカウントごとに行を足す作りだった
+// が、法人加盟店に切り替えれば内訳は加盟店の明細側で見られる。夜に現場が
+// 打つのは「今日いくら入ったか」の1つでよい。
 function getMomoTotal(){
-  const inputs = document.querySelectorAll("#momoList input");
-  let t = 0;
-  for (const i of inputs) t += parseFloat(i.value) || 0;
-  return Math.round(t*100)/100;
+  const el = document.getElementById("momoOne");
+  return Math.round((parseFloat(el && el.value) || 0) * 100) / 100;
 }
 function updateMomoTotal(){
-  document.getElementById("momoTotal").textContent = fmt_T(getMomoTotal());
   renderBookSlip();   // momo is one of the figures written into the book
 }
 function resetMomoRows(){
-  document.getElementById("momoList").innerHTML = "";
-  addMomoRow();
+  const el = document.getElementById("momoOne");
+  if (el) el.value = "";
 }
 
 // ---------- Sync code for the safe-manager app ----------
@@ -2575,28 +2806,40 @@ function testLarkWebhook(){
 }
 
 // ---------- Core calculation (pure) ----------
+/**
+ * 夜の仕分けの規則（2026-09-04に変更）。
+ *
+ *   ₵50・₵100・₵200 → 金庫へ
+ *   ₵20 以下        → 全部レジに残す（硬貨も残る）
+ *
+ * 以前は「レジ金の目標枚数ちょうどを残す」方式だった。目標に合わせるために
+ * 48枚を仕分ける必要があり、シェフの手間が大きく、₵200という額もキリが悪い。
+ * 札の大きさで分けるだけなら数える作業も判断も要らず、しかも
+ * **小さい札が必要な場所（レジ）に自動的に集まる**ので、₵1が枯れる問題にも効く。
+ *
+ * ⚠️ 代償として、毎晩レジに残る額が変わる。翌日の売上は
+ *    「今夜の計数 − 今朝の計数」で出しているので計算は狂わない（openingTillTotal が
+ *    前夜の締め額を返す）。ただし朝のチェックは固定額と比べられなくなるので、
+ *    前夜の締め額と突き合わせる形にしてある。
+ * ⚠️ shortages は常に空。「小さい札が足りない」という状態が定義上ありえなくなった。
+ */
+const TILL_KEEP_MAX = 20;   // これ以下の札はレジに残す
 function allocate(counts, floatTarget){
-  const rows = [], shortages = [];
+  const rows = [];
   let totalNotes = 0, keepTotal = 0, safeTotal = 0;
   for (const d of DENOMS_T){
     const c = Math.max(0, Math.floor(counts[d] || 0));
-    const target = Math.max(0, Math.floor(floatTarget[d] || 0));
-    const keep = Math.min(c, target);
+    const keep = d <= TILL_KEEP_MAX ? c : 0;
     const safe = c - keep;
-    if (keep < target) shortages.push({ d, missing: target - keep });
     rows.push({ d, counted: c, keep, safe });
     totalNotes += d * c; keepTotal += d * keep; safeTotal += d * safe;
   }
-  return { rows, shortages, totalNotes, keepTotal, safeTotal };
+  return { rows, shortages: [], totalNotes, keepTotal, safeTotal };
 }
 function floatTargetTotal(ft){ return DENOMS_T.reduce((s,d)=> s + d * (ft[d]||0), 0); }
 
-/**
- * What the till actually held when the shop opened this morning = the closing
- * count from the previous close. Falls back to the float target on the very
- * first close, when there is nothing to look back at.
- */
-function openingTillTotal(){
+/** 前夜の締めでレジに残した額。朝のチェックが「合っているか」を見る相手。 */
+function lastCloseTillTotal(){
   const hist = loadJSON_T(LS_HIST) || [];
   for (const r of hist){
     if (typeof r.finalTotal === "number") return r.finalTotal;
@@ -2604,27 +2847,49 @@ function openingTillTotal(){
   return floatTargetTotal(settings.float);
 }
 
+/** 今朝の Morning check で実際に数えたレジの額。無ければ null。 */
+function morningTillTotal(){
+  const store = settings.storeCode || DEFAULT_STORE_CODE;
+  const today = new Date().toISOString().slice(0, 10);   // ガーナ時間＝UTC
+  const list = allMovements()
+    .filter(m => m.store === store && m.type === "FLOAT_COUNT" &&
+                 String(m.ts).slice(0, 10) === today)
+    .sort(cmpMov);
+  return list.length ? notesTotal_S(list[list.length - 1].notes) : null;
+}
+
+/**
+ * 今朝レジに実際に入っていた額。売上はここを起点に出す。
+ *
+ * 優先順位（2026-09-04に変更）:
+ *   ① 今朝の Morning check で数えた実額   ← 三好さんの指示。これが本命
+ *   ② 前夜の締めで残した額（朝に数えていない日）
+ *   ③ レジ金の設定額（初日）
+ *
+ * ①を使う理由: 夜中にレジから金が減っていた場合、②を起点にすると
+ * 「今夜の計数 − 多すぎる起点」で売上が実際より少なく出てしまい、
+ * 減った分が売上の中に埋もれる。朝に別の人が数えた実額を起点にすれば、
+ * 減少は朝のチェックの差異として単独で見え、その日の売上は正しく出る。
+ * ⚠️ 数え直しがあった日は最後の計数を使う（＝確定した額）。
+ */
+function openingTillTotal(){
+  const m = morningTillTotal();
+  return m === null ? lastCloseTillTotal() : m;
+}
+
 // ---------- 今晩たどる工程 ----------
-// おつり箱は金庫の中にある。開けない晩は中身が変わりようがないので、
-// 毎晩全額を数えるのは手間なだけで、実際には何も守っていない。
-// 数えるのは「箱を開けた晩」「週に一度」「一度も数えていないとき」だけにする。
-// これで普通の晩は 5工程 → 3工程 になる（2026-08-27 三好さんの指示）。
-const BOX_COUNT_EVERY_DAYS = 7;
+// レジ締めは誰がやっても count → result の2工程だけ（2026-09-03）。
+//
+// おつり箱（change case）は現場では一切数えない。数えるのはマネージャーが
+// 金庫アプリの「💱 おつり整理 → 🔍 実際に数えて合わせる」で行う。
+// 箱に₵1,000規模を置く前提になったので、数えるのも開けるのも管理側に寄せる、
+// という三好さんの判断（2026-09-03）。数え忘れは金庫アプリ側の #countAge が
+// 日数で警告するので、レジ締めの工程で催促する必要がなくなった。
 const STEP_LABEL = {
   count:  "Count the money in the till",
-  adjust: "Take change from the CHANGE BOX",
-  box:    "Count the CHANGE BOX in the safe",
-  result: "Put the sales money in the DROP SAFE",
-  final:  "Count the till, then write it down"
+  result: "Put the sales in the safe, then write it in the book"
 };
-let tonightPlan = ["count", "adjust", "box", "result", "final"];
-
-/** 週に一度の全数チェックの期日が来たか */
-function boxCountDue(){
-  const last = settings.lastBoxCountAt;
-  if (!last) return true;                       // 一度も数えていなければ数える
-  return (Date.now() - last) / 86400000 >= BOX_COUNT_EVERY_DAYS;
-}
+let tonightPlan = ["count", "result"];
 
 /**
  * 箱を数える晩かどうか。理由も返す（画面に出して納得してもらうため）。
@@ -2632,19 +2897,8 @@ function boxCountDue(){
  * （2026-08-27 三好さんの指示）。シェフは足りないぶんを取り出すだけで、
  * 実測は金庫アプリの「🔍 実際に数えて合わせる」でマネージャーが行う。
  */
-function boxStepReason(hasShortage){
-  if (selectedRole !== "manager") return null;  // シェフには数えさせない
-  if (hasShortage) return "opened";             // 開けたのだから数える
-  if (boxCountDue())  return "weekly";          // 週に一度の全数
-  return null;                                  // 今晩は触らない＝数えない
-}
-
-function planTonight(hasShortage){
-  const p = ["count"];
-  if (hasShortage) p.push("adjust");
-  if (boxStepReason(hasShortage)) p.push("box");
-  p.push("result", "final");
-  return p;
+function planTonight(){
+  return ["count", "result"];
 }
 
 /** 見出しと「次へ」の番号を、今晩の並びに合わせて振り直す */
@@ -2664,10 +2918,7 @@ function stepAt(from, delta){
 }
 function enterStep(name){
   if (name === "count")  return show_T("count");
-  if (name === "adjust") return show_T("adjust");
-  if (name === "box")    return goBoxCount();
   if (name === "result") return goResult();
-  if (name === "final")  return goFinal();
 }
 function goNext(from){ enterStep(stepAt(from,  1)); }
 function goBack(from){ enterStep(stepAt(from, -1)); }
@@ -2726,179 +2977,6 @@ function updateTotal(){
   document.getElementById("liveTotal").textContent = fmt_T(t);
 }
 
-// ---------- Step 3: count the change box inside the safe ----------
-// The safe is open at this point (step 3 took notes out of it), so this is the
-// cheapest moment to verify the change box against what the manager's app
-// expects. Without it the safe balance is only ever a calculation.
-function goBoxCount(){
-  const box = document.getElementById("boxList");
-  if (!box.children.length){
-    let html = "";
-    for (const d of DENOMS_T){
-      if (!(settings.float[d] > 0)) continue;   // notes never used for change
-      // The change box can hold a lot of small notes, so +1 alone is too slow —
-      // add ±10 (and ±100 for ₵1, which piles up fastest) to count in bulk.
-      // The minus side matters just as much as the plus side: an accidental
-      // extra tap on +100 needs an equally fast way back, not a full retype.
-      const quick = [10, ...(d === 1 ? [100] : [])];
-      const quickBtns = quick.slice().reverse().map(n => `<button class="qa-minus" onclick="bumpBox(${d},-${n})">−${n}</button>`).join("")
-        + quick.map(n => `<button onclick="bumpBox(${d},${n})">+${n}</button>`).join("");
-      html += `
-        <div class="denom">
-          <div class="note-chip" style="background:${COLORS_T[d]}">₵${d}</div>
-          <div class="mid">
-            <div class="stepper" style="justify-content:center">
-              <button class="minus" onclick="bumpBox(${d},-1)">−</button>
-              <input type="number" id="box-${d}" min="0" value="" placeholder="0" inputmode="numeric" oninput="updateBoxTotal()">
-              <button class="plus" onclick="bumpBox(${d},1)">+</button>
-            </div>
-            <div class="quickadd">${quickBtns}</div>
-            <div class="subtotal" id="boxsub-${d}">= GH₵ 0</div>
-          </div>
-        </div>`;
-    }
-    box.innerHTML = html;
-  }
-  // なぜ今晩は数えるのか。理由が分からないと「やらされている」感になる
-  const why = document.getElementById("boxWhy");
-  if (why){
-    const opened = tonightPlan.indexOf("adjust") > -1;
-    why.innerHTML = opened
-      ? `<div class="cap" style="text-align:center;margin-bottom:8px">You opened the box tonight, so count what is left.</div>`
-      : `<div class="cap" style="text-align:center;margin-bottom:8px">📅 Weekly check — this happens once a week, not every night.</div>`;
-  }
-  updateBoxTotal();
-  show_T("box");
-  window.scrollTo(0, 0);
-}
-function bumpBox(d, delta){
-  const el = document.getElementById("box-" + d);
-  el.value = Math.max(0, (parseInt(el.value) || 0) + delta);
-  updateBoxTotal();
-}
-function getBoxCounts(){
-  const c = {};
-  for (const d of DENOMS_T){
-    const el = document.getElementById("box-" + d);
-    c[d] = el ? Math.max(0, parseInt(el.value) || 0) : 0;
-  }
-  return c;
-}
-function updateBoxTotal(){
-  const c = getBoxCounts();
-  let t = 0;
-  for (const d of DENOMS_T){
-    const sub = document.getElementById("boxsub-" + d);
-    if (sub) sub.textContent = "= " + fmt_T(d * c[d]);
-    markZero(document.getElementById("box-" + d));
-    t += d * c[d];
-  }
-  document.getElementById("boxTotal").textContent = fmt_T(t);
-}
-
-// ---------- Step 5: count the till again, after the split ----------
-// This recount is what makes tomorrow's sales exact — tomorrow's cash sales
-// will be tomorrow's count minus whatever is really in the till tonight —
-// and it catches a short change box or money that never made it to the safe.
-function goFinal(){
-  const box = document.getElementById("finalList");
-  if (!box.children.length){
-    // "Usual" chip next to each count — on a normal night the till just
-    // matches the float target, so tapping it fills that in directly instead
-    // of tapping + up to it one note at a time.
-    box.innerHTML = DENOMS_T.map(d => `
-      <div class="denom">
-        <div class="note-chip" style="background:${COLORS_T[d]}">₵${d}</div>
-        <div class="mid">
-          <div class="fin-row">
-            <div class="stepper">
-              <button class="minus" onclick="bumpFinal(${d},-1)">−</button>
-              <input type="number" id="fin-${d}" min="0" value="" placeholder="0" inputmode="numeric" oninput="updateFinalTotal()">
-              <button class="plus" onclick="bumpFinal(${d},1)">+</button>
-            </div>
-            <button type="button" class="usual-chip" onclick="fillUsual(${d})">Usual<b>${settings.float[d] || 0}</b></button>
-          </div>
-          <div class="subtotal" id="finsub-${d}">= GH₵ 0</div>
-        </div>
-      </div>`).join("");
-  }
-  updateFinalTotal();
-  show_T("final");
-  window.scrollTo(0, 0);
-}
-function bumpFinal(d, delta){
-  const el = document.getElementById("fin-" + d);
-  el.value = Math.max(0, (parseInt(el.value) || 0) + delta);
-  updateFinalTotal();
-}
-function fillUsual(d){
-  document.getElementById("fin-" + d).value = settings.float[d] || 0;
-  updateFinalTotal();
-}
-function getFinalCounts(){
-  const c = {};
-  for (const d of DENOMS_T){
-    const el = document.getElementById("fin-" + d);
-    c[d] = el ? Math.max(0, parseInt(el.value) || 0) : 0;
-  }
-  return c;
-}
-function getFinalCoins(){ return parseFloat(document.getElementById("finalCoins").value) || 0; }
-
-/**
- * How much goes in the drop safe is decided once, from the STEP 1 count vs
- * the float target (lastResult.safeTotal) — it does NOT depend on this
- * recount. A denom that was short at STEP 2 can never contribute to the
- * safe (there was never enough of it to spare), so the recount's only job
- * here is to catch mistakes, not to redefine the deposit.
- */
-function impossibleDenoms(left){
-  // A denom can't hold more notes at the end than existed right after the
-  // change-box top-up — if it does, something was mistyped somewhere.
-  return DENOMS_T.filter(d => {
-    const maxPossible = (lastResult.counts[d] || 0) + (lastResult.takenNotes[d] || 0);
-    return (left[d] || 0) > maxPossible;
-  });
-}
-
-function updateFinalCheck(){
-  const left = getFinalCounts();
-  const el = document.getElementById("finalCheck");
-  const shortRows = [], overRows = [];
-  for (const d of DENOMS_T){
-    const want = settings.float[d] || 0;
-    const diff = left[d] - want;
-    if (diff < 0) shortRows.push(`₵${d} × ${-diff}`);
-    if (diff > 0) overRows.push(`₵${d} × ${diff}`);
-  }
-  const impossible = impossibleDenoms(left);
-  let html = "";
-
-  if (impossible.length){
-    html += `<div class="warn bad"><b>These numbers cannot be right</b><br>
-      There is more ${impossible.map(d => "₵" + d).join(", ")} in the till than you started with.
-      Please count the till again.</div>`;
-  }
-  if (!shortRows.length && !overRows.length){
-    html += `<div class="warn" style="background:#e8f5e9;border-color:var(--green)">
-      <b style="color:var(--green)">✔ The till is exactly right for tomorrow</b></div>`;
-  } else {
-    if (shortRows.length){
-      html += `<div class="warn"><b>Short for tomorrow: ${esc_T(shortRows.join("  "))}</b><br>
-        If the change box was empty this is fine — save it, the manager will bring more.
-        If not, take the missing notes from the change box now and count again.</div>`;
-    }
-    if (overRows.length){
-      html += `<div class="warn bad"><b>Too much in the till: ${esc_T(overRows.join("  "))}</b><br>
-        Did you forget to put some money in the drop safe? Check before saving.</div>`;
-    }
-  }
-  html += `<div class="done-sum" style="margin-top:12px">
-    <div class="row"><span>Money that went to the drop safe</span><span><b>${fmt_T(lastResult.safeTotal)}</b></span></div>
-    <div class="row"><span>Stays in the till for tomorrow</span><span>${fmt_T(notesTotal_T(left) + getFinalCoins())}</span></div>
-  </div>`;
-  el.innerHTML = html;
-}
 function notesTotal_T(notes){
   let t = 0;
   for (const d of DENOMS_T) t += d * (Number(notes[d]) || 0);
@@ -2906,110 +2984,275 @@ function notesTotal_T(notes){
 }
 function esc_T(s){ return String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
-function updateFinalTotal(){
-  const c = getFinalCounts();
+// =============================================================
+// MORNING CHECK（英語・スタッフ用）── 2026-09-03
+// =============================================================
+// 出勤したらまずこれ。金庫の前日売上とレジの釣り銭を数える。
+// 夜に締めた本人ではない人が翌朝数えることで、はじめて検算になる。
+// ここで作る SALES_COUNT / FLOAT_COUNT は OBSERVE_ONLY。残高は動かさない。
+// 何回目の DONE か。合わなかったときに1回だけ数え直させ、2回目は必ず進めるため。
+// ⚠️ 現場を止めない。開店できないほうが、数字が合わないことより損害が大きい。
+let mgAttempt = 0;
+let mgSafeSaved = false;
+let mgLast = null;      // CHECK で確定した内容。DONE のときにLarkへ流す
+
+function startMorningCheck(){
+  openApp("till");
+  show_T("morningen");
+  renderMorningEN();
+  window.scrollTo(0, 0);
+}
+
+// denoms を渡すと、その金種の欄だけ作る。
+//  金庫（売上）  … ₵50以上だけ。夜の仕分けで金庫に入るのは大きい札だけなので、
+//                  ₵20以下の欄を出しても永久に0のままで、数える人の邪魔になる。
+//  レジ          … ₵50以下だけ。₵100・₵200 はレジに残らない。
+function mgRows(containerId, prefix, onchange, denoms){
+  document.getElementById(containerId).innerHTML = (denoms || DENOMS_T).map(d => `
+    <div class="denom">
+      <div class="note-chip" style="background:${COLORS_T[d]}">₵${d}</div>
+      <div class="mid">
+        <div class="stepper" style="justify-content:center">
+          <button class="minus" onclick="bumpMg('${prefix}',${d},-1)">−</button>
+          <input type="number" id="${prefix}-${d}" min="0" value="" placeholder="0" inputmode="numeric" oninput="${onchange}()">
+          <button class="plus" onclick="bumpMg('${prefix}',${d},1)">+</button>
+        </div>
+        <div class="subtotal" id="${prefix}sub-${d}">= GH₵ 0</div>
+      </div>
+    </div>`).join("");
+}
+function bumpMg(prefix, d, delta){
+  const el = document.getElementById(prefix + "-" + d);
+  el.value = Math.max(0, (parseInt(el.value) || 0) + delta);
+  (prefix === "mgs" ? updateMgSafe : updateMgTill)();
+}
+function readMg(prefix){
+  const n = {};
+  for (const d of DENOMS_T){
+    const el = document.getElementById(prefix + "-" + d);
+    n[d] = Math.max(0, parseInt(el && el.value) || 0);
+  }
+  return n;
+}
+function updateMg(prefix, totalId){
+  const n = readMg(prefix);
   let t = 0;
   for (const d of DENOMS_T){
-    const sub = document.getElementById("finsub-" + d);
-    if (sub) sub.textContent = "= " + fmt_T(d * c[d]);
-    markZero(document.getElementById("fin-" + d));
-    t += d * c[d];
+    const sub = document.getElementById(prefix + "sub-" + d);
+    if (sub) sub.textContent = "= " + fmt_T(d * n[d]);
+    markZero(document.getElementById(prefix + "-" + d));
+    t += d * n[d];
   }
-  t += getFinalCoins();
-  document.getElementById("finalTotal").textContent = fmt_T(t);
-  updateFinalCheck();
-  renderBookSlip();
+  document.getElementById(totalId).textContent = fmt_T(t);
+  return { notes: n, total: t };
+}
+function updateMgSafe(){ updateMg("mgs", "mgSafeTotal"); }
+// ⚠️ 入力中は何も出さない。レジに「いくらあるべきか」を先に見せると、数えずに
+//    その数字を打てば済んでしまい、二重計数の意味が消える（金庫側と同じ理屈）。
+//    合っているかどうかは DONE を押したあとに出す。
+function updateMgTill(){ updateMg("mgt", "mgTillTotal"); }
+
+function renderMorningEN(){
+  mgAttempt = 0;
+  mgSafeSaved = false;
+  mgLast = null;
+  document.getElementById("mgDoneBtn").style.display = "none";
+  document.getElementById("mgCheckBtn").textContent = "🔍 CHECK";
+  mgRows("mgSafeList", "mgs", "updateMgSafe", DENOMS_T.filter(d => d >= 50));
+  mgRows("mgTillList", "mgt", "updateMgTill", DENOMS_T.filter(d => d <= 50));
+  document.getElementById("mgTillCheck").innerHTML = "";
+  updateMgSafe();
+  updateMgTill();
 }
 
-// Live comparison between the auto-computed cash sales and whatever the
-// staff types into the POS field — recalculated on every keystroke.
-function updateSalesCheck(){
-  if (lastResult) renderPosCheck(lastResult.sales);
+/**
+ * 🔍 CHECK ── 数えた額を記録して、レジが前夜の締めと合っているかを見せる。
+ *
+ * ⚠️ 押すたびに記録する。「合うまで打ち直す」ができてしまうと二重計数の意味が
+ *    消えるので、1回目の数字も必ず台帳に残す。画面にも "Every count you check
+ *    is saved." と書いてある（隠してやることではないし、書いてあるほうが効く）。
+ * ⚠️ 判定するのはレジだけ。金庫のほうの想定額は端末が同期していないと出せないし、
+ *    ズレていても現場には直しようがない。マネージャーが見る。
+ */
+function checkMorning(){
+  const staff = selectedStaff || currentSessionName() || "";
+  if (!staff){ openApp("entry"); return; }
+  const safeNotes = readMg("mgs");
+  const tillNotes = readMg("mgt");
+  if (!notesNonZero(safeNotes) && !notesNonZero(tillNotes)){
+    showToast_T("⚠️ Count the money first", true); return;
+  }
+  const store = settings.storeCode || DEFAULT_STORE_CODE;
+  const safeTotal = notesTotal_T(safeNotes);
+  const tillTotal = notesTotal_T(tillNotes);
+  // ⚠️ ここだけは openingTillTotal() を使わない。あれは「今朝数えた額」を
+  //    優先して返すので、2回目のCHECKで自分自身と比べることになってしまう。
+  //    朝のチェックが見る相手は、あくまで前夜の締めで残した額。
+  const want = lastCloseTillTotal();
+  const tillDiff = Math.round((tillTotal - want) * 100) / 100;
+  mgAttempt++;
+
+  // 金庫の想定は同期していれば出せる。出せなくても記録はする。
+  let salesNote = "朝の確認（金庫の前日売上）";
+  try {
+    const expected = notesTotal_S(balance(store, "sales"));
+    const d = Math.round((safeTotal - expected) * 100) / 100;
+    salesNote += d === 0 ? " ── 帳簿どおり"
+      : " ── 差異 " + (d > 0 ? "+" : "−") + fmt_T(Math.abs(d)) + "（想定 " + fmt_T(expected) + "）";
+  } catch (e) { /* 未同期の端末。記録だけ残す */ }
+
+  // 金庫は1回目だけ（2回目以降は「レジを数え直しただけ」なので重複させない）
+  if (notesNonZero(safeNotes) && !mgSafeSaved){
+    addMovement({ store, compartment: "sales", type: "SALES_COUNT", notes: safeNotes,
+      actor: staff, note: salesNote, source: "morning" });
+    mgSafeSaved = true;
+  }
+  if (notesNonZero(tillNotes)){
+    addMovement({ store, compartment: "float", type: "FLOAT_COUNT", notes: tillNotes,
+      actor: staff, note: "朝の確認（レジ" + (mgAttempt > 1 ? "・数え直し" + mgAttempt + "回目" : "") + "）── "
+        + (tillDiff === 0 ? "前夜の締めどおり"
+        : "差異 " + (tillDiff > 0 ? "+" : "−") + fmt_T(Math.abs(tillDiff)) + "（前夜の締め " + fmt_T(want) + "）"),
+      source: "morning" });
+  }
+  try { doSync(); } catch (e) { /* オフライン。次の同期で追いつく */ }
+
+  mgLast = { staff, safeTotal, tillTotal, want, tillDiff };
+  const el = document.getElementById("mgTillCheck");
+  const doneBtn = document.getElementById("mgDoneBtn");
+
+  // 2回目のCHECKで終わりにする（2026-09-04）。合っていても合っていなくても、
+  // ここまで来たらそれ以上できることはない。DONEをもう一度押させると3回になって
+  // 現場が混乱する、という三好さんの指摘。
+  //  合った  … CHECK → DONE の2回
+  //  合わない … CHECK → CHECK AGAIN の2回
+  if (mgAttempt >= 2){
+    el.innerHTML = tillDiff === 0
+      ? `<div class="warn" style="background:#e8f5e9;border-color:var(--green)">
+           <b style="color:var(--green)">✔ Correct. The till matches last night.</b><br>
+           Recorded. Have a good day!</div>`
+      : `<div class="warn">
+           <b>Still ${tillDiff > 0 ? "over" : "short"} by ${fmt_T(Math.abs(tillDiff))}.</b><br>
+           That is okay. Recorded — the manager will check it.<br>
+           <b>You can open the shop.</b></div>`;
+    doneBtn.style.display = "none";
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setTimeout(() => { if (__openApp === "till") finishMorning(); }, 2200);
+    return;
+  }
+  if (tillDiff === 0){
+    el.innerHTML = `<div class="warn" style="background:#e8f5e9;border-color:var(--green)">
+      <b style="color:var(--green)">✔ Correct. The till matches last night.</b><br>
+      Now press <b>DONE</b> below.</div>`;
+    doneBtn.style.display = "";
+  } else if (mgAttempt === 1){
+    // 同じ数字でCHECKを押し直せると数え直しにならないので、欄を空にする。
+    // 1回目の計数はもう記録ずみなので消えるわけではない。
+    for (const d of DENOMS_T){
+      const el = document.getElementById("mgt-" + d);   // 出していない金種はnull
+      if (el) el.value = "";
+    }
+    updateMg("mgt", "mgTillTotal");
+    el.innerHTML = `<div class="warn bad" style="text-align:center;padding:16px 14px">
+      <div style="font-size:34px;line-height:1.1">⚠️</div>
+      <div style="font-size:19px;font-weight:800;margin:6px 0">
+        ${tillDiff > 0 ? "TOO MUCH" : "NOT ENOUGH"} by ${fmt_T(Math.abs(tillDiff))}
+      </div>
+      <div style="font-size:15px;line-height:1.6">
+        The till does not match last night.<br>
+        <b>COUNT THE TILL AGAIN</b>, then press <b>CHECK AGAIN</b>.
+      </div>
+      <div class="cap" style="margin-top:8px">The numbers below have been cleared.</div>
+    </div>`;
+    doneBtn.style.display = "none";
+    document.getElementById("mgCheckBtn").textContent = "🔍 CHECK AGAIN";
+    showToast_T("Count the till once more", true);
+  }
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
-// ---------- Step 2: take change from the change box ----------
-function goAdjust(){
+/**
+ * ✅ DONE ── 開店へ進む。記録は CHECK のときに済んでいるので、ここでやるのは
+ * グループへの報告だけ。途中経過は流さず、最後の1通だけ送る。
+ */
+function doneMorning(){
+  if (!mgLast){ showToast_T("⚠️ Press CHECK first", true); return; }
+  finishMorning();
+}
+
+/** グループへの報告を1通だけ送って入口へ戻る。記録は CHECK の時点で済んでいる。 */
+function finishMorning(){
+  if (!mgLast) { openApp("entry"); return; }
+  const m = mgLast;
+  mgLast = null;   // 二重送信よけ（2回目CHECKの自動終了とDONEが重なることがある）
+  const url = larkUrl();
+  if (url){
+    const text = "🌅 Morning check ── " + settings.store +
+      "\n担当: " + m.staff +
+      "\n金庫の前日売上: " + fmt_T(m.safeTotal) +
+      "\nレジ: " + fmt_T(m.tillTotal) + "（前夜の締め " + fmt_T(m.want) +
+        (m.tillDiff === 0 ? " ／ 一致" : " ／ 差異 " + (m.tillDiff > 0 ? "+" : "−") + fmt_T(Math.abs(m.tillDiff))) + "）"
+      + (m.tillDiff !== 0 ? "\n※ 数え直しても合いませんでした。開店は進めています。" : "");
+    try {
+      fetch(url, { method: "POST", mode: "no-cors",
+        body: JSON.stringify({ msg_type: "text", content: { text } }) }).catch(() => {});
+    } catch (e) { /* オフライン */ }
+  }
+  showToast_T(m.tillDiff === 0 ? "✅ Have a good day!" : "✅ Recorded. You can open the shop.");
+  openApp("entry");
+}
+
+// ---------- STEP1の「NEXT」で走る計算 ----------
+/**
+ * レジの計数から、今晩の仕分けと売上を確定する。
+ * 売上 = いまレジにある額 − 今朝レジにあった額（＝前夜の締めで残した額）。
+ *
+ * ⚠️ takenNotes（箱から取った枚数）は常に空にしてある。夜に箱から一方的に
+ *    引き出す工程を無くしたため（2026-09-03）。昼の交換は同額でやりとりする
+ *    ので箱の合計は動かない。ここで TAKE_CHANGE を記録すると、実際には
+ *    減っていない箱の残高を減らしてしまう。
+ */
+function goAfterCount(){
   const counts = getCounts();
   const coins = getCoins();
   const r = allocate(counts, settings.float);
   const total = r.totalNotes + coins;
-  // Cash sales = what is in the till now − what was really in it this morning.
-  // The opening figure is last night's counted closing till, so an evening with
-  // a short change box no longer throws tomorrow's sales out.
   const opening = openingTillTotal();
   const sales = Math.round((total - opening) * 100) / 100;
-  const fromSafe = r.shortages.reduce((s,x) => s + x.d * x.missing, 0);
-  const takenNotes = {};
-  for (const s of r.shortages) takenNotes[s.d] = s.missing;
-  lastResult = { counts, coins, ...r, total, sales, fromSafe, opening, takenNotes };
-
-  // 今晩の並びを決める。箱を開けないなら、この画面も箱の計数も出さない
-  tonightPlan = planTonight(r.shortages.length > 0);
+  // あとから「なぜこの売上になったか」を追えるように、起点の出どころも残す
+  const openingFrom = morningTillTotal() === null ? "lastClose" : "morning";
+  lastResult = { counts, coins, ...r, total, sales, fromSafe: 0, opening, openingFrom, takenNotes: {} };
+  tonightPlan = planTonight();
   renderStepTitles();
-
-  const box = document.getElementById("adjustList");
-  if (!r.shortages.length){
-    goNext("count");        // 取るものが無いので、この画面は出さずに次へ
-    return;
-  } else {
-    // Just a number to read, not to edit — if the change box turns out to be
-    // short, that shows up on its own at STEP 5's recount, so there's nothing
-    // to correct here. Fiddling with a number on this screen only confused
-    // people.
-    let html = `<div class="warn" style="text-align:center">⚠️ Not enough small notes for tomorrow.<br><b>Take these from the CHANGE BOX, put them in the TILL:</b></div>`;
-    // シェフは取り出すだけ。箱の中身を数えるのはマネージャーの仕事だと明示する
-    if (selectedRole !== "manager"){
-      html += `<div class="cap" style="text-align:center;margin:6px 0 10px">Just take these notes and close the box — you do <b>not</b> need to count what is inside.</div>`;
-    }
-    for (const s of r.shortages){
-      html += `
-        <div class="denom">
-          <div class="note-chip" style="background:${COLORS_T[s.d]}">₵${s.d}</div>
-          <div class="mid" style="font-size:24px;font-weight:800">× ${s.missing} notes</div>
-          <div style="color:var(--muted);font-size:14px">= ${fmt_T(s.d * s.missing)}</div>
-        </div>`;
-    }
-    html += `<div class="float-total">Total from the box: <b>${fmt_T(fromSafe)}</b></div>`;
-    box.innerHTML = html;
-  }
-  show_T("adjust");
-  window.scrollTo(0,0);
+  goNext("count");
 }
 
-// ---------- Step 3: put money in safe ----------
+// ---------- 最後の画面：仕分け・MoMo・帳面 ----------
 function goResult(){
   if (!lastResult) return;
   const r = lastResult;
-  // 数えていない晩に前回の入力が残ると、実測していない数字が記録されてしまう
-  boxCounts = tonightPlan.indexOf("box") > -1 ? getBoxCounts() : {};
+  // レジ締めでは箱を数えない（マネージャーが金庫アプリで数える）。
+  // ここを空にしておかないと、実測していない数字が記録に混ざる。
+  boxCounts = {};
 
   renderSplitSummary();
-  renderPosCheck(r.sales);
+  renderShortNotice();
   bookConfirmed = false;
   renderBookSlip();
 
-  document.getElementById("salesAuto").value = (Math.round(r.sales*100)/100).toLocaleString("en-GH");
-
-  const tb = document.getElementById("resultRows");
-  tb.innerHTML = "";
-  for (const row of r.rows){
-    const target = settings.float[row.d] || 0;
-    if (row.counted === 0 && target === 0) continue;
-    // row.keep (what this count actually kept), not the float target — a
-    // shortage denom (e.g. only 9 ₵1 counted against a 30 target) can't be
-    // instructed to "put 30 in the till", only what's really there.
-    tb.insertAdjacentHTML("beforeend", `
-      <div class="split-row-card">
-        <div class="note-chip" style="background:${COLORS_T[row.d]}">₵${row.d}</div>
-        <div class="mid">
-          <div class="split-counted">You counted <b>${row.counted}</b></div>
-          <div class="split-dest">
-            <span class="dest till">🟢 Till<b>${row.keep}</b></span>
-            <span class="dest safe${row.safe > 0 ? " active" : ""}">🔴 Safe<b>${row.safe > 0 ? row.safe : "—"}</b></span>
-          </div>
-        </div>
-      </div>`);
-  }
+  // 金種ごとに「レジ/金庫」を並べるのはやめた（2026-09-04）。規則が
+  // 「大きい札は金庫、小さい札はレジ」だけになったので、2つの山を見せれば足りる。
+  const pile = (list, label, cls) => list.length
+    ? `<div class="split-row-card">
+         <div class="mid">
+           <div class="split-counted"><b>${label}</b></div>
+           <div class="split-dest">${list.map(row =>
+             `<span class="dest ${cls} active"><span class="note-chip" style="background:${COLORS_T[row.d]};margin-right:4px">₵${row.d}</span><b>${row.counted}</b></span>`).join("")}</div>
+         </div>
+       </div>`
+    : `<div class="split-row-card"><div class="mid"><div class="split-counted"><b>${label}</b> — none</div></div></div>`;
+  document.getElementById("resultRows").innerHTML =
+    pile(r.rows.filter(x => x.safe > 0), "🔴 PUT IN THE SAFE", "safe") +
+    pile(r.rows.filter(x => x.keep > 0), "🟢 LEAVE IN THE TILL", "till");
   show_T("result");
   window.scrollTo(0,0);
 }
@@ -3018,6 +3261,31 @@ function goResult(){
 // how much goes in the drop safe? Shown as a subtraction so the arithmetic is
 // visible, not just the answer — total counted, minus what stays for
 // tomorrow's change, equals what goes in the safe.
+/**
+ * 明日のレジ金に足りない金種があるときのお知らせ。以前は独立した工程
+ * （STEP2）だったが、昼に交換する運用にしたので、ここで伝えるだけにした。
+ * 取ってこいとは言わず「同額を入れて交換しろ」と言う。総額が動かないので
+ * 売上も箱の残高も狂わない。
+ */
+function renderShortNotice(){
+  const el = document.getElementById("shortNotice");
+  if (!el || !lastResult) return;
+  const short = lastResult.shortages || [];
+  if (!short.length){ el.innerHTML = ""; return; }
+  const list = short.map(x => "₵" + x.d + " × " + x.missing).join("&nbsp;&nbsp;");
+  const amount = short.reduce((t, x) => t + x.d * x.missing, 0);
+  // ⚠️ 交換したあとは必ず数え直させる。ここまでの仕分けと売上は STEP1 の計数から
+  //    出しているので、交換して札が変わったまま保存すると、翌日の「朝いくらで
+  //    始まったか」がズレて売上が狂う。
+  el.innerHTML = `<div class="warn">
+    <b>Not enough small notes for tomorrow: ${list}</b><br>
+    Swap with the change box: take <b>${fmt_T(amount)}</b> in small notes out,
+    and put <b>${fmt_T(amount)}</b> back in big notes. The box total must not change.<br>
+    <b>Then press ⬅ Back and count the till again.</b><br>
+    No small notes in the box either? Save as it is — the manager will see it in the morning.
+  </div>`;
+}
+
 function renderSplitSummary(){
   if (!lastResult) return;
   const r = lastResult;
@@ -3026,11 +3294,20 @@ function renderSplitSummary(){
   // using the target here would make the total not add up to what was
   // counted (total ≠ stays + safe), which reads as a bug to anyone checking
   // the arithmetic. The kept/safe split always adds back up to total.
+  // 売上がどこから出た数字なのかを1行で見せる。引いた相手が「今朝数えた額」なのか
+  // 「前夜の締め」なのかで意味が変わるので、そこも書く（2026-09-04）。
+  const fromLabel = r.openingFrom === "morning"
+    ? "counted this morning" : "left last night";
   document.getElementById("splitSummary").innerHTML = `
     <div class="split-card">
       <div class="split-row"><span>💵 Total counted</span><span class="amt">${fmt_T(r.total)}</span></div>
       <div class="split-row minus"><span>🟢 Stays in the till</span><span class="amt">− ${fmt_T(r.keepTotal + r.coins)}</span></div>
       <div class="split-row total"><span>🔴 Goes in the DROP SAFE</span><span class="amt big">${fmt_T(r.safeTotal)}</span></div>
+    </div>
+    <div class="split-card" style="margin-top:8px">
+      <div class="split-row"><span>💵 Total counted</span><span class="amt">${fmt_T(r.total)}</span></div>
+      <div class="split-row minus"><span>Was in the till this morning<br><span class="cap">${fromLabel}</span></span><span class="amt">− ${fmt_T(r.opening)}</span></div>
+      <div class="split-row total"><span>📈 SALES TODAY</span><span class="amt big">${fmt_T(r.sales)}</span></div>
     </div>`;
 }
 
@@ -3076,24 +3353,6 @@ function renderBookSlip(){
 function toggleBook(){
   bookConfirmed = !bookConfirmed;
   document.getElementById("tick-book").classList.toggle("on", bookConfirmed);
-}
-
-// Compares the auto-computed cash sales (till total minus last night's
-// closing amount) against whatever the staff types into the POS field.
-function renderPosCheck(cashSales){
-  const el = document.getElementById("posCheck");
-  const raw = document.getElementById("posSales").value;
-  const pos = parseFloat(raw);
-  if (raw.trim() === "" || isNaN(pos)){ el.innerHTML = ""; return; }
-  const diff = Math.round((cashSales - pos) * 100) / 100;
-  if (diff === 0){
-    el.innerHTML = `<div class="warn" style="background:#e8f5e9;border-color:var(--green)">
-      <b style="color:var(--green)">✔ Cash matches the POS exactly</b></div>`;
-    return;
-  }
-  el.innerHTML = `<div class="warn"><b>${diff > 0 ? "Over" : "Short"} by ${fmt_T(Math.abs(diff))}</b><br>
-    POS said ${fmt_T(pos)}, the till has ${fmt_T(cashSales)}.
-    Count once more. If it is still different, save anyway — the manager will check it.</div>`;
 }
 
 // ---------- Save ----------
@@ -3154,21 +3413,6 @@ function syncTillRecordDirect(rec){
 function saveRecord(){
   if (!lastResult) return;
   if (!selectedStaff){ openApp('entry'); return; }
-  const finalNotes = getFinalCounts();
-  if (impossibleDenoms(finalNotes).length){
-    showToast_T("⚠️ The counts do not add up. Count the till again.", true);
-    document.getElementById("finalCheck").scrollIntoView({ behavior: "smooth", block: "center" });
-    return;
-  }
-  const posRaw = document.getElementById("posSales").value;
-  const pos = parseFloat(posRaw);
-  if (posRaw.trim() === "" || isNaN(pos) || pos < 0){
-    showToast_T("⚠️ Write today's sales from the POS / book first", true);
-    const f = document.getElementById("posSales");
-    f.scrollIntoView({ behavior: "smooth", block: "center" });
-    f.focus();
-    return;
-  }
   if (!bookConfirmed){
     showToast_T("⚠️ Write it in the book first, then tick ✍️", true);
     const row = document.getElementById("tick-book");
@@ -3178,12 +3422,16 @@ function saveRecord(){
     row.classList.add("highlight-warn");
     return;
   }
-  const roundedPos = Math.round(pos * 100) / 100;
   const momo = getMomoTotal();
-  const finalCoins = getFinalCoins();
-  const finalTotal = Math.round((notesTotal_T(finalNotes) + finalCoins) * 100) / 100;
-  // Deposit is decided once from the STEP 1 count vs the float target
-  // (lastResult.rows), not derived from the recount — see impossibleDenoms().
+  // 数え直しをやめたので（2026-09-03）、今晩レジに残る額は STEP1 の計数と
+  // レジ金の目標から決まる分（allocate() の keep）そのもの。硬貨は全額レジに残る。
+  // ⚠️ ここが翌日の openingTillTotal()＝「朝いくらで始まったか」になる。
+  //    実際に残る額とズレると、翌日の売上がそのぶん狂う。
+  const finalNotes = {};
+  for (const row of lastResult.rows) finalNotes[row.d] = row.keep;
+  const finalCoins = lastResult.coins;
+  const finalTotal = Math.round((lastResult.keepTotal + finalCoins) * 100) / 100;
+  // 金庫に入れる額は STEP1 の計数とレジ金の目標だけで決まる（lastResult.rows）。
   const takeNotes = lastResult.takenNotes || {};
   const safeNotes = {};
   for (const row of lastResult.rows) safeNotes[row.d] = row.safe;
@@ -3202,6 +3450,7 @@ function saveRecord(){
     finalCoins: finalCoins,
     finalTotal: finalTotal,                     // becomes tomorrow's opening figure
     opening: lastResult.opening,
+    openingFrom: lastResult.openingFrom || "lastClose",   // morning=今朝数えた実額
     coins: lastResult.coins,
     total: lastResult.total,
     keep: finalTotal,
@@ -3210,16 +3459,9 @@ function saveRecord(){
     sales: lastResult.sales,
     momo: momo,
     totalSales: Math.round((lastResult.sales + momo)*100)/100,
-    pos: roundedPos,
-    diff: Math.round((lastResult.sales - roundedPos)*100)/100
+    pos: null,          // POS申告の突き合わせは翌朝の Morning check に移した
+    diff: null
   };
-  // 箱を実測した晩だけ期日を更新する。数えていない晩に更新すると、
-  // 週に一度の全数チェックが永久に来なくなる
-  if (notesNonZero(rec.boxCounts)){
-    settings.lastBoxCountAt = Date.now();
-    saveJSON_T(LS_SET, settings);
-  }
-
   const hist = loadJSON_T(LS_HIST) || [];
   hist.unshift(rec);
   saveJSON_T(LS_HIST, hist);
@@ -3259,19 +3501,15 @@ function saveRecord(){
 function resetAll(){
   for (const d of DENOMS_T) document.getElementById("cnt-" + d).value = "";
   document.getElementById("coinsTotal").value = "";
-  document.getElementById("posSales").value = "";
-  document.getElementById("boxList").innerHTML = "";
-  document.getElementById("finalList").innerHTML = "";
-  document.getElementById("finalCoins").value = "";
-  document.getElementById("adjustList").innerHTML = "";
   document.getElementById("splitSummary").innerHTML = "";
-  document.getElementById("posCheck").innerHTML = "";
+  document.getElementById("shortNotice").innerHTML = "";
+  document.getElementById("resultRows").innerHTML = "";
   resetMomoRows();
   document.getElementById("bookSlip").innerHTML = "";
   lastResult = null;
   boxCounts = null;
   bookConfirmed = false;
-  tonightPlan = ["count", "adjust", "box", "result", "final"];
+  tonightPlan = ["count", "result"];
   updateTotal();
   show_T("count");
 }
@@ -3404,10 +3642,10 @@ document.addEventListener("wheel", function(e){
 const DENOMS_S = [200, 100, 50, 20, 10, 5, 1];
 const COLORS_S = { 200:"#c2418f", 100:"#00838f", 50:"#b3661b", 20:"#6a4fa3", 10:"#7a8f1f", 5:"#2456a8", 1:"#b03a3a" };
 
-const LS_CFG  = "kofirice_safe_cfg_v1";   // 接続情報・店舗一覧
-const LS_MOV  = "kofirice_safe_mov_v1";   // サーバから取得した記録のキャッシュ
-const LS_Q    = "kofirice_safe_queue_v1"; // サーバ未送信の記録
-const LS_SEQ  = "kofirice_safe_seq_v1";   // 取得済みの最終seq
+const LS_CFG  = LSK("kofirice_safe_cfg_v1");   // 接続情報・店舗一覧
+const LS_MOV  = LSK("kofirice_safe_mov_v1");   // サーバから取得した記録のキャッシュ
+const LS_Q    = LSK("kofirice_safe_queue_v1"); // サーバ未送信の記録
+const LS_SEQ  = LSK("kofirice_safe_seq_v1");   // 取得済みの最終seq
 
 const SYNC_INTERVAL_MS = 25000;
 
@@ -3420,8 +3658,24 @@ const TYPE_LABEL = {
   COUNT_ADJ:   "実棚調整",
   TRANSIT_IN:  "配送中（店舗から引き取り）",
   TRANSIT_OUT: "配送完了（オフィスで受領）",
+  EXCHANGE:    "両替（金種の入れ替え）",
+  EXCHANGE_IN: "両替で受け取り",
+  BOX_UPDATE:  "おつりボックス更新（足す・持っていく）",
+  TILL_SMALL_CHECK: "レジの小銭を確認",
+  SALES_COUNT: "朝の確認：金庫の売上（実測）",
+  FLOAT_COUNT: "朝の確認：レジ金（実測）",
   VOID:        "取消"
 };
+
+/**
+ * 「見比べるためだけの記録」。残高計算からは必ず除外する（2026-09-03）。
+ * 朝のダブルチェックで数えた額は、帳簿と突き合わせるためのメモであって
+ * 残高そのものではない。特に売上はロット単位（1晩の締め＝1ロット）で
+ * 受取・配送に引き当てているので、実測値で残高を上書きするとロットとの
+ * 帳尻が合わなくなり、受取画面の初期値と配送の引き当てが狂う。
+ * ズレを実際に直すのは履歴タブの「訂正」。
+ */
+const OBSERVE_ONLY = { SALES_COUNT: 1, FLOAT_COUNT: 1 };
 
 let cfg = loadJSON_S(LS_CFG) || {
   gasUrl: "", token: "", device: "", larkWebhook: "",
@@ -3434,7 +3688,6 @@ let queue = loadJSON_S(LS_Q) || [];
 let lastSeq = Number(localStorage.getItem(LS_SEQ) || 0);
 let syncing = false;
 let lastSyncOk = null;
-let refillSource = "external";
 let parsedPaste = [];
 
 // =============================================================
@@ -3529,7 +3782,7 @@ function renderStoreSelect(){
 function onStoreChange(){
   cfg.currentStore = document.getElementById("storeSel").value;
   saveCfg();
-  refillDenomsStale = true;
+  boxStale = true;
   driverChangeDenomsStale = true;
   renderAll();
 }
@@ -3587,9 +3840,12 @@ function countNote(storeCode, counted){
   if (!lastBoxCount(storeCode)) return "開始残高として登録";
   const expected = changeBalance(storeCode);
   const diff = Math.round((notesTotal_S(counted) - notesTotal_S(expected)) * 100) / 100;
-  return diff === 0
-    ? "帳簿どおり"
-    : "差異 " + (diff > 0 ? "+" : "−") + fmt_S(Math.abs(diff)) + "（帳簿 " + fmt_S(notesTotal_S(expected)) + "）";
+  // 合計が合っていても金種が動いていることがある（記録していない昼の交換）。
+  // それを「帳簿どおり」と書くと、あとから履歴を見ても何も起きていないように
+  // 見えてしまうので区別して残す（2026-09-04）。
+  const swapped = DENOMS_S.some(d => (Number(counted[d]) || 0) !== (Number(expected[d]) || 0));
+  if (diff === 0) return swapped ? "合計は合っている（金種の入れ替えのみ）" : "アプリの数字どおり";
+  return "差異 " + (diff > 0 ? "+" : "−") + fmt_S(Math.abs(diff)) + "（帳簿 " + fmt_S(notesTotal_S(expected)) + "）";
 }
 
 /** 最後の実測カウントと、そのときの差異。無ければ null。 */
@@ -3605,6 +3861,7 @@ function balance(storeCode, compartment){
   const notes = emptyNotes();
   for (const m of allMovements()){
     if (m.store !== storeCode || m.compartment !== compartment) continue;
+    if (OBSERVE_ONLY[m.type]) continue;
     for (const d of DENOMS_S) notes[d] += Number(m.notes[d]) || 0;
   }
   return notes;
@@ -3632,7 +3889,11 @@ function lotStates(storeCode){
   }
   const lots = [];
   for (const m of allMovements()){
-    if (m.store !== storeCode || m.type !== "SALES_IN") continue;
+    // 両替で change case から売上へ入れた紙幣（EXCHANGE_IN）も、新しいロット
+    // として立てる。こうしないと「売上の合計」と「ロットの合計」がズレて、
+    // 受取画面の初期値とドライバーの引き当てが狂う（2026-09-03）。
+    if (m.store !== storeCode) continue;
+    if (!(m.type === "SALES_IN" || (m.type === "EXCHANGE_IN" && m.compartment === "sales"))) continue;
     const got = taken[m.id] || emptyNotes();
     const remaining = emptyNotes();
     for (const d of DENOMS_S) remaining[d] = (Number(m.notes[d]) || 0) - got[d];
@@ -4103,10 +4364,17 @@ function renderHome(){
   const after = cnt ? allMovements().filter(m =>
         m.store === st.code && m.compartment === "change" &&
         m.type !== "BOX_COUNT" && cmpMov(m, cnt) > 0).length : 0;
+  // レジ締めから箱の計数を外したので（2026-09-03）、箱を数えるきっかけは
+  // ここと「おつり整理」タブの案内だけになった。何日ぶん放置しているかを
+  // ホームの一番目立つところに出しておかないと、誰も数えないまま何週間も経つ。
+  const cntDays = cnt ? Math.floor((Date.now() - new Date(cnt.ts).getTime()) / 86400000) : null;
   document.getElementById("homeChangeBasis").innerHTML = cnt
     ? `📏 ${esc_S(dateJP(cnt.ts))} に実際に数えた枚数がもと` +
-      (after ? `（その後の出入り ${after}件を反映）` : "")
-    : `⚠️ 実測の記録がまだありません`;
+      (after ? `（その後の出入り ${after}件を反映）` : "") +
+      (cntDays >= 7
+        ? `<br><b style="color:var(--red)">⚠️ 数えてから ${cntDays} 日たっています。週に一度は数えてください。</b>`
+        : `<br>最後に数えたのは <b>${cntDays === 0 ? "今日" : cntDays + "日前"}</b>です。`)
+    : `⚠️ 実測の記録がまだありません。「💱 おつり整理」で今の枚数を登録してください。`;
 
   // 店舗のレジに置く枚数（レジ締めアプリの設定を同期コードから受け取ったもの）
   const tf = (cfg.tillFloats || {})[st.code];
@@ -4124,15 +4392,20 @@ function renderHome(){
 
   document.getElementById("homeShortBox").innerHTML =
     (!opened
-      ? `<div class="warn"><b>まだカウントの記録がありません</b><br>店舗でレジ締めをすると、おつり箱の実測枚数がここに入ります。すぐに知りたい場合は、いま金庫を数えて登録してください。<br><button class="minibtn" style="margin-top:8px" onclick="show_S('refill')">🔍 いま数えて登録する</button></div>`
+      ? `<div class="warn"><b>まだ一度も数えていません</b><br>箱を数えるのはマネージャーだけです（レジ締めからは外しました）。これがすべての基準になるので、まず一度数えてください。<br><button class="minibtn" style="margin-top:8px" onclick="show_S('exchange')">🔍 いま数えて登録する</button></div>`
       : negative
-      ? `<div class="warn bad"><b>在庫がマイナスになっています</b><br>アプリが把握していない持ち出しがあった可能性があります。実際に数えて合わせてください。<br><button class="minibtn" style="margin-top:8px" onclick="show_S('refill')">🔍 数えて合わせる</button></div>`
+      ? `<div class="warn bad"><b>在庫がマイナスになっています</b><br>アプリが把握していない持ち出しがあった可能性があります。実際に数えて合わせてください。<br><button class="minibtn" style="margin-top:8px" onclick="show_S('exchange')">🔍 数えて合わせる</button></div>`
       : "") +
     (countMismatch
       ? `<div class="warn bad"><b>直近のカウントが帳簿と合っていません</b><br>${esc_S(dateJP(counted.ts))}${counted.actor ? " ／ " + esc_S(counted.actor) : ""} — ${esc_S(counted.note)}</div>`
       : "") +
+    // ⚠️ 箱は「合計を保ったまま金種だけ崩れる」のが普通の状態になった（2026-09-03）。
+    //    合計が足りているのに「補充が必要」と出すと、お金を足す話に読めてしまう。
+    //    合計が足りているかどうかで、言うことを変える。
     (needTotal > 0
-      ? `<div class="warn"><b>補充が必要です：${fmt_S(needTotal)}</b><br>${esc_S(notesText(need))}</div>`
+      ? (notesTotal_S(have) >= notesTotal_S(target)
+        ? `<div class="warn"><b>両替が必要です</b><br>合計は足りています（${fmt_S(notesTotal_S(have))} ／ 目標 ${fmt_S(notesTotal_S(target))}）が、大きい札に偏っています。<br>小さい札に替える枚数：${esc_S(notesText(need))}<br><button class="minibtn" style="margin-top:8px" onclick="show_S('exchange')">💱 おつりを整理する</button></div>`
+        : `<div class="warn"><b>おつりが足りません：${fmt_S(needTotal)}</b><br>${esc_S(notesText(need))}<br><button class="minibtn" style="margin-top:8px" onclick="show_S('exchange')">💱 おつりを整理する</button></div>`)
       : `<div class="warn" style="background:#e8f5e9;border-color:var(--green)"><b style="color:var(--green)">✔ 目標どおり揃っています</b></div>`);
 
   document.getElementById("homeChangeRows").innerHTML = DENOMS_S.map(d => {
@@ -4202,6 +4475,7 @@ function renderHome(){
     ? recent.map(m => movHTML(m, reversedIds, { noActions: true })).join("")
     : `<div class="empty">まだ記録がありません</div>`;
 
+  renderMorningCard();
   updateBadges(pending.length, transit.length);
 }
 
@@ -4219,17 +4493,38 @@ function reversedMovementIds(){
 function movHTML(m, reversedIds, opts){
   opts = opts || {};
   const amt = notesTotal_S(m.notes);
-  const icon = m.compartment === "change" ? "🧰" : m.compartment === "transit" ? "🚚" : "💰";
-  // BOX_COUNT は増減ではなく「そのとき入っていた金額」なので符号を付けない
-  const val = m.type === "BOX_COUNT"
+  const icon = m.source === "exchange" ? "💱"
+    : m.type === "TILL_SMALL_CHECK" ? "🧾"
+    : m.type === "FLOAT_COUNT" ? "🧾"
+    : m.compartment === "change" ? "🧰" : m.compartment === "transit" ? "🚚" : "💰";
+  // BOX_COUNT と朝の確認は増減ではなく「そのとき入っていた金額」なので符号を付けない。
+  // 両替の change 側は1行に＋と−が同居する（等価なら差引ゼロ）ので ⇄ で見せる。
+  const isCount = m.type === "BOX_COUNT" || m.type === "SALES_COUNT" || m.type === "FLOAT_COUNT";
+  const val = isCount
     ? `<span class="v">= ${fmt_S(amt)}</span>`
+    : m.type === "TILL_SMALL_CHECK"
+    ? `<span class="v">✔</span>`
+    : m.type === "EXCHANGE" || (m.type === "BOX_UPDATE" && amt === 0)
+    ? `<span class="v">⇄ ${amt === 0 ? "±0" : (amt > 0 ? "+" : "−") + fmt_S(Math.abs(amt))}</span>`
     : `<span class="v ${amt >= 0 ? "plus" : "minus"}">${amt >= 0 ? "+" : "−"}${fmt_S(Math.abs(amt))}</span>`;
   const isCorrection = m.source === "correction";
   const alreadyReversed = reversedIds ? reversedIds.has(m.id) : false;
   const reversedLine = alreadyReversed ? `<div class="m" style="color:var(--red);font-weight:700">↩️ 訂正ずみ</div>` : "";
   let actionBtns = "";
   if (!opts.noActions && !isCorrection && !alreadyReversed){
-    actionBtns = `<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+    // ⚠️ 両替は sales 側と change 側が対になっている（2〜3行）。1行だけ訂正・削除
+    //    すると帳尻が合わなくなるので、対ごと戻す道だけを出す（2026-09-03）。
+    actionBtns = m.type === "TILL_SMALL_CHECK"
+      ? ""
+      : m.source === "boxupd"
+      ? `<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+      <button class="minibtn" onclick="undoBoxUpdate('${esc_S(m.id)}')">↩️ 逆向きに戻す</button>
+    </div>`
+      : m.source === "exchange"
+      ? `<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+      <button class="minibtn" onclick="undoExchange('${esc_S(exchangeGroupId(m))}')">↩️ 逆向きに戻す</button>
+    </div>`
+      : `<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
       <button class="minibtn" onclick="openRecordAction('${esc_S(m.id)}','correct')">✏️ 訂正</button>
       <button class="minibtn" onclick="openRecordAction('${esc_S(m.id)}','delete')">🗑 削除</button>
     </div>`;
@@ -4518,11 +4813,11 @@ function confirmDeleteClose(baseId){
   showToast_S("🗑 ゴミ箱に移動しました");
 }
 
+// 「受取」と「配送確認」を1つのタブにまとめたので、バッジも合算した数を出す
 function updateBadges(pendingCount, transitCount){
   const b = document.getElementById("badgeCollect");
-  if (b) b.innerHTML = pendingCount > 0 ? `<span class="badge">${pendingCount}</span>` : "";
-  const t = document.getElementById("badgeTransit");
-  if (t) t.innerHTML = transitCount > 0 ? `<span class="badge">${transitCount}</span>` : "";
+  const n = pendingCount + transitCount;
+  if (b) b.innerHTML = n > 0 ? `<span class="badge">${n}</span>` : "";
 }
 
 // =============================================================
@@ -4743,64 +5038,299 @@ function submitConfirmDelivery(batchId){
 // 画面：おつり補充・棚卸
 // =============================================================
 // 補充・棚卸の入力欄は、25秒ごとのバックグラウンド同期で renderAll() →
-// renderRefill() が呼ばれるたびに作り直すと、入力中の枚数が消えてしまう
-// バグがあった（2026-08-21発見）。denomInputs() は毎回 innerHTML を書き換える
-// ため、値をそのまま持ち回れない。「入力欄を作り直す必要があるとき」だけ
-// true にするフラグ方式（driverCarryDenomsStale と同じ考え方）で対処する。
-let refillDenomsStale = true;
-function renderRefill(){
+/**
+ * おつりボックスの画面（2026-09-04 作り直し）。
+ *
+ * 三好さんの指示: 「いま何枚あるか」を一番上に出して、それをすべての基準にする。
+ * 操作は ＋足す / −持っていく だけ。見るのは合計で、合計が変わらないなら
+ * 中の小さい札が勝手に減っていても直さない（昼の交換は記録しない）。
+ *
+ * ⚠️ 入力欄を毎回作り直すと、数えている途中の数字が約25秒ごとの同期で消える。
+ *    画面を開いた時と記録した直後だけ作り直す（boxStale フラグ）。
+ */
+let boxStale = true;
+
+function renderBox(){
   const st = currentStore();
   if (!st) return;
-  const need = shortage(st.code);
-  const needTotal = notesTotal_S(need);
+  const have = balance(st.code, "change");
+  const nowTotal = notesTotal_S(have);
 
-  document.getElementById("refillNeedBox").innerHTML = needTotal > 0
-    ? `<div class="warn"><b>不足：${fmt_S(needTotal)}</b><br>${esc_S(notesText(need))}</div>`
-    : `<div class="warn" style="background:#e8f5e9;border-color:var(--green)"><b style="color:var(--green)">✔ 目標どおり揃っています</b>（それでも足したい場合は下に枚数を入れてください）</div>`;
+  const nameEl = document.getElementById("boxStoreName");
+  if (nameEl) nameEl.textContent = st.name || "";
+  document.getElementById("boxNowTotal").textContent = fmt_S(nowTotal);
 
-  const opened = allMovements().some(m =>
-    m.store === st.code && m.compartment === "change" && (m.type === "REFILL" || m.type === "COUNT_ADJ"));
-  document.getElementById("countTitle").innerHTML = opened
-    ? `🔍 実際に数えて合わせる<span class="sub">棚卸</span>`
-    : `🔍 開始残高を登録する<span class="sub">最初の1回</span>`;
-  document.getElementById("countHint").textContent = opened
-    ? "おつりボックスを実際に数えて、アプリの数字とズレていたら合わせます。ズレは差異として履歴に残ります。"
-    : "いま金庫のおつりボックスに実際に入っている枚数を数えて入力してください。ここを起点に増減を追いかけます。";
-
-  // 店舗のシェフは箱を数えない運用にしたので、ここを見るのはマネージャーだけ。
-  // 「最後に数えたのはいつか」を出さないと、誰も数えないまま何週間も経つ
-  const lastCnt = lastBoxCount(st.code);
-  const ageBox = document.getElementById("countAge");
-  if (ageBox){
-    if (!lastCnt){
-      ageBox.innerHTML = `<div class="warn"><b>まだ一度も数えていません</b></div>`;
+  // この合計が「いつ数えた実測」を起点にしているのかを出す。
+  // 起点が古いほど、記録もれのぶんだけ実物とズレている可能性が高い。
+  const cnt = lastBoxCount(st.code);
+  const ageEl = document.getElementById("boxNowAge");
+  if (ageEl){
+    if (!cnt){
+      ageEl.innerHTML = `<b style="color:var(--red)">まだ一度も数えていません。</b>下の「🔍 数え直す」で今の枚数を入れてください。`;
     } else {
-      const days = Math.floor((Date.now() - new Date(lastCnt.ts).getTime()) / 86400000);
-      const late = days >= 7;
-      ageBox.innerHTML = late
-        ? `<div class="warn"><b>⚠️ 最後に数えてから ${days} 日</b><br>週に一度は数えてください。</div>`
-        : `<div class="hint">最後に数えたのは <b>${days === 0 ? "今日" : days + "日前"}</b>です。</div>`;
+      const days = Math.floor((Date.now() - new Date(cnt.ts).getTime()) / 86400000);
+      ageEl.textContent = days === 0
+        ? "今日 数えた枚数を起点にしています。"
+        : days + "日前に数えた枚数と、そのあとの更新の合計です。";
     }
   }
 
-  const cur = balance(st.code, "change");
-  const shown = emptyNotes();
-  for (const d of DENOMS_S) shown[d] = Math.max(0, cur[d]);   // マイナスは初期値に出さない
-  if (refillDenomsStale){
-    // 補充欄は「いま何枚か」を出すだけで、入力は空から始める（不足分を先に入れない）
-    refillRows("refillDenoms", "rf", shown, "updateRefillTotal", "いま");
-    denomInputs("countDenoms", "cnt", shown, "updateCountTotal");
-    // 「枚数の基準」も同じタイミングで作り直す（入力中に同期で消えないよう stale 方式）
+  if (boxStale){
+    document.getElementById("bxRows").innerHTML = DENOMS_S.map(d => `
+      <div class="bx-row">
+        <span class="note-mini" style="background:${COLORS_S[d]}">₵${d}</span>
+        <span class="bx-now"><b id="bxNow-${d}">0</b><span class="to" id="bxTo-${d}"></span></span>
+        <div class="bx-side">
+          <input type="number" min="0" step="1" inputmode="numeric" id="bxa-${d}"
+                 placeholder="0" oninput="updateBoxTotals()">
+        </div>
+        <div class="bx-side">
+          <input type="number" min="0" step="1" inputmode="numeric" id="bxt-${d}"
+                 placeholder="0" oninput="updateBoxTotals()">
+        </div>
+      </div>`).join("");
+
+    // 数え直す欄は「いま」を初期値にしておく。ぜんぶ打ち直させると
+    // 合っている金種まで入れ直すことになって、そこで打ち間違える。
+    // ⚠️ prefix は "cnt" にしてはいけない。レジ締め STEP1 が
+    //    cnt-200〜cnt-1 という id を静的に持っていて、これより先にある。
+    const shown = emptyNotes();
+    for (const d of DENOMS_S) shown[d] = Math.max(0, have[d]);
+    denomInputs("countDenoms", "bxc", shown, "updateCountTotal");
+
+    // 「枚数の基準」も同じタイミングで作り直す
     document.getElementById("basicsStoreName").textContent = st.name;
     document.getElementById("alertInline").value = Number(st.alertBelow) || 0;
     document.getElementById("basicsSaveBtn").textContent = "💾 基準を保存";
     targetRows(shown, st.target || {});
     floatRows(settings.float || {});
-    refillDenomsStale = false;
+    boxStale = false;
   }
-  updateRefillTotal();
+
+  // 「いま」の枚数は毎回入れ直す（入力中の数字には触らない）
+  for (const d of DENOMS_S){
+    const e = document.getElementById("bxNow-" + d);
+    if (e) e.textContent = Math.max(0, Number(have[d]) || 0);
+  }
+
+  renderCountAge(st.code);
+  renderTillCheckAge(st.code);
+  updateBoxTotals();
   updateCountTotal();
 }
+
+function updateBoxTotals(){
+  const st = currentStore();
+  if (!st) return;
+  const el = document.getElementById("boxVerdict");
+  if (!el) return;
+  const have = balance(st.code, "change");
+  const add  = readDenoms("bxa");
+  const take = readDenoms("bxt");
+
+  const over = [];
+  const next = emptyNotes();
+  for (const d of DENOMS_S){
+    const now = Math.max(0, Number(have[d]) || 0);
+    next[d] = now + add[d] - take[d];
+    const bad = take[d] > now;
+    const ti = document.getElementById("bxt-" + d);
+    if (ti) ti.classList.toggle("over", bad);
+    if (bad) over.push(d);
+    const to = document.getElementById("bxTo-" + d);
+    if (to) to.textContent = (add[d] || take[d]) ? "→ " + next[d] : "";
+  }
+
+  const nowTotal  = notesTotal_S(have);
+  const nextTotal = notesTotal_S(next);
+  document.getElementById("boxNextTotal").textContent = fmt_S(nextTotal);
+
+  const diff = Math.round((nextTotal - nowTotal) * 100) / 100;
+  let cls = "idle", msg = "足す枚数・持っていく枚数を入れてください", ok = true;
+  if (over.length){
+    cls = "bad"; ok = false;
+    msg = "⚠️ 箱に入っている枚数より多く持っていこうとしています／" + over.map(d => "₵" + d).join("・");
+  } else if (!notesNonZero(add) && !notesNonZero(take)){
+    ok = false;
+  } else if (!DENOMS_S.some(d => add[d] !== take[d])){
+    cls = "bad"; ok = false;
+    msg = "足す枚数と持っていく枚数が金種ごとに同じです（何も動きません）";
+  } else if (diff === 0){
+    cls = "even";
+    msg = "⇄ 合計は " + fmt_S(nowTotal) + " のまま変わりません（札の入れ替えだけ）";
+  } else if (diff > 0){
+    cls = "move";
+    msg = "↑ 合計が " + fmt_S(diff) + " 増えます（" + fmt_S(nowTotal) + " → " + fmt_S(nextTotal) + "）";
+  } else {
+    cls = "warn";
+    msg = "↓ 合計が " + fmt_S(-diff) + " 減ります（" + fmt_S(nowTotal) + " → " + fmt_S(nextTotal) + "）";
+  }
+  el.className = "xch-verdict " + cls;
+  el.textContent = msg;
+  // ⚠️ ボタンを disabled にしない。グレーで押しても何も起きないと
+  //    「更新ができない」としか見えない（2026-09-05 三好さんから報告）。
+  //    見た目だけ薄くして、押されたら submitBoxUpdate() が理由をトーストで返す。
+  const btn = document.getElementById("boxSaveBtn");
+  if (btn){ btn.disabled = false; btn.style.opacity = ok ? "" : "0.55"; }
+}
+
+/**
+ * 更新を1行で記録する。＋が足した枚数、−が持っていった枚数。
+ * changeBalance() は最後の BOX_COUNT 以降を足し込むだけなので、
+ * 符号付きの1行でそのまま正しく効く。
+ */
+function submitBoxUpdate(){
+  const st = currentStore();
+  if (!st){ showToast_S("店舗が選ばれていません。上の店舗名を選んでください", true); return; }
+  const have = balance(st.code, "change");
+  const add  = readDenoms("bxa");
+  const take = readDenoms("bxt");
+  if (!notesNonZero(add) && !notesNonZero(take)){
+    showToast_S("足す枚数か持っていく枚数を入れてください", true); return;
+  }
+  const lack = DENOMS_S.filter(d => take[d] > Math.max(0, Number(have[d]) || 0));
+  if (lack.length){
+    showToast_S("箱に " + lack.map(d => "₵" + d).join("・") + " がその枚数ありません。実物とちがうなら「🔍 数え直す」で先に合わせてください", true); return;
+  }
+  const notes = emptyNotes();
+  for (const d of DENOMS_S) notes[d] = add[d] - take[d];
+  if (!notesNonZero(notes)){
+    showToast_S("足す枚数と持っていく枚数が金種ごとに同じです（何も動きません）", true); return;
+  }
+
+  const nowTotal = notesTotal_S(have);
+  const diff = notesTotal_S(notes);
+  const kind = diff === 0 ? "合計そのまま（札の入れ替え）"
+             : diff > 0   ? "合計 +" + fmt_S(diff)
+                          : "合計 −" + fmt_S(-diff);
+  const memo  = ((document.getElementById("boxNote") || {}).value || "").trim();
+  const actor = currentSessionName() || cfg.device || "";
+
+  addMovement({
+    id: "box-" + uid(),
+    compartment: "change", type: "BOX_UPDATE", notes,
+    actor, note: kind + (memo ? "／" + memo : ""), source: "boxupd"
+  });
+
+  const n = document.getElementById("boxNote");
+  if (n) n.value = "";
+  boxStale = true;
+  checkLowStockAlert(st.code);
+  renderAll();
+  doSync();
+  showToast_S("✅ おつりボックスを更新しました");
+  notifyLark(`🧰 おつりボックスを更新しました
+店舗: ${st.name}
+担当: ${actor || "—"}
+足した: ${notesText(add)}（${fmt_S(notesTotal_S(add))}）
+持っていった: ${notesText(take)}（${fmt_S(notesTotal_S(take))}）
+合計: ${fmt_S(nowTotal)} → ${fmt_S(nowTotal + diff)}${memo ? "\nメモ: " + memo : ""}`);
+}
+
+/**
+ * 間違えた更新を戻す。サーバー（GAS）は追記専用なので、消すのではなく
+ * 「逆向きの更新」を入力欄に入れるところまで。紙幣がもう動いているので、
+ * 確定はマネージャーが自分で押す。
+ */
+function undoBoxUpdate(id){
+  const rec = allMovements().find(m => m.id === id && m.type === "BOX_UPDATE");
+  if (!rec){ showToast_S("元の記録が見つかりません", true); return; }
+  const add2 = emptyNotes(), take2 = emptyNotes();
+  for (const d of DENOMS_S){
+    const v = Number(rec.notes[d]) || 0;
+    if (v > 0)      take2[d] = v;     // 元は足した   → 今度は持っていく
+    else if (v < 0) add2[d]  = -v;    // 元は持っていった → 今度は足す
+  }
+  show_S("exchange");
+  for (const d of DENOMS_S){
+    const a = document.getElementById("bxa-" + d); if (a) a.value = add2[d] || "";
+    const t = document.getElementById("bxt-" + d); if (t) t.value = take2[d] || "";
+  }
+  const n = document.getElementById("boxNote");
+  if (n) n.value = "取り消し（" + dateJP(rec.ts) + " の更新を戻す）";
+  updateBoxTotals();
+  showToast_S("逆向きの内容を入れました。確認して更新してください");
+}
+
+/**
+ * 週に一度「店のレジに小銭が余っていないか」を見たことを記録する。
+ *
+ * なぜこれが要るか: allocate() が ₵20以下を全部レジに残す規則なので、
+ * 客から入ってくる小さい札はレジに溜まる。金庫の売上袋には ₵50/100/200 しか
+ * 入らない。つまり箱の小さい札を仕入れられる場所はレジだけになった。
+ * 銀行や市場に行かずに済む唯一の道筋なので、見忘れないよう日数を出す。
+ * 金額は動かないので notes は全部0（残高計算には効かない）。
+ */
+function renderTillCheckAge(storeCode){
+  const box = document.getElementById("tillCheckAge");
+  if (!box) return;
+  const list = allMovements()
+    .filter(m => m.store === storeCode && m.type === "TILL_SMALL_CHECK")
+    .sort(cmpMov);
+  const last = list.length ? list[list.length - 1] : null;
+  if (!last){
+    box.innerHTML = `<div class="warn"><b>まだ一度も見ていません</b></div>`;
+    return;
+  }
+  const days = Math.floor((Date.now() - new Date(last.ts).getTime()) / 86400000);
+  box.innerHTML = days >= 7
+    ? `<div class="warn"><b>⚠️ 最後に見てから ${days} 日</b><br>週に一度は見てください。</div>`
+    : `<div class="hint">最後に見たのは <b>${days === 0 ? "今日" : days + "日前"}</b>です。</div>`;
+}
+
+function markTillCheck(){
+  const st = currentStore();
+  if (!st) return;
+  addMovement({
+    compartment: "change", type: "TILL_SMALL_CHECK", notes: emptyNotes(),
+    actor: currentSessionName() || cfg.device || "",
+    note: "レジの小銭を確認した", source: "tillcheck"
+  });
+  renderAll();
+  doSync();
+  showToast_S("✅ 見たことを記録しました");
+}
+
+/**
+ * 「いまの枚数がちがう」から数え直しカードへ飛ぶ。2026-09-05に追加。
+ * いまの枚数がすべての基準なのに、それを直す場所が画面の下の方に
+ * あって見つからなかった。
+ */
+function gotoBoxCount(){
+  const el = document.getElementById("countTitle");
+  if (!el) return;
+  el.scrollIntoView(true);
+  window.scrollBy(0, -60);
+  const card = el.closest(".card");
+  if (card){
+    card.style.transition = "box-shadow .25s";
+    card.style.boxShadow = "0 0 0 3px var(--blue)";
+    setTimeout(() => { card.style.boxShadow = ""; }, 1400);
+  }
+}
+
+/** 「🔍 数え直す」カードの見出しと、最後に数えてからの日数。 */
+function renderCountAge(storeCode){
+  const opened = !!lastBoxCount(storeCode);
+  document.getElementById("countTitle").innerHTML = opened
+    ? `🔍 数え直す<span class="sub">棚卸</span>`
+    : `🔍 最初に数える<span class="sub">起点をつくる</span>`;
+  document.getElementById("countHint").innerHTML = opened
+    ? `箱を実際に数えて、上の合計とちがっていたら<b>数えた枚数を新しい基準にします</b>。ちがいは差異として履歴に残ります。`
+    : `いま箱に実際に入っている枚数を数えて入れてください。<b>ここが起点</b>になります。`;
+  const lastCnt = lastBoxCount(storeCode);
+  const ageBox = document.getElementById("countAge");
+  if (!ageBox) return;
+  if (!lastCnt){
+    ageBox.innerHTML = `<div class="warn"><b>まだ一度も数えていません</b></div>`;
+    return;
+  }
+  const days = Math.floor((Date.now() - new Date(lastCnt.ts).getTime()) / 86400000);
+  ageBox.innerHTML = days >= 7
+    ? `<div class="warn"><b>⚠️ 最後に数えてから ${days} 日</b><br>週に一度は数えてください。</div>`
+    : `<div class="hint">最後に数えたのは <b>${days === 0 ? "今日" : days + "日前"}</b>です。</div>`;
+}
+
 /**
  * 「枚数の基準」を補充画面の中で直せるようにするための描画と保存（2026-08-21）。
  *
@@ -4916,7 +5446,7 @@ function saveStoreBasics(){
   cfg.tillFloats[st.code] = { notes: newFloat, seenAt: new Date().toISOString() };
   saveCfg();
   // 目標が変わると「不足」の出方も変わるので、補充画面ごと描き直す
-  refillDenomsStale = true;
+  boxStale = true;
   renderAll();
   doSync();
   const btn = document.getElementById("basicsSaveBtn");
@@ -4925,55 +5455,10 @@ function saveStoreBasics(){
   if (note) note.textContent = "✅ " + dateJP(new Date().toISOString()) + " に保存しました";
   showToast_S("✅ 基準を保存しました");
 }
-function updateRefillTotal(){ updateDenomSubs("rf", "refillTotal"); }
-function setRefillSource(src){
-  refillSource = src;
-  document.getElementById("src-external").classList.toggle("sel", src === "external");
-  document.getElementById("src-sales").classList.toggle("sel", src === "sales");
-  document.getElementById("refillSrcHint").textContent = src === "external"
-    ? "両替やATMなど、金庫の外から用意した現金を入れる場合。"
-    : "金庫にある売上の現金から小額紙幣を移す場合。売上保管の残高も同時に減ります。";
-}
-function submitRefill(){
-  const st = currentStore();
-  if (!st) return;
-  const notes = readDenoms("rf");
-  if (!notesNonZero(notes)){ showToast_S("補充する枚数を入力してください", true); return; }
-
-  // 売上袋から移す場合は、どの日の入庫から出すかを古い順に割り当てる。
-  // こうしておくと「未受取の売上」と金庫の残高が常に一致する。
-  let plan = null;
-  if (refillSource === "sales"){
-    plan = allocateFromLots(st.code, notes);
-    if (!plan){
-      showToast_S("金庫の売上袋にその枚数がありません", true);
-      return;
-    }
-  }
-  addMovement({
-    compartment: "change", type: "REFILL", notes,
-    note: refillSource === "sales" ? "売上袋から振替" : "外部から用意",
-    actor: cfg.device || "", source: "refill"
-  });
-  if (plan){
-    for (const p of plan){
-      addMovement({
-        compartment: "sales", type: "SALES_OUT", notes: negNotes(p.notes), ref: p.lotId,
-        note: "おつりボックスへ振替", actor: cfg.device || "", source: "refill"
-      });
-    }
-  }
-  refillDenomsStale = true;
-  renderAll(); doSync();
-  showToast_S("✅ 補充を記録しました");
-  notifyLark(`🧰 おつりを補充しました\n店舗: ${st.name}\n金額: ${fmt_S(notesTotal_S(notes))}\n内訳: ${notesText(notes)}\n出所: ${refillSource === "sales" ? "金庫の売上袋から" : "外部から用意"}`);
-  show_S("home");
-}
-
 function updateCountTotal(){
   const st = currentStore();
   if (!st) return;
-  const counted = updateDenomSubs("cnt", "countTotal");
+  const counted = updateDenomSubs("bxc", "countTotal");
   const have = balance(st.code, "change");
   const diff = Math.round((notesTotal_S(counted) - notesTotal_S(have)) * 100) / 100;
   document.getElementById("countExpected").textContent = fmt_S(notesTotal_S(have));
@@ -4981,11 +5466,47 @@ function updateCountTotal(){
   el.textContent = (diff > 0 ? "+" : diff < 0 ? "−" : "") + fmt_S(Math.abs(diff));
   el.style.color = diff === 0 ? "var(--muted)" : "var(--red)";
   el.style.fontWeight = diff === 0 ? "400" : "800";
+  renderCountBreak(counted, have, diff);
+}
+/**
+ * 実測と帳簿のズレを金種ごとに出す（2026-09-04）。
+ *
+ * 箱に鍵をかけない運用にしたので、昼の交換は記録されないまま起きる。
+ * その結果ここに出るズレは、ほとんどが「合計は合っているのに金種だけ
+ * 入れ替わっている」形になる。合計だけを見せると、それが記録もれなのか
+ * 本当の不足なのかをマネージャーが区別できない。金種ごとに出せば見分けられる。
+ */
+function renderCountBreak(counted, have, diff){
+  const box = document.getElementById("countBreak");
+  if (!box) return;
+  const rows = DENOMS_S
+    .map(d => ({ d, v: (Number(counted[d]) || 0) - (Number(have[d]) || 0) }))
+    .filter(r => r.v !== 0);
+  if (!rows.length){
+    // まだ一度も数えていない店舗（帳簿ゼロ・入力ゼロ）では何も言わない
+    box.innerHTML = (notesTotal_S(counted) === 0 && notesTotal_S(have) === 0)
+      ? "" : `<div class="cnt-read ok">✔ 金種までアプリの数字どおりです。</div>`;
+    return;
+  }
+  const chips = rows.map(r => `<span class="cnt-chip ${r.v > 0 ? "plus" : "minus"}">`
+      + `<span class="note-mini" style="background:${COLORS_S[r.d]}">₵${r.d}</span>`
+      + `${r.v > 0 ? "+" : "−"}${Math.abs(r.v)}枚</span>`).join("");
+  // 三好さんの方針（2026-09-04）: 合計が合っていればそれでよい。
+  // 小さい札が勝手に減っているのは昼の交換ぶんなので、直さなくてよい。
+  const read = diff === 0
+    ? `<div class="cnt-read ok"><b>合計は合っています。</b>`
+      + `金種だけが入れ替わっているのは昼の交換ぶんなので、このままで問題ありません。</div>`
+    : diff < 0
+    ? `<div class="cnt-read bad">合計が <b>${esc_S(fmt_S(-diff))} 足りません</b>。`
+      + `金種の入れ替えだけでは説明がつきません。心当たりをこのあと履歴のメモに残してください。</div>`
+    : `<div class="cnt-read bad">合計が <b>${esc_S(fmt_S(diff))} 多い</b>です。`
+      + `足した分の記録もれが考えられます。</div>`;
+  box.innerHTML = `<div class="cnt-break">${chips}</div>${read}`;
 }
 function submitCount(){
   const st = currentStore();
   if (!st) return;
-  const counted = readDenoms("cnt");
+  const counted = readDenoms("bxc");
   // 店舗からのカウントと同じ扱いにする（差分ではなく実測値そのものを残す）
   addMovement({
     compartment: "change", type: "BOX_COUNT", notes: counted,
@@ -4993,10 +5514,370 @@ function submitCount(){
     actor: cfg.device || "", source: "count"
   });
   checkLowStockAlert(st.code);
-  refillDenomsStale = true;
+  boxStale = true;
   renderAll(); doSync();
   showToast_S("✅ 実数に合わせました");
 }
+
+// =============================================================
+// 画面：両替（売上 ⇄ change case）── 2026-09-03
+// =============================================================
+// マネージャーが店に来たとき、売上に溜まった細かい紙幣と change case の
+// 大きい紙幣を入れ替える。金額が同じなら「両替」、片方だけなら「移動」。
+// 1画面で両方さばけるように、金種ごとに入力欄を左右2つ並べてある。
+//
+// 1回の記録で作る行（最大3種類）:
+//   ① sales  / SALES_OUT   … 売上袋から出した枚数。どのロットから出したかを
+//        古い順(FIFO)に割り当てる（ref=ロットID）。ここを省くと「売上の合計」と
+//        「ロットの合計」がズレて受取画面と配送の引き当てが狂う
+//   ② sales  / EXCHANGE_IN … case から売上へ入れた枚数。新しいロットとして立てる
+//        （lotStates() が SALES_IN と同じ扱いで拾う）
+//   ③ change / EXCHANGE    … change case 側。1行に＋と−が同居する符号付きの記録。
+//        changeBalance() は最後の BOX_COUNT 以降を足し込むだけなので符号付きで正しく効く
+//
+// id は "<gid>__o0" / "<gid>__i" / "<gid>__c" の形にして、あとから
+// 1回の両替をまとめて拾えるようにしてある（uid() に "__" は出てこない）。
+//
+// ⚠️ 取り消しは hidden フラグ（ゴミ箱）ではなく「逆向きの両替をもう1回記録する」
+//    方式にした。hidden は端末ローカルにしか無く、サーバーと同期すると復活し得る。
+//    対になった2〜3行のうち片方だけ生き返ると帳尻が合わなくなる。
+let xchStale = true;
+
+function exchangeGroupId(m){ return String(m.id).split("__")[0]; }
+
+function renderExchange(){
+  const st = currentStore();
+  if (!st) return;
+  const xchName = document.getElementById("xchStoreName");
+  if (xchName) xchName.textContent = st.name || "";
+  const sales = balance(st.code, "sales");
+  const chg   = balance(st.code, "change");
+
+  // ⚠️ 約25秒ごとの同期で入力欄を作り直すと、数えている途中の数字が消える。
+  //    画面を開いた時と記録した直後だけ作り直す（補充画面と同じ考え方）。
+  if (xchStale){
+    document.getElementById("xchRows").innerHTML = DENOMS_S.map(d => `
+      <div class="xch-row">
+        <span class="note-mini" style="background:${COLORS_S[d]}">₵${d}</span>
+        <div class="xch-side">
+          <span class="xch-have">売上 <b id="xchHaveS-${d}">0</b></span>
+          <input type="number" min="0" step="1" inputmode="numeric" id="exo-${d}"
+                 placeholder="0" oninput="updateExchangeTotals()">
+        </div>
+        <div class="xch-side">
+          <span class="xch-have">case <b id="xchHaveC-${d}">0</b></span>
+          <input type="number" min="0" step="1" inputmode="numeric" id="cxo-${d}"
+                 placeholder="0" oninput="updateExchangeTotals()">
+        </div>
+      </div>`).join("");
+    xchStale = false;
+  }
+  // 残高の表示だけは毎回入れ直す（入力中の数字には触らない）
+  for (const d of DENOMS_S){
+    const a = document.getElementById("xchHaveS-" + d);
+    const b = document.getElementById("xchHaveC-" + d);
+    if (a) a.textContent = Math.max(0, Number(sales[d]) || 0);
+    if (b) b.textContent = Math.max(0, Number(chg[d]) || 0);
+  }
+
+  const recent = allMovements()
+    .filter(m => m.store === st.code && m.compartment === "change")
+    .sort((x, y) => String(y.ts).localeCompare(String(x.ts)))
+    .slice(0, 8);
+  const reversedIds = reversedMovementIds();
+  document.getElementById("xchRecent").innerHTML = recent.length
+    ? recent.map(m => movHTML(m, reversedIds)).join("")
+    : `<div class="empty">まだ両替の記録はありません</div>`;
+
+  updateExchangeTotals();
+}
+
+function updateExchangeTotals(){
+  const st = currentStore();
+  if (!st) return;
+  const out = readDenoms("exo");   // 売上から出す
+  const inn = readDenoms("cxo");   // change case から出す
+  const sales = balance(st.code, "sales");
+  const chg   = balance(st.code, "change");
+
+  // 実際にある枚数を超えた欄はその場で赤くする（記録ボタンを押す前に気づける）
+  const overS = [], overC = [];
+  for (const d of DENOMS_S){
+    const os = out[d] > Math.max(0, Number(sales[d]) || 0);
+    const oc = inn[d] > Math.max(0, Number(chg[d]) || 0);
+    const es = document.getElementById("exo-" + d);
+    const ec = document.getElementById("cxo-" + d);
+    if (es) es.classList.toggle("over", os);
+    if (ec) ec.classList.toggle("over", oc);
+    if (os) overS.push(d);
+    if (oc) overC.push(d);
+  }
+
+  const a = notesTotal_S(out), b = notesTotal_S(inn);
+  document.getElementById("xchOutTotal").textContent = fmt_S(a);
+  document.getElementById("xchInTotal").textContent  = fmt_S(b);
+
+  const diff = Math.round((a - b) * 100) / 100;
+  let cls = "idle", msg = "枚数を入れてください", ok = true;
+  if (overS.length || overC.length){
+    cls = "bad"; ok = false;
+    msg = "⚠️ 実際にある枚数を超えています"
+        + (overS.length ? "／売上: " + overS.map(d => "₵" + d).join("・") : "")
+        + (overC.length ? "／case: " + overC.map(d => "₵" + d).join("・") : "");
+  } else if (a === 0 && b === 0){
+    ok = false;
+  } else if (diff === 0){
+    cls = "even";
+    msg = "⇄ 等価の両替です（売上・case どちらの合計も変わりません）";
+  } else if (diff > 0){
+    cls = "move";
+    msg = "→ 差額 " + fmt_S(diff) + " が 売上 から change case へ移ります";
+  } else {
+    cls = "move";
+    msg = "← 差額 " + fmt_S(-diff) + " が change case から 売上 へ戻ります";
+  }
+  const el = document.getElementById("xchVerdict");
+  el.className = "xch-verdict " + cls;
+  el.textContent = msg;
+  const btn = document.getElementById("xchSaveBtn");
+  btn.disabled = !ok;
+  btn.style.opacity = ok ? "" : "0.5";
+}
+
+function submitExchange(){
+  const st = currentStore();
+  if (!st) return;
+  const out = readDenoms("exo");
+  const inn = readDenoms("cxo");
+  if (!notesNonZero(out) && !notesNonZero(inn)){ showToast_S("枚数を入力してください", true); return; }
+
+  const chg = balance(st.code, "change");
+  const lackC = DENOMS_S.filter(d => inn[d] > Math.max(0, Number(chg[d]) || 0));
+  if (lackC.length){
+    showToast_S("change case に " + lackC.map(d => "₵" + d).join("・") + " が足りません", true); return;
+  }
+
+  // change case 側は1行にまとめる（受け取った金種は＋、渡した金種は−）
+  const chgNotes = emptyNotes();
+  for (const d of DENOMS_S) chgNotes[d] = out[d] - inn[d];
+  if (!notesNonZero(chgNotes)){
+    showToast_S("出す枚数と入れる枚数が同じです（入れ替える意味がありません）", true); return;
+  }
+
+  let plan = [];
+  if (notesNonZero(out)){
+    plan = allocateFromLots(st.code, out);
+    if (!plan){ showToast_S("金庫の売上に、その金種の枚数がありません", true); return; }
+  }
+
+  const gid   = "xch-" + uid();
+  const ts    = new Date().toISOString();
+  const actor = currentSessionName() || cfg.device || "";
+  const memo  = (document.getElementById("xchNote").value || "").trim();
+  const a = notesTotal_S(out), b = notesTotal_S(inn);
+  const kind = a === b ? "等価の両替"
+             : a > b   ? "差額 " + fmt_S(a - b) + " を 売上→case へ振替"
+                       : "差額 " + fmt_S(b - a) + " を case→売上 へ戻し";
+  const tail = kind + (memo ? "／" + memo : "");
+
+  plan.forEach((p, i) => {
+    addMovement({
+      id: gid + "__o" + i, ts,
+      compartment: "sales", type: "SALES_OUT", notes: negNotes(p.notes), ref: p.lotId,
+      actor, note: "両替で売上から持ち出し（" + tail + "）", source: "exchange"
+    });
+  });
+  if (notesNonZero(inn)){
+    addMovement({
+      id: gid + "__i", ts,
+      compartment: "sales", type: "EXCHANGE_IN", notes: inn, ref: gid,
+      actor, note: "両替で change case から受け取り（" + tail + "）", source: "exchange"
+    });
+  }
+  addMovement({
+    id: gid + "__c", ts,
+    compartment: "change", type: "EXCHANGE", notes: chgNotes, ref: gid,
+    actor, note: "両替（" + tail + "）", source: "exchange"
+  });
+
+  document.getElementById("xchNote").value = "";
+  xchStale = true;
+  boxStale = true;
+  checkLowStockAlert(st.code);
+  renderAll();
+  doSync();
+  showToast_S("✅ 両替を記録しました");
+  notifyLark(
+    "💱 両替を記録しました\n店舗: " + st.name + "\n担当: " + (actor || "—") +
+    "\n売上から出した: " + notesText(out) + "（" + fmt_S(a) + "）" +
+    "\ncase から出した: " + notesText(inn) + "（" + fmt_S(b) + "）" +
+    "\n" + kind + (memo ? "\nメモ: " + memo : "")
+  );
+}
+
+/**
+ * 間違えた両替を戻す。サーバー（GAS）は追記専用なので、消すのではなく
+ * 「反対向きの両替」をもう1回記録する。ここでは入力欄に反対向きの内容を
+ * 入れて画面を出すところまで。実際に記録するかはマネージャーが確認して押す
+ * （紙幣がもう動いているので、機械が勝手に確定してよい操作ではない）。
+ */
+function undoExchange(gid){
+  const rec = allMovements().find(m =>
+    exchangeGroupId(m) === gid && m.compartment === "change" && m.type === "EXCHANGE");
+  if (!rec){ showToast_S("元の両替の記録が見つかりません", true); return; }
+  const out2 = emptyNotes(), inn2 = emptyNotes();
+  for (const d of DENOMS_S){
+    const v = Number(rec.notes[d]) || 0;
+    if (v > 0)      inn2[d] = v;    // 元は case が受け取った → 今度は case から出す
+    else if (v < 0) out2[d] = -v;   // 元は case が渡した   → 今度は売上から出す
+  }
+  show_S("exchange");
+  for (const d of DENOMS_S){
+    const a = document.getElementById("exo-" + d); if (a) a.value = out2[d] || "";
+    const b = document.getElementById("cxo-" + d); if (b) b.value = inn2[d] || "";
+  }
+  document.getElementById("xchNote").value = "取り消し（" + dateJP(rec.ts) + " の両替を戻す）";
+  updateExchangeTotals();
+  showToast_S("逆向きの内容を入れました。確認して記録してください");
+}
+
+// =============================================================
+// 画面：朝の確認（ダブルチェック）── 2026-09-03
+// =============================================================
+// 開店前に「金庫の前日売上」と「レジの釣り銭」を数え、昨夜の締めと
+// 合っているかを見る。POSが無いので、この二重計数が唯一の検算になる。
+// ⚠️ ここで作る SALES_COUNT / FLOAT_COUNT は OBSERVE_ONLY。残高には
+//    一切効かせない（理由は OBSERVE_ONLY の定義のところに書いてある）。
+let morningStale = true;
+
+function lastCountOf(storeCode, type){
+  const list = allMovements()
+    .filter(m => m.store === storeCode && m.type === type)
+    .sort(cmpMov);
+  return list.length ? list[list.length - 1] : null;
+}
+/** ガーナ時間＝UTCなので、ISO文字列の先頭10文字がそのまま現地の日付になる。 */
+function countedToday(storeCode, type){
+  const m = lastCountOf(storeCode, type);
+  return !!m && String(m.ts).slice(0, 10) === new Date().toISOString().slice(0, 10);
+}
+
+function renderMorningCard(){
+  const el = document.getElementById("morningCardSub");
+  const hint = document.getElementById("morningCardHint");
+  const st = currentStore();
+  if (!el || !hint) return;
+  if (!st){ el.textContent = ""; hint.textContent = "店舗がありません"; return; }
+  const sDone = countedToday(st.code, "SALES_COUNT");
+  const fDone = countedToday(st.code, "FLOAT_COUNT");
+  el.textContent = (sDone && fDone) ? "今日は確認ずみ" : "今日はまだ";
+  hint.innerHTML = (sDone && fDone)
+    ? "✅ 今日は金庫の前日売上とレジ金の両方を数えました。"
+    : `開店前に数えて、昨夜の締めと合っているかを確かめます。<br>` +
+      `${sDone ? "✅" : "⬜"} 金庫の前日売上　／　${fDone ? "✅" : "⬜"} レジの釣り銭`;
+}
+
+function renderMorning(){
+  const st = currentStore();
+  if (!st) return;
+  // 入力欄は開いた時だけ作り直す（同期で数えかけの数字を消さない）
+  if (morningStale){
+    denomInputs("mcsDenoms", "mcs", null, "updateMorningSales");
+    denomInputs("mcfDenoms", "mcf", null, "updateMorningFloat");
+    morningStale = false;
+  }
+  const sDone = countedToday(st.code, "SALES_COUNT");
+  const fDone = countedToday(st.code, "FLOAT_COUNT");
+  document.getElementById("morningStatus").innerHTML =
+    `<div class="row-between"><span>① 💰 金庫の前日売上</span><span>${sDone ? "✅ 今日は確認ずみ" : "⬜ まだ"}</span></div>` +
+    `<div class="row-between"><span>② 🧾 レジの釣り銭</span><span>${fDone ? "✅ 今日は確認ずみ" : "⬜ まだ"}</span></div>`;
+
+  const fl = st.tillFloat;
+  document.getElementById("mcfBreakdown").innerHTML = (fl && notesNonZero(fl))
+    ? "決めているレジ金の内訳: " + esc_S(notesText(fl))
+    : "⚠️ レジ金がまだ設定されていません。「💱 おつり整理」タブの「⚙️ 枚数の基準」で決められます。";
+
+  const recent = allMovements()
+    .filter(m => m.store === st.code && (m.type === "SALES_COUNT" || m.type === "FLOAT_COUNT"))
+    .sort((x, y) => String(y.ts).localeCompare(String(x.ts)))
+    .slice(0, 10);
+  document.getElementById("morningRecent").innerHTML = recent.length
+    ? recent.map(m => movHTML(m, null, { noActions: true })).join("")
+    : `<div class="empty">まだ記録がありません</div>`;
+
+  updateMorningSales();
+  updateMorningFloat();
+}
+
+function paintDiff_S(id, diff){
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = (diff > 0 ? "+" : diff < 0 ? "−" : "") + fmt_S(Math.abs(diff));
+  el.style.color = diff === 0 ? "var(--muted)" : "var(--red)";
+  el.style.fontWeight = diff === 0 ? "400" : "800";
+}
+/** 朝の確認で突き合わせる相手。売上＝アプリ上の未受取、レジ金＝決めている枚数。 */
+function morningExpected(st, isSales){
+  return isSales ? notesTotal_S(balance(st.code, "sales")) : notesTotal_S(st.tillFloat || {});
+}
+function updateMorningSide(isSales){
+  const st = currentStore();
+  if (!st) return;
+  const prefix = isSales ? "mcs" : "mcf";
+  const counted = updateDenomSubs(prefix, prefix + "Total");
+  const expected = morningExpected(st, isSales);
+  const diff = Math.round((notesTotal_S(counted) - expected) * 100) / 100;
+  document.getElementById(prefix + "Expected").textContent = fmt_S(expected);
+  paintDiff_S(prefix + "Diff", diff);
+  document.getElementById(prefix + "ReasonField").style.display =
+    (notesNonZero(counted) && diff !== 0) ? "" : "none";
+}
+function updateMorningSales(){ updateMorningSide(true); }
+function updateMorningFloat(){ updateMorningSide(false); }
+
+function submitMorningCount(isSales){
+  const st = currentStore();
+  if (!st) return;
+  const prefix = isSales ? "mcs" : "mcf";
+  const counted = readDenoms(prefix);
+  if (!notesNonZero(counted)){ showToast_S("数えた枚数を入力してください", true); return; }
+  const expected = morningExpected(st, isSales);
+  const diff = Math.round((notesTotal_S(counted) - expected) * 100) / 100;
+  const reason = (document.getElementById(prefix + "Reason").value || "").trim();
+  if (diff !== 0 && !reason){ showToast_S("ズレの理由を入れてください", true); return; }
+
+  const actor = currentSessionName() || cfg.device || "";
+  const label = diff === 0
+    ? "帳簿どおり"
+    : "差異 " + (diff > 0 ? "+" : "−") + fmt_S(Math.abs(diff)) + "（想定 " + fmt_S(expected) + "）／" + reason;
+
+  addMovement({
+    compartment: isSales ? "sales" : "float",
+    type: isSales ? "SALES_COUNT" : "FLOAT_COUNT",
+    notes: counted, actor,
+    note: "朝の確認 ── " + label,
+    source: "morning"
+  });
+
+  document.getElementById(prefix + "Reason").value = "";
+  morningStale = true;
+  renderAll();
+  doSync();
+  showToast_S(diff === 0 ? "✅ 合っていました" : "✅ 記録しました（差異あり）");
+  if (diff !== 0){
+    notifyLark(
+      (isSales ? "🌅 朝の確認：金庫の前日売上が合いません" : "🌅 朝の確認：レジ金が合いません") +
+      "\n店舗: " + st.name +
+      "\n数えた額: " + fmt_S(notesTotal_S(counted)) +
+      "\n想定: " + fmt_S(expected) +
+      "\n差異: " + (diff > 0 ? "+" : "−") + fmt_S(Math.abs(diff)) +
+      "\n理由: " + reason +
+      "\n担当: " + (actor || "—")
+    );
+  }
+}
+function submitMorningSales(){ submitMorningCount(true); }
+function submitMorningFloat(){ submitMorningCount(false); }
 
 // =============================================================
 // 画面：履歴
@@ -5035,7 +5916,11 @@ function renderHistory_S(){
   }
 
   const f = document.getElementById("histFilter").value;
-  const raw = allMovements().filter(m => m.store === st.code && (f === "all" || m.compartment === f));
+  // "change"/"sales" は区画で、"exchange"/"morning" は作られ方(source)で絞る
+  const raw = allMovements().filter(m => m.store === st.code && (
+    f === "all" ? true :
+    (f === "exchange" || f === "morning") ? m.source === f :
+    m.compartment === f));
   const reversedIds = reversedMovementIds();
 
   // 「すべて」で見ているときだけ、1回のレジ締め（SALES_IN/TAKE_CHANGE/
@@ -5128,7 +6013,25 @@ function q_S(s){ return '"' + String(s == null ? "" : s).replace(/"/g, '""') + '
 // =============================================================
 // 設定
 // =============================================================
+function renderLarkOff(){
+  const on = !!settings.larkOff;
+  const st = document.getElementById("larkOffState");
+  const btn = document.getElementById("larkOffBtn");
+  if (!st || !btn) return;
+  st.innerHTML = on
+    ? `<span style="color:var(--red)">🔕 いまこの端末からは通知を送っていません</span>`
+    : `<span style="color:var(--green)">🔔 いまは通知を送ります（通常の運用）</span>`;
+  btn.textContent = on ? "🔔 通知を再開する" : "🔕 通知を止める";
+}
+function toggleLarkOff(){
+  settings.larkOff = !settings.larkOff;
+  saveJSON_T(LS_SET, settings);
+  renderLarkOff();
+  showToast_S(settings.larkOff ? "🔕 この端末からの通知を止めました" : "🔔 通知を再開しました");
+}
+
 function renderSettings_S(){
+  renderLarkOff();
   document.getElementById("setGasUrl").value = cfg.gasUrl || "";
   document.getElementById("setToken").value = cfg.token || "";
   document.getElementById("setDevice").value = cfg.device || "";
@@ -5514,6 +6417,8 @@ async function doSync(manual){
 // Lark通知（任意）
 // =============================================================
 function notifyLark(text){
+  if (PRACTICE) return Promise.resolve(null);           // 練習モードは設定に関わらず送らない
+  if (settings.larkOff) return Promise.resolve(null);   // 練習用スイッチ（larkUrl と同じ）
   const url = (cfg.larkWebhook || "").trim();
   if (!url) return Promise.resolve(null);
   return fetch(url, {
@@ -5547,12 +6452,17 @@ function show_S(name){
   const el = document.getElementById("scr-" + name);
   if (el) el.classList.add("active");
   document.querySelectorAll("#app-safe nav button").forEach(b => b.classList.remove("active"));
-  const tab = document.getElementById("tab-" + (name === "settings" ? "home" : name));
+  // 設定と朝の確認はタブを持たない画面なので、ホームのタブを点けたままにする
+  // タブを持たない画面（設定・朝の確認・反映）はホームのタブを点けたままにする
+  const noTab = { settings: 1, morning: 1, apply: 1 };
+  const tab = document.getElementById("tab-" + (noTab[name] ? "home" : name));
   if (tab) tab.classList.add("active");
-  if (name === "apply")          renderManual();
-  if (name === "collect")        renderCollect();
-  if (name === "deliverconfirm") renderDeliverConfirm();
-  if (name === "refill"){ refillDenomsStale = true; renderRefill(); }
+  if (name === "apply")   renderManual();
+  // 「売上回収」は店にある売上と、ドライバーが運んでいる途中の分の両方を見る
+  if (name === "collect"){ renderCollect(); renderDeliverConfirm(); }
+  // 「おつり整理」は両替・実測・枚数の基準をまとめて持つ
+  if (name === "exchange"){ xchStale = true; boxStale = true; renderExchange(); renderBox(); }
+  if (name === "morning"){ morningStale = true; renderMorning(); }
   if (name === "history")        renderHistory_S();
   if (name === "settings")       renderSettings_S();
   window.scrollTo(0, 0);
@@ -5565,9 +6475,9 @@ function renderAll(){
   const active = document.querySelector("#app-safe .screen.active");
   if (!active) return;
   const id = active.id.replace("scr-", "");
-  if (id === "collect")        renderCollect();
-  if (id === "deliverconfirm") renderDeliverConfirm();
-  if (id === "refill")         renderRefill();
+  if (id === "collect"){ renderCollect(); renderDeliverConfirm(); }
+  if (id === "exchange"){ renderExchange(); renderBox(); }
+  if (id === "morning")        renderMorning();
   if (id === "history")        renderHistory_S();
   if (id === "settings")       renderSettings_S();
   updateSyncBar();
@@ -5579,7 +6489,7 @@ function renderAll(){
 // 端末側のJSなので厳密な認証ではない。実質の壁は「サーバー接続キーを
 // 店舗端末に入れないこと」で、それがないと台帳は取得できない。
 function requireSafeSession(){
-  const s = loadJSON_S("kofirice_session_v1");
+  const s = loadJSON_S(LSK("kofirice_session_v1"));
   if (!s || s.role !== "manager"){ openApp('entry'); return false; }
   if (!cfg.device) { cfg.device = s.name; saveCfg(); }
   return true;
@@ -5588,7 +6498,7 @@ function requireSafeSession(){
  *  "誰が今この端末を使っているか" を出す場面では、端末名(cfg.device)ではなく
  *  こちらを使う。 */
 function currentSessionName(){
-  const s = loadJSON_S("kofirice_session_v1");
+  const s = loadJSON_S(LSK("kofirice_session_v1"));
   return (s && s.name) || "";
 }
 
@@ -5623,7 +6533,7 @@ function refreshSafe(){
 
 // 入口（index.html）でドライバーとして入っていることを確認する。
 function requireDriverSession(){
-  const s = loadJSON_S("kofirice_session_v1");
+  const s = loadJSON_S(LSK("kofirice_session_v1"));
   if (!s || s.role !== "driver"){ openApp('entry'); return null; }
   return s;
 }
@@ -5677,14 +6587,14 @@ function show_D(name){
 }
 function renderAllDriver(){
   const active = document.querySelector("#app-driver .screen.active");
-  const id = active ? active.id.replace("scr-drv-", "") : "change";
+  const id = active ? active.id.replace("scr-drv-", "") : "deliver";
   if (id === "change")  renderDriverChange();
   if (id === "deliver") renderDriverDeliver();
   updateSyncBar();
 }
 
 // ---------- 画面：Change box ----------
-// renderRefill と同じ理由（25秒ごとの同期での renderAll → renderAllDriver
+// renderBox と同じ理由（25秒ごとの同期での renderAll → renderAllDriver
 // → renderDriverChange 再実行で入力中の枚数が消える）で stale フラグを使う。
 let driverChangeDenomsStale = true;
 function renderDriverChange(){
@@ -5896,6 +6806,15 @@ document.addEventListener("wheel", function(){
 }, { passive: true });
 
 
+// =============================================================
+// 練習モードの印（2026-09-05）
+// =============================================================
+// ヘッダーの色を変え、入口に説明を出し、タブの名前にも入れる。
+// ホーム画面に追加したときのアイコン名にも出るので、並んでいても取り違えない。
+if (PRACTICE){
+  document.body.classList.add("practice");
+  if (!/PRACTICE/.test(document.title)) document.title = "KOFIRICE (PRACTICE)";
+}
 </script>
 </body>
 </html>
