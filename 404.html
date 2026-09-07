@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>KOFIRICE</title>
+<!-- アドレスを打ち間違えても（/kofirice-till/ を落としても）アプリに着くようにするための転送ページ。
+     JS が動かない端末のために meta refresh も置いてある。 -->
+<meta http-equiv="refresh" content="0; url=/kofirice-till/">
+<link rel="canonical" href="/kofirice-till/">
+<style>
+  :root{ color-scheme: light; }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background:#f3f5f2; color:#1c2620;
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+    padding:24px;
+  }
+  .card{
+    background:#fff; border-radius:16px; padding:28px 24px; max-width:380px; width:100%;
+    box-shadow:0 2px 14px rgba(0,0,0,.10); text-align:center;
+  }
+  h1{ font-size:22px; margin:0 0 6px; letter-spacing:.5px; }
+  p{ font-size:14px; color:#5d6b63; margin:0 0 20px; line-height:1.7; }
+  a.go{
+    display:block; background:#1a7a3c; color:#fff; text-decoration:none;
+    padding:16px; border-radius:13px; font-size:17px; font-weight:800;
+  }
+  .sub{ font-size:12px; color:#8a958d; margin-top:16px; word-break:break-all; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>🍚 KOFIRICE</h1>
+    <p>Opening the app…<br>アプリを開いています…</p>
+    <a class="go" href="/kofirice-till/">Open the app / アプリを開く</a>
+    <div class="sub">miiiyoshi71one-sudo.github.io/kofirice-till/</div>
+  </div>
+<script>location.replace("/kofirice-till/");</script>
+</body>
+</html>
