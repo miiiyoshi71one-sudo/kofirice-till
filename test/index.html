@@ -49,6 +49,18 @@
     background: var(--bg); color: var(--text);
     max-width: 560px; margin: 0 auto; padding-bottom: 30px;
   }
+/* 練習モード（2026-09-05）。本番と間違えて本物の数字を打たれるのが一番困るので、
+     4つのアプリすべてでヘッダーの色を変える。色が違えば読めなくても気づく。 */
+body.practice header{ background: #b26a00 !important; }
+body.practice #practiceNote{ display: block; }
+#practiceNote{
+    display: none;
+    margin: 0 0 14px; padding: 12px 14px;
+    background: #fff6e0; border: 2px solid #b26a00; border-radius: 12px;
+    color: #7a4a00; font-size: 13px; line-height: 1.65; font-weight: 700;
+  }
+#practiceNote .en{ font-size: 15px; font-weight: 800; display: block; margin-bottom: 4px; }
+#practiceNote .ja{ font-weight: 600; }
 .app-entry header{
     background: var(--green); color: #fff;
     padding: 16px; text-align: center;
@@ -1087,6 +1099,13 @@
 
 <!-- 1. WHO ARE YOU -->
 <div class="screen active" id="scr-who">
+  <!-- 練習モードのときだけ出る。本番では display:none のまま -->
+  <div id="practiceNote">
+    <span class="en">🧪 PRACTICE APP — nothing here is real.</span>
+    Numbers you type here are kept only on this phone. They are never sent to the office,
+    and they do not touch the real records.<br>
+    <span class="ja">練習用です。ここで打った数字はこの端末にだけ残り、本番の記録とは完全に別です。Larkにも飛びません。</span>
+  </div>
   <div id="peopleList"></div>
   <!-- いま端末に乗っている版。ここが空＝古い画面を掴んだまま -->
   <button id="buildStamp" onclick="forceRefresh()"
@@ -1927,6 +1946,39 @@
 
 <div id="toast"></div>
 <script>
+// =============================================================
+// 練習モード（2026-09-05）
+// =============================================================
+// 店舗のスマホでも安心して試せるようにするための仕組み。
+//
+// GitHub Pages は /kofirice-till/ と /kofirice-till/test/ が **同じ origin** なので、
+// localStorage をそのまま使うと本番と練習が混ざる。店舗の端末で試用URLを開いた
+// 瞬間に、その日の本物のレジ締めデータへ練習の数字が入り込む。パスが違っても
+// localStorage は分かれない（origin 単位なので）。
+//
+// 対策: 練習モードのときだけ localStorage のキーに接尾辞を付けて、まるごと別の
+// 入れ物にする。本番（ルート配信）は今までと同じキーのままなので、すでに店舗の
+// 端末に入っているデータはそのまま読める。切り替えても消えない。
+//
+// 練習モードになる条件:
+//   ・URL の path に /test/ を含む … GitHub Pages の試用URL
+//   ・localhost / 127.0.0.1        … 開発中の端末
+//     2026-09-04 に、練習中の通知が実際のLarkグループへ10回以上飛ぶ事故を起こした。
+//     手で larkOff を立て忘れても止まるように、ここで機械的に落とす。
+const PRACTICE = (function(){
+  try {
+    const p = location.pathname || "";
+    const h = location.hostname || "";
+    return /(^|\/)test\//.test(p) || h === "localhost" || h === "127.0.0.1";
+  } catch (e){ return false; }
+})();
+
+/**
+ * localStorage のキー名。練習モードのときだけ別名にする。
+ * ⚠️ 新しいキーを足すときは必ずこれを通すこと。素の文字列で書くと、
+ *    そのキーだけ本番と練習で共有されてしまう。
+ */
+function LSK(name){ return PRACTICE ? name + "__practice" : name; }
 
 // ===================== アプリの切り替え =====================
 // 3つの画面群（入口・レジ締め・金庫管理）を1ファイルに入れてある。
@@ -1969,9 +2021,9 @@ function openApp(name){
 // このファイルは「入口」。誰が使っているかを決めて、その人ができる
 // 仕事だけを見せ、実際の作業は till-close.html / safe-manager.html に渡す。
 // =============================================================
-const LS_USERS   = "kofirice_users_v1";
-const LS_SESSION_E = "kofirice_session_v1";
-const LS_TILLSET = "kofirice_till_settings_v1";   // till-close.html と共有
+const LS_USERS   = LSK("kofirice_users_v1");
+const LS_SESSION_E = LSK("kofirice_session_v1");
+const LS_TILLSET = LSK("kofirice_till_settings_v1");   // till-close.html と共有
 
 // role = できる仕事（権限）。label はその役割の既定の肩書き。
 // 個人ごとに見た目の肩書きだけ変えたいときは、その人のレコードに title を
@@ -2532,8 +2584,8 @@ const DEFAULT_FLOAT = { 200:0, 100:0, 50:5, 20:5, 10:5, 5:10, 1:30 };
 // managers) matches records to a shop by this code, so it must be the same
 // string on both sides. Change it in Settings when deploying to a new shop.
 const DEFAULT_STORE_CODE = "S2";
-const LS_SET = "kofirice_till_settings_v1";
-const LS_HIST = "kofirice_till_history_v1";
+const LS_SET = LSK("kofirice_till_settings_v1");
+const LS_HIST = LSK("kofirice_till_history_v1");
 // Built-in Lark group webhook. Every device sends here with no setup needed.
 // A device can still override it in Settings if the group ever changes.
 const DEFAULT_LARK_WEBHOOK = "https://open.larksuite.com/open-apis/bot/v2/hook/e22147c9-66c3-4f59-ac04-9aba8b711b1f";
@@ -2550,13 +2602,14 @@ let boxCounts = null;         // notes actually found in the safe's change box
 //    練習・動作確認で本番のグループに通知が流れるのを止めるためのスイッチ。
 //    既定のwebhookが組み込みで入っているので、webhook欄を空にしただけでは止まらない。
 function larkUrl(){
+  if (PRACTICE) return "";              // 練習モードは設定に関わらず送らない
   if (settings.larkOff) return "";
   return (settings.larkWebhook && settings.larkWebhook.trim()) || DEFAULT_LARK_WEBHOOK;
 }
 
 // Who is using the app comes from the launcher (index.html), so the name can no
 // longer be picked — or mis-picked — at the end of the close.
-const LS_SESSION_T = "kofirice_session_v1";
+const LS_SESSION_T = LSK("kofirice_session_v1");
 function loadSession(){
   const s = loadJSON_T(LS_SESSION_T);
   if (!s || !s.name || ["chef", "manager"].indexOf(s.role) === -1) return null;
@@ -3589,10 +3642,10 @@ document.addEventListener("wheel", function(e){
 const DENOMS_S = [200, 100, 50, 20, 10, 5, 1];
 const COLORS_S = { 200:"#c2418f", 100:"#00838f", 50:"#b3661b", 20:"#6a4fa3", 10:"#7a8f1f", 5:"#2456a8", 1:"#b03a3a" };
 
-const LS_CFG  = "kofirice_safe_cfg_v1";   // 接続情報・店舗一覧
-const LS_MOV  = "kofirice_safe_mov_v1";   // サーバから取得した記録のキャッシュ
-const LS_Q    = "kofirice_safe_queue_v1"; // サーバ未送信の記録
-const LS_SEQ  = "kofirice_safe_seq_v1";   // 取得済みの最終seq
+const LS_CFG  = LSK("kofirice_safe_cfg_v1");   // 接続情報・店舗一覧
+const LS_MOV  = LSK("kofirice_safe_mov_v1");   // サーバから取得した記録のキャッシュ
+const LS_Q    = LSK("kofirice_safe_queue_v1"); // サーバ未送信の記録
+const LS_SEQ  = LSK("kofirice_safe_seq_v1");   // 取得済みの最終seq
 
 const SYNC_INTERVAL_MS = 25000;
 
@@ -6364,6 +6417,7 @@ async function doSync(manual){
 // Lark通知（任意）
 // =============================================================
 function notifyLark(text){
+  if (PRACTICE) return Promise.resolve(null);           // 練習モードは設定に関わらず送らない
   if (settings.larkOff) return Promise.resolve(null);   // 練習用スイッチ（larkUrl と同じ）
   const url = (cfg.larkWebhook || "").trim();
   if (!url) return Promise.resolve(null);
@@ -6435,7 +6489,7 @@ function renderAll(){
 // 端末側のJSなので厳密な認証ではない。実質の壁は「サーバー接続キーを
 // 店舗端末に入れないこと」で、それがないと台帳は取得できない。
 function requireSafeSession(){
-  const s = loadJSON_S("kofirice_session_v1");
+  const s = loadJSON_S(LSK("kofirice_session_v1"));
   if (!s || s.role !== "manager"){ openApp('entry'); return false; }
   if (!cfg.device) { cfg.device = s.name; saveCfg(); }
   return true;
@@ -6444,7 +6498,7 @@ function requireSafeSession(){
  *  "誰が今この端末を使っているか" を出す場面では、端末名(cfg.device)ではなく
  *  こちらを使う。 */
 function currentSessionName(){
-  const s = loadJSON_S("kofirice_session_v1");
+  const s = loadJSON_S(LSK("kofirice_session_v1"));
   return (s && s.name) || "";
 }
 
@@ -6479,7 +6533,7 @@ function refreshSafe(){
 
 // 入口（index.html）でドライバーとして入っていることを確認する。
 function requireDriverSession(){
-  const s = loadJSON_S("kofirice_session_v1");
+  const s = loadJSON_S(LSK("kofirice_session_v1"));
   if (!s || s.role !== "driver"){ openApp('entry'); return null; }
   return s;
 }
@@ -6752,6 +6806,15 @@ document.addEventListener("wheel", function(){
 }, { passive: true });
 
 
+// =============================================================
+// 練習モードの印（2026-09-05）
+// =============================================================
+// ヘッダーの色を変え、入口に説明を出し、タブの名前にも入れる。
+// ホーム画面に追加したときのアイコン名にも出るので、並んでいても取り違えない。
+if (PRACTICE){
+  document.body.classList.add("practice");
+  if (!/PRACTICE/.test(document.title)) document.title = "KOFIRICE (PRACTICE)";
+}
 </script>
 </body>
 </html>
