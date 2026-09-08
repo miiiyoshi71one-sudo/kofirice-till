@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#1a7a3c">
 <!-- ⚠️ 版はここが唯一の正。直したら必ず上げる（JSはこの値を読むだけ）。
      更新の確認はファイルの先頭だけを読んで済ませるので、head の中に置くこと。 -->
-<meta name="build" content="2026-09-04h">
+<meta name="build" content="2026-09-05a">
 <title>KOFIRICE</title>
 <style>
 
@@ -2531,25 +2531,57 @@ function __isIdle(){
   return __openApp === "entry" && !__hasTyping();
 }
 
-function showUpdateBar(){
+/**
+ * 画面下の帯。olderBuild を渡すと「古い版に戻す」用の文面と色になる。
+ * 押さないかぎり何も起きないのは、どちらの向きでも同じ。
+ */
+function showUpdateBar(olderBuild){
   if (document.getElementById("updateBar")) return;
   const bar = document.createElement("button");
   bar.id = "updateBar";
-  bar.textContent = "🆕 New version available — tap to update";
+  bar.textContent = olderBuild
+    ? "⚠️ サーバーは古い版 " + olderBuild + " （手元は " + APP_BUILD + "）・押すと戻ります"
+    : "🆕 New version available — tap to update";
   bar.setAttribute("style",
     "position:fixed;left:0;right:0;bottom:0;z-index:9999;border:none;" +
-    "background:#1a7a3c;color:#fff;font-size:15px;font-weight:800;" +
+    "background:" + (olderBuild ? "#b26a00" : "#1a7a3c") + ";color:#fff;font-size:15px;font-weight:800;" +
     "padding:14px 12px;cursor:pointer;box-shadow:0 -2px 10px rgba(0,0,0,.25)");
   bar.onclick = () => hardReload();
   document.body.appendChild(bar);
 }
 
+/**
+ * 版の新旧を比べる（2026-09-05）。
+ * 版は "YYYY-MM-DD" ＋ 英字1文字（例 2026-09-04h）。桁が固定なので
+ * 文字列のまま比べれば日付順に正しく並ぶ。
+ */
+function isNewerBuild(server, running){
+  if (!server || !running) return false;
+  return String(server) > String(running);
+}
+
+/**
+ * ⚠️ 以前は「サーバーの版が手元と違えば入れ替える」だった。新旧を見ていないので、
+ *    配信をうっかり古い版に戻すと、全端末が**黙って古いほうへ引き戻される**。
+ *    2026-09-05に「Morning check が抜けている」と報告があり、版の取り違えが
+ *    どれだけ気づきにくいかがはっきりしたので直した。
+ *
+ * いまの決まり:
+ *   ・サーバーが新しい → 今までどおり（入口にいて入力中でなければ静かに入れ替え、
+ *     作業中なら緑の帯を出して本人に任せる）
+ *   ・サーバーが古い   → **絶対に黙って戻さない。** 琥珀色の帯を出して本人が選ぶ。
+ *     意図したロールバックは効かせたいので、道そのものは残す
+ */
 function checkForUpdate(){
   if (document.hidden) return;
   readServerBuild().then(serverBuild => {
     if (!serverBuild || serverBuild === APP_BUILD) return;
-    if (__isIdle()) hardReload();        // 何もしていなければ静かに入れ替える
-    else showUpdateBar();                // 作業中は本人に任せる
+    if (isNewerBuild(serverBuild, APP_BUILD)){
+      if (__isIdle()) hardReload();      // 何もしていなければ静かに入れ替える
+      else showUpdateBar();              // 作業中は本人に任せる
+    } else {
+      showUpdateBar(serverBuild);        // 古い版への差し戻し。押さない限り何も起きない
+    }
   });
 }
 
