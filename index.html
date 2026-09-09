@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0077A0">
 <!-- ⚠️ 版はここが唯一の正。直したら必ず上げる（JSはこの値を読むだけ）。
      更新の確認はファイルの先頭だけを読んで済ませるので、head の中に置くこと。 -->
-<meta name="build" content="2026-09-05b">
+<meta name="build" content="2026-09-09a">
 <title>KOFIRICE</title>
 <style>
 
@@ -2802,17 +2802,35 @@ function buildLarkMessage(rec){
   const dt = new Date(rec.ts);
   const dstr = dt.toLocaleDateString("en-GB", { day:"2-digit", month:"short", year:"numeric" }) +
                " " + dt.toLocaleTimeString("en-GB", { hour:"2-digit", minute:"2-digit" });
+  // ⬇️ 入っていた額と残した額を必ず出す（2026-09-09）。
+  //   以前は「売上」と「金庫へ入れた額」だけだったが、それではグループを見ている
+  //   側が売上を検算できない。売上＝今夜の計数−今朝の額なので、
+  //   その2つが無いと数字が合っているか誰も判断できない。
+  //   また夜の仕分けを札の大きさで決めるようにしたので、**レジに残る額は毎晚変わる**。
+  //   その額は翌朝の Morning check が照合する相手そのものなので、必ず流す。
+  // ⚠️ 古い記録を Record タブから再送信することがあるので、無い項目は出さない。
+  const fromLabel = rec.openingFrom === "morning" ? "counted this morning" : "left last night";
   let lines = [
     "💵 TILL CLOSED — " + rec.store,
     dstr + "   👤 " + rec.staff,
-    "",
-    "Cash sales:   " + fmt_T(rec.sales),
-    "MoMo sales:   " + fmt_T(rec.momo || 0),
-    "TOTAL SALES:  " + fmt_T(rec.totalSales ?? rec.sales),
-    "",
-    "Put in safe:  " + fmt_T(rec.toSafe)
+    ""
   ];
-  if (rec.fromSafe > 0) lines.push("Taken from safe: " + fmt_T(rec.fromSafe));
+  if (typeof rec.total === "number")
+    lines.push("In the till now:  " + fmt_T(rec.total));
+  if (typeof rec.opening === "number")
+    lines.push("This morning:     " + fmt_T(rec.opening) + "  (" + fromLabel + ")");
+  lines.push(
+    "Cash sales:       " + fmt_T(rec.sales),
+    "MoMo sales:       " + fmt_T(rec.momo || 0),
+    "TOTAL SALES:      " + fmt_T(rec.totalSales ?? rec.sales),
+    "",
+    "→ Put in safe:    " + fmt_T(rec.toSafe)
+  );
+  const left = (typeof rec.finalTotal === "number") ? rec.finalTotal
+             : (typeof rec.keep === "number") ? rec.keep : null;
+  if (left !== null)
+    lines.push("→ Left in till:   " + fmt_T(left) + "  (check this tomorrow morning)");
+  if (rec.fromSafe > 0) lines.push("→ Taken from safe: " + fmt_T(rec.fromSafe));
   if (rec.boxCounts && Object.keys(rec.boxCounts).length){
     let boxTotal = 0;
     for (const d of DENOMS_T) boxTotal += d * (rec.boxCounts[d] || 0);
