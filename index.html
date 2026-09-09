@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0077A0">
 <!-- ⚠️ 版はここが唯一の正。直したら必ず上げる（JSはこの値を読むだけ）。
      更新の確認はファイルの先頭だけを読んで済ませるので、head の中に置くこと。 -->
-<meta name="build" content="2026-09-09a">
+<meta name="build" content="2026-09-10a">
 <title>KOFIRICE</title>
 <style>
 
@@ -1151,30 +1151,10 @@ body.practice #practiceNote{ display: block; }
 <!-- 5. MANAGER: EDIT ONE USER -->
 <div class="screen" id="scr-edituser">
   <div class="field">
-    <label>名前（この端末に表示されます）</label>
+    <label>名前（接続している全端末に出ます）</label>
     <input type="text" id="euName" placeholder="例: Ruth / 三好">
   </div>
-  <div class="field">
-    <label>写真（任意）</label>
-    <div style="display:flex;align-items:center;gap:14px">
-      <span class="avatar" id="euPhotoPrev"
-            style="width:64px;height:64px;border-radius:16px;font-size:26px"></span>
-      <div style="flex:1">
-        <button class="urow-btn" onclick="document.getElementById('euPhotoFile').click()"
-          style="border:none;background:#eef1ee;border-radius:10px;padding:11px 14px;
-                 cursor:pointer;font-size:14px;font-weight:700">📷 写真を選ぶ</button>
-        <button class="urow-btn" id="euPhotoClear" onclick="clearUserPhoto()"
-          style="border:none;background:none;color:var(--muted);border-radius:10px;
-                 padding:11px 6px;cursor:pointer;font-size:13px;font-weight:700">写真を消す</button>
-      </div>
-    </div>
-    <input type="file" id="euPhotoFile" accept="image/*" style="display:none"
-           onchange="pickUserPhoto(this)">
-    <div class="hint" style="margin-top:5px">
-      顔写真を入れると、名前を選ぶ画面が写真になります。写真はこの端末の中だけに保存され、
-      他の端末やサーバーには送られません（端末ごとに入れてください）。
-    </div>
-  </div>
+
   <div class="field">
     <label>役割（できる仕事）</label>
     <select id="euRole">
@@ -2053,7 +2033,16 @@ const DEFAULT_USERS = [
   { name: "Jacky",    role: "chef",    pin: "" }
 ];
 
-let users = loadJSON_E(LS_USERS) || DEFAULT_USERS.slice();
+// ⚠️ 顔写真は廃止した（2026-09-10）。人の一覧を全端末で共有するにあたり、
+//    写真（base64）だけはサーバーの1項目あたりの容量上限を簡単に超える。
+//    既に入っている写真は読み込み時に落とす（頭文字の丸アイコンに戻る）。
+function stripPhotos(list){
+  return (list || []).map(u => {
+    const { photo, ...rest } = u || {};
+    return rest;
+  });
+}
+let users = stripPhotos(loadJSON_E(LS_USERS) || DEFAULT_USERS.slice());
 // 既に人の一覧を保存している端末は、そちらが優先される（PINや肩書きを消さない
 // ため）。そのままだと、あとから DEFAULT_USERS に人を足しても保存済みの端末は
 // 一生気づけない。名前が無ければ追加だけする（既存の人はいじらない）。
@@ -2085,6 +2074,22 @@ function loadJSON_E(k){ try { return JSON.parse(localStorage.getItem(k)); } catc
 function saveJSON_E(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
 function esc_E(s){ return String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function saveUsers(){ saveJSON_E(LS_USERS, users); }
+
+/**
+ * 人の一覧を直したときに呼ぶ。2026-09-10追加。
+ *
+ * 以前は端末ごとに持っていたので、スタッフを1人追加するたびに
+ * 全端末で同じ作業をしなければならなかった（三好さんからの指摘）。
+ * 店舗一覧と同じリビジョン方式でサーバーに1つだけ置く。
+ * 未接続の端末でも安全（cfg に印を付けるだけで、次に繋がったときに上がる）。
+ */
+function markUsersDirty(){
+  try {
+    cfg.usersDirty = true;
+    saveCfg();
+    doSync();
+  } catch (e) { /* 金庫アプリを一度も開いていない端末。次の同期で追いつく */ }
+}
 
 let toastTimer_E = null;
 function showToast_E(msg, isError){
@@ -2126,14 +2131,13 @@ function initials(name){
 // 必ずこの2つを通す（文字列を組み立てる所は avatarHTML、既にある要素は setAvatarEl）。
 function avatarHTML(u, extraStyle){
   const bg = ROLES[u.role].color;
-  const inner = u.photo ? `<img src="${esc_E(u.photo)}" alt="">` : esc_E(initials(u.name));
+  const inner = esc_E(initials(u.name));
   return `<span class="avatar" style="background:${bg};${extraStyle || ""}">${inner}</span>`;
 }
 function setAvatarEl(el, u){
   if (!el) return;
   el.style.background = ROLES[u.role].color;
-  if (u.photo) el.innerHTML = `<img src="${esc_E(u.photo)}" alt="">`;
-  else el.textContent = initials(u.name);
+  el.textContent = initials(u.name);
 }
 
 // -------------------------------------------------------------
@@ -2142,43 +2146,6 @@ function setAvatarEl(el, u){
 // 撮ったままの写真は数MBある。端末の保存領域（localStorage）は数MBしかないので、
 // 中央を正方形に切り出して 160px まで小さくしてから持つ（1人あたり10KB前後）。
 const PHOTO_PX = 160;
-let euPhoto = "";   // 編集中の人の写真。「💾 保存」を押すまで確定しない
-
-function pickUserPhoto(input){
-  const file = input.files && input.files[0];
-  input.value = "";   // 同じ写真をもう一度選び直せるようにする
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onerror = () => showToast_E("写真を読めませんでした", true);
-  reader.onload = () => {
-    const img = new Image();
-    img.onerror = () => showToast_E("この写真は使えませんでした", true);
-    img.onload = () => {
-      const side = Math.min(img.width, img.height);
-      const c = document.createElement("canvas");
-      c.width = c.height = PHOTO_PX;
-      c.getContext("2d").drawImage(
-        img, (img.width - side) / 2, (img.height - side) / 2, side, side,
-        0, 0, PHOTO_PX, PHOTO_PX);
-      euPhoto = c.toDataURL("image/jpeg", 0.75);
-      renderPhotoPrev();
-    };
-    img.src = reader.result;
-  };
-  reader.readAsDataURL(file);
-}
-
-function clearUserPhoto(){ euPhoto = ""; renderPhotoPrev(); }
-
-function renderPhotoPrev(){
-  const el = document.getElementById("euPhotoPrev");
-  if (!el) return;
-  const role = document.getElementById("euRole").value || "chef";
-  const name = document.getElementById("euName").value.trim();
-  setAvatarEl(el, { role, name, photo: euPhoto });
-  document.getElementById("euPhotoClear").style.display = euPhoto ? "" : "none";
-}
-
 // =============================================================
 // 1. 名前を選ぶ
 // =============================================================
@@ -2189,6 +2156,15 @@ function renderPhotoPrev(){
 //   他の端末（マネージャー・ドライバー）の見え方まで変えてしまう。
 function shopOnly(){
   try { return new URLSearchParams(location.search).has("shop"); } catch(e){ return false; }
+}
+/** 同期で人の一覧が入れ替わったときに、開いている画面だけ描き直す。 */
+function refreshPeopleUI(){
+  try {
+    const active = document.querySelector("#app-entry .screen.active");
+    const id = active ? active.id : "";
+    if (id === "scr-who")   renderPeople();
+    if (id === "scr-users") renderUsers();
+  } catch (e) { /* 入口をまだ描いていない */ }
 }
 function renderPeople(){
   const box = document.getElementById("peopleList");
@@ -2329,8 +2305,6 @@ function editUser(i){
   document.getElementById("euTitle").value = u.title || "";
   document.getElementById("euPin").value = u.pin || "";
   document.getElementById("euDelete").style.display = i === null ? "none" : "block";
-  euPhoto = u.photo || "";
-  renderPhotoPrev();
   show_E("edituser");
 }
 function saveUser(){
@@ -2345,7 +2319,6 @@ function saveUser(){
 
   const rec = { name, role, pin };
   if (title) rec.title = title;   // 空欄なら役割の既定ラベルをそのまま使う
-  if (euPhoto) rec.photo = euPhoto;
 
   // 写真は端末の保存領域を使うので、入りきらないことがありうる。
   // その場合は書き換える前の状態に戻す（半端に消えた一覧を残さない）
@@ -2359,6 +2332,7 @@ function saveUser(){
     showToast_E("端末の保存領域がいっぱいです。写真を減らしてください", true);
     return;
   }
+  markUsersDirty();
   showToast_E("✅ 保存しました");
   show_E("users");
 }
@@ -2372,6 +2346,7 @@ function deleteUser(){
   }
   users.splice(editingIndex, 1);
   saveUsers();
+  markUsersDirty();
   showToast_E("削除しました");
   show_E("users");
 }
@@ -3749,6 +3724,7 @@ let cfg = loadJSON_S(LS_CFG) || {
   gasUrl: "", token: "", device: "", larkWebhook: "",
   stores: [{ code: "S2", name: "Lapaz Branch", target: { 200:0, 100:0, 50:10, 20:20, 10:30, 5:60, 1:150 } }],
   storesRev: 0, storesDirty: false,
+  usersRev: 0, usersDirty: false,
   currentStore: "S2"
 };
 let movements = loadJSON_S(LS_MOV) || [];
@@ -6423,6 +6399,8 @@ async function doSync(manual){
       since: lastSeq, push: queue
     };
     if (cfg.storesDirty){ body.stores = cfg.stores; body.storesRev = cfg.storesRev; }
+    // 人の一覧も店舗一覧と同じリビジョン方式で共有する。写真は送らない
+    if (cfg.usersDirty){ body.users = stripPhotos(users); body.usersRev = cfg.usersRev; }
 
     // Content-Type を text/plain にしておくと、ブラウザが事前確認(preflight)を
     // 送らずに済む。Apps Script は preflight に応答できないため、これが必須。
@@ -6462,6 +6440,22 @@ async function doSync(manual){
     }
     if (!cfg.stores.some(s => s.code === cfg.currentStore) && cfg.stores.length){
       cfg.currentStore = cfg.stores[0].code;
+    }
+
+    // 人の一覧。サーバーがまだ空のとき（data.users が null）は何もしない。
+    // ここで空配列を当てると、先に繋いだ端末の一覧が消える。
+    if (data.usersConflict && data.users){
+      users = stripPhotos(data.users); saveUsers();
+      cfg.usersRev = data.usersRev; cfg.usersDirty = false;
+      refreshPeopleUI();
+      showToast_S("⚠️ 他の端末が先に人の一覧を変えていたため、そちらを優先しました", true);
+    } else if (data.users){
+      if (cfg.usersDirty) cfg.usersDirty = false;
+      const next = stripPhotos(data.users);
+      if (JSON.stringify(next) !== JSON.stringify(users)){
+        users = next; saveUsers(); refreshPeopleUI();
+      }
+      cfg.usersRev = data.usersRev;
     }
     // マネージャーが別の端末で決めたレジ金を、この端末のレジ締めアプリへ反映する
     applyStoreFloatToTill();
