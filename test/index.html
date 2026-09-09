@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#1a7a3c">
+<meta name="theme-color" content="#0077A0">
 <!-- ⚠️ 版はここが唯一の正。直したら必ず上げる（JSはこの値を読むだけ）。
      更新の確認はファイルの先頭だけを読んで済ませるので、head の中に置くこと。 -->
-<meta name="build" content="2026-09-04h">
+<meta name="build" content="2026-09-09a">
 <title>KOFIRICE</title>
 <style>
 
@@ -31,8 +31,8 @@
 /* ===================== 入口 ===================== */
 
   :root {
-    --green: #1a7a3c;
-    --green-dark: #135c2d;
+    --green: #0077A0;
+    --green-dark: #005D7D;
     --red: #c0392b;
     --amber: #f39c12;
     --blue: #2456a8;
@@ -186,8 +186,8 @@ body.practice #practiceNote{ display: block; }
 /* ===================== レジ締め ===================== */
 
   :root {
-    --green: #1a7a3c;
-    --green-dark: #135c2d;
+    --green: #0077A0;
+    --green-dark: #005D7D;
     --red: #c0392b;
     --amber: #f39c12;
     --bg: #f4f6f4;
@@ -394,7 +394,7 @@ body.practice #practiceNote{ display: block; }
     font-size: 12.5px; font-weight: 700;
   }
 .app-till .dest b{ display: block; font-size: 18px; margin-top: 2px; }
-.app-till .dest.till{ background: #e8f5e9; color: var(--green-dark); }
+.app-till .dest.till{ background: #E5F6FC; color: var(--green-dark); }
 .app-till .dest.safe.active{ background: #fdeceb; color: var(--red); }
 .app-till .field{ margin: 10px 0; }
 .app-till .field label{ font-size: 13px; color: var(--muted); display: block; margin-bottom: 4px; }
@@ -569,8 +569,8 @@ body.practice #practiceNote{ display: block; }
 /* ===================== 金庫管理 ===================== */
 
   :root {
-    --green: #1a7a3c;
-    --green-dark: #135c2d;
+    --green: #0077A0;
+    --green-dark: #005D7D;
     --red: #c0392b;
     --amber: #f39c12;
     --blue: #2456a8;
@@ -668,7 +668,7 @@ body.practice #practiceNote{ display: block; }
 .app-safe .xch-verdict{ margin-top: 12px; padding: 11px 12px; border-radius: 10px;
     font-size: 14px; font-weight: 800; line-height: 1.6; }
 .app-safe .xch-verdict.idle{ background: var(--bg); color: var(--muted); font-weight: 600; }
-.app-safe .xch-verdict.even{ background: #eef6f0; color: var(--green); }
+.app-safe .xch-verdict.even{ background: #E5F6FC; color: var(--green); }
 .app-safe .xch-verdict.move{ background: #eef2fb; color: var(--blue); }
 .app-safe .xch-verdict.bad{ background: #fdeceb; color: var(--red); }
 .app-safe .xch-verdict.warn{ background: #fff6e0; color: #8a6d00; }
@@ -701,11 +701,11 @@ body.practice #practiceNote{ display: block; }
     padding: 4px 8px 4px 4px; border-radius: 9px;
     font-size: 13px; font-weight: 800; border: 2px solid var(--line); }
 .app-safe .cnt-chip .note-mini{ width: 40px; height: 22px; font-size: 11px; }
-.app-safe .cnt-chip.plus{ border-color: var(--green); color: var(--green); background: #eef6f0; }
+.app-safe .cnt-chip.plus{ border-color: var(--green); color: var(--green); background: #E5F6FC; }
 .app-safe .cnt-chip.minus{ border-color: var(--red); color: var(--red); background: #fdeceb; }
 .app-safe .cnt-read{ margin-top: 8px; padding: 10px 11px; border-radius: 10px;
     font-size: 12.5px; line-height: 1.65; font-weight: 600; }
-.app-safe .cnt-read.ok{ background: #eef6f0; color: var(--green); }
+.app-safe .cnt-read.ok{ background: #E5F6FC; color: var(--green); }
 .app-safe .cnt-read.bad{ background: #fdeceb; color: var(--red); }
 .app-safe .screen{ display: none; padding: 14px; }
 .app-safe .screen.active{ display: block; }
@@ -1749,7 +1749,7 @@ body.practice #practiceNote{ display: block; }
 <!-- ================= 設定 ================= -->
 <div class="screen" id="scr-settings">
 
-  <div class="card" style="background:#eef6f0;border:2px solid var(--green)">
+  <div class="card" style="background:#E5F6FC;border:2px solid var(--green)">
     <h2>📖 一連の流れ（お金の一生）</h2>
     <div class="hint" style="font-size:13.5px;line-height:1.8">
       <b>① お店 → 金庫（店舗保管中）</b><br>
@@ -2030,7 +2030,7 @@ const LS_TILLSET = LSK("kofirice_till_settings_v1");   // till-close.html と共
 // 足す（例: リチャードは role:"driver" のまま title:"マネージャー" にする —
 // 権限はドライバーのまま、呼び方だけ店舗の実態に合わせる）。
 const ROLES = {
-  chef:    { label: "Chef",                      color: "#1a7a3c" },
+  chef:    { label: "Chef",                      color: "#0077A0" },
   driver:  { label: "Driver",                    color: "#2456a8" },
   manager: { label: "Manager",                   color: "#6a4fa3" }
 };
@@ -2182,9 +2182,19 @@ function renderPhotoPrev(){
 // =============================================================
 // 1. 名前を選ぶ
 // =============================================================
+// 📱 店舗タブレット（POSのホームから ?shop=1 で開く）では、店舗の人だけ出す。
+//   あの端末で Management・Driver を押す人は居ない（木原の指示 2026-09-07）。
+//   ⚠️ 名簿から「消す」のではなく「出さない」だけにすること。
+//   消しても mergeNewDefaultUsers が次の読み込みで書き戻すし、
+//   他の端末（マネージャー・ドライバー）の見え方まで変えてしまう。
+function shopOnly(){
+  try { return new URLSearchParams(location.search).has("shop"); } catch(e){ return false; }
+}
 function renderPeople(){
   const box = document.getElementById("peopleList");
-  const groups = [
+  const groups = shopOnly() ? [
+    { key: "shop",       title: "Shop",                               roles: ["chef"] }
+  ] : [
     { key: "management", title: "Management",                        roles: ["manager"] },
     { key: "driver",     title: "Driver & delivery",                  roles: ["driver"] },
     { key: "shop",       title: "Shop",                               roles: ["chef"] }
@@ -2204,6 +2214,14 @@ function renderPeople(){
         </button>`;
     }
   }
+  // 🚪 逃げ道。POSのホームから開くとURL欄が無い（standalone）ので、
+  //    これが無いと店舗タブレットからマネージャーで入れなくなる
+  //    ＝人の管理・設定・金庫に入る道が塞がる。省くな。
+  if (shopOnly()) html += `
+    <button class="person" onclick="location.search=''" style="margin-top:14px">
+      <span class="avatar" style="background:var(--muted)">⋯</span>
+      <span class="nm">Other people<span class="rl">Show everyone</span></span>
+    </button>`;
   box.innerHTML = html || `<div class="warn bad">No one is registered on this device yet.</div>`;
 }
 
@@ -2531,25 +2549,57 @@ function __isIdle(){
   return __openApp === "entry" && !__hasTyping();
 }
 
-function showUpdateBar(){
+/**
+ * 画面下の帯。olderBuild を渡すと「古い版に戻す」用の文面と色になる。
+ * 押さないかぎり何も起きないのは、どちらの向きでも同じ。
+ */
+function showUpdateBar(olderBuild){
   if (document.getElementById("updateBar")) return;
   const bar = document.createElement("button");
   bar.id = "updateBar";
-  bar.textContent = "🆕 New version available — tap to update";
+  bar.textContent = olderBuild
+    ? "⚠️ サーバーは古い版 " + olderBuild + " （手元は " + APP_BUILD + "）・押すと戻ります"
+    : "🆕 New version available — tap to update";
   bar.setAttribute("style",
     "position:fixed;left:0;right:0;bottom:0;z-index:9999;border:none;" +
-    "background:#1a7a3c;color:#fff;font-size:15px;font-weight:800;" +
+    "background:" + (olderBuild ? "#b26a00" : "#0077A0") + ";color:#fff;font-size:15px;font-weight:800;" +
     "padding:14px 12px;cursor:pointer;box-shadow:0 -2px 10px rgba(0,0,0,.25)");
   bar.onclick = () => hardReload();
   document.body.appendChild(bar);
 }
 
+/**
+ * 版の新旧を比べる（2026-09-05）。
+ * 版は "YYYY-MM-DD" ＋ 英字1文字（例 2026-09-04h）。桁が固定なので
+ * 文字列のまま比べれば日付順に正しく並ぶ。
+ */
+function isNewerBuild(server, running){
+  if (!server || !running) return false;
+  return String(server) > String(running);
+}
+
+/**
+ * ⚠️ 以前は「サーバーの版が手元と違えば入れ替える」だった。新旧を見ていないので、
+ *    配信をうっかり古い版に戻すと、全端末が**黙って古いほうへ引き戻される**。
+ *    2026-09-05に「Morning check が抜けている」と報告があり、版の取り違えが
+ *    どれだけ気づきにくいかがはっきりしたので直した。
+ *
+ * いまの決まり:
+ *   ・サーバーが新しい → 今までどおり（入口にいて入力中でなければ静かに入れ替え、
+ *     作業中なら緑の帯を出して本人に任せる）
+ *   ・サーバーが古い   → **絶対に黙って戻さない。** 琥珀色の帯を出して本人が選ぶ。
+ *     意図したロールバックは効かせたいので、道そのものは残す
+ */
 function checkForUpdate(){
   if (document.hidden) return;
   readServerBuild().then(serverBuild => {
     if (!serverBuild || serverBuild === APP_BUILD) return;
-    if (__isIdle()) hardReload();        // 何もしていなければ静かに入れ替える
-    else showUpdateBar();                // 作業中は本人に任せる
+    if (isNewerBuild(serverBuild, APP_BUILD)){
+      if (__isIdle()) hardReload();      // 何もしていなければ静かに入れ替える
+      else showUpdateBar();              // 作業中は本人に任せる
+    } else {
+      showUpdateBar(serverBuild);        // 古い版への差し戻し。押さない限り何も起きない
+    }
   });
 }
 
@@ -2752,17 +2802,35 @@ function buildLarkMessage(rec){
   const dt = new Date(rec.ts);
   const dstr = dt.toLocaleDateString("en-GB", { day:"2-digit", month:"short", year:"numeric" }) +
                " " + dt.toLocaleTimeString("en-GB", { hour:"2-digit", minute:"2-digit" });
+  // ⬇️ 入っていた額と残した額を必ず出す（2026-09-09）。
+  //   以前は「売上」と「金庫へ入れた額」だけだったが、それではグループを見ている
+  //   側が売上を検算できない。売上＝今夜の計数−今朝の額なので、
+  //   その2つが無いと数字が合っているか誰も判断できない。
+  //   また夜の仕分けを札の大きさで決めるようにしたので、**レジに残る額は毎晚変わる**。
+  //   その額は翌朝の Morning check が照合する相手そのものなので、必ず流す。
+  // ⚠️ 古い記録を Record タブから再送信することがあるので、無い項目は出さない。
+  const fromLabel = rec.openingFrom === "morning" ? "counted this morning" : "left last night";
   let lines = [
     "💵 TILL CLOSED — " + rec.store,
     dstr + "   👤 " + rec.staff,
-    "",
-    "Cash sales:   " + fmt_T(rec.sales),
-    "MoMo sales:   " + fmt_T(rec.momo || 0),
-    "TOTAL SALES:  " + fmt_T(rec.totalSales ?? rec.sales),
-    "",
-    "Put in safe:  " + fmt_T(rec.toSafe)
+    ""
   ];
-  if (rec.fromSafe > 0) lines.push("Taken from safe: " + fmt_T(rec.fromSafe));
+  if (typeof rec.total === "number")
+    lines.push("In the till now:  " + fmt_T(rec.total));
+  if (typeof rec.opening === "number")
+    lines.push("This morning:     " + fmt_T(rec.opening) + "  (" + fromLabel + ")");
+  lines.push(
+    "Cash sales:       " + fmt_T(rec.sales),
+    "MoMo sales:       " + fmt_T(rec.momo || 0),
+    "TOTAL SALES:      " + fmt_T(rec.totalSales ?? rec.sales),
+    "",
+    "→ Put in safe:    " + fmt_T(rec.toSafe)
+  );
+  const left = (typeof rec.finalTotal === "number") ? rec.finalTotal
+             : (typeof rec.keep === "number") ? rec.keep : null;
+  if (left !== null)
+    lines.push("→ Left in till:   " + fmt_T(left) + "  (check this tomorrow morning)");
+  if (rec.fromSafe > 0) lines.push("→ Taken from safe: " + fmt_T(rec.fromSafe));
   if (rec.boxCounts && Object.keys(rec.boxCounts).length){
     let boxTotal = 0;
     for (const d of DENOMS_T) boxTotal += d * (rec.boxCounts[d] || 0);
@@ -3127,7 +3195,7 @@ function checkMorning(){
   //  合わない … CHECK → CHECK AGAIN の2回
   if (mgAttempt >= 2){
     el.innerHTML = tillDiff === 0
-      ? `<div class="warn" style="background:#e8f5e9;border-color:var(--green)">
+      ? `<div class="warn" style="background:#E5F6FC;border-color:var(--green)">
            <b style="color:var(--green)">✔ Correct. The till matches last night.</b><br>
            Recorded. Have a good day!</div>`
       : `<div class="warn">
@@ -3140,7 +3208,7 @@ function checkMorning(){
     return;
   }
   if (tillDiff === 0){
-    el.innerHTML = `<div class="warn" style="background:#e8f5e9;border-color:var(--green)">
+    el.innerHTML = `<div class="warn" style="background:#E5F6FC;border-color:var(--green)">
       <b style="color:var(--green)">✔ Correct. The till matches last night.</b><br>
       Now press <b>DONE</b> below.</div>`;
     doneBtn.style.display = "";
@@ -4406,7 +4474,7 @@ function renderHome(){
       ? (notesTotal_S(have) >= notesTotal_S(target)
         ? `<div class="warn"><b>両替が必要です</b><br>合計は足りています（${fmt_S(notesTotal_S(have))} ／ 目標 ${fmt_S(notesTotal_S(target))}）が、大きい札に偏っています。<br>小さい札に替える枚数：${esc_S(notesText(need))}<br><button class="minibtn" style="margin-top:8px" onclick="show_S('exchange')">💱 おつりを整理する</button></div>`
         : `<div class="warn"><b>おつりが足りません：${fmt_S(needTotal)}</b><br>${esc_S(notesText(need))}<br><button class="minibtn" style="margin-top:8px" onclick="show_S('exchange')">💱 おつりを整理する</button></div>`)
-      : `<div class="warn" style="background:#e8f5e9;border-color:var(--green)"><b style="color:var(--green)">✔ 目標どおり揃っています</b></div>`);
+      : `<div class="warn" style="background:#E5F6FC;border-color:var(--green)"><b style="color:var(--green)">✔ 目標どおり揃っています</b></div>`);
 
   document.getElementById("homeChangeRows").innerHTML = DENOMS_S.map(d => {
     const t = Number(target[d]) || 0;
@@ -6622,7 +6690,7 @@ function renderDriverChange(){
     (negative ? `<div class="warn bad"><b>The box shows a negative balance</b><br>Count what's really there below and tap "Match to what I counted".</div>` : "") +
     (needTotal > 0
       ? `<div class="warn"><b>Needs topping up: ${fmt_S(needTotal)}</b><br>${esc_S(notesText(need))}</div>`
-      : `<div class="warn" style="background:#e8f5e9;border-color:var(--green)"><b style="color:var(--green)">✔ Matches the target</b></div>`);
+      : `<div class="warn" style="background:#E5F6FC;border-color:var(--green)"><b style="color:var(--green)">✔ Matches the target</b></div>`);
 
   const shown = emptyNotes();
   for (const d of DENOMS_S) shown[d] = Math.max(0, have[d]);
@@ -6781,7 +6849,7 @@ function updateDriverCarryTotal(){ updateDenomSubs("dcarry", "drvCarryTotal");
   const carried = readDenoms("dcarry");
   const diff = Math.round((notesTotal_S(carried) - notesTotal_S(expected)) * 100) / 100;
   document.getElementById("drvCarryCheck").innerHTML = diff === 0
-    ? `<div class="warn" style="background:#e8f5e9;border-color:var(--green)"><b style="color:var(--green)">✔ Matches what's expected</b></div>`
+    ? `<div class="warn" style="background:#E5F6FC;border-color:var(--green)"><b style="color:var(--green)">✔ Matches what's expected</b></div>`
     : `<div class="warn bad"><b>${diff > 0 ? "Over" : "Short"} by ${fmt_S(Math.abs(diff))}</b><br>Count again before you leave — this is easier to fix here than at the office.</div>`;
 }
 function submitDelivery(){
