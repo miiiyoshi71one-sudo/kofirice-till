@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0077A0">
 <!-- ⚠️ 版はここが唯一の正。直したら必ず上げる（JSはこの値を読むだけ）。
      更新の確認はファイルの先頭だけを読んで済ませるので、head の中に置くこと。 -->
-<meta name="build" content="2026-09-10a">
+<meta name="build" content="2026-09-12b">
 <title>KOFIRICE</title>
 <style>
 
@@ -419,6 +419,21 @@ body.practice #practiceNote{ display: block; }
   }
 .app-till .momo-total{ text-align: right; font-size: 14px; margin-top: 8px; color: var(--muted); }
 .app-till .momo-total b{ color: var(--text); font-size: 18px; }
+
+.app-till /* 📋 POSの締めを読み取るカード（2026-09-11） */
+  .pos-card{ border:2px solid var(--line); border-radius:12px; padding:12px; margin:14px 0; background:#fff; }
+.app-till .pos-card .pos-h{ font-weight:800; font-size:16px; margin-bottom:4px; }
+.app-till .pos-card textarea{ width:100%; margin-top:8px; padding:8px; font-size:14px;
+  border:1px solid var(--line); border-radius:8px; box-sizing:border-box; }
+.app-till .pos-card .bigbtn{ margin:8px 0 0; }
+.app-till .pos-line{ display:flex; justify-content:space-between; gap:10px; padding:4px 0; font-size:15px; }
+.app-till .pos-line .amt{ font-weight:700; white-space:nowrap; }
+.app-till .pos-verdict{ margin-top:8px; padding:10px; border-radius:8px; font-weight:800; text-align:center; }
+.app-till .pos-ok{ background:#e8f6ec; color:#176c33; }
+.app-till .pos-bad{ background:#fdecec; color:#b3261e; }
+.app-till .pos-note{ font-size:13px; color:var(--muted); margin-top:6px; }
+.app-till .pos-clear{ background:none; border:none; color:var(--muted); font-size:13px;
+  text-decoration:underline; padding:4px; cursor:pointer; }
 .app-till /* Done screen */
   .done-wrap{ text-align: center; padding: 30px 10px; }
 .app-till .done-wrap .check{ font-size: 72px; }
@@ -627,6 +642,18 @@ body.practice #practiceNote{ display: block; }
   }
 .app-safe .syncbar.bad{ background: #fdeceb; color: var(--red); font-weight: 700; }
 .app-safe .syncbar button{
+    background: none; border: none; color: inherit;
+    font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: underline;
+  }
+.app-till /* 同じ帯をレジ締めにも出す（2026-09-12）。シェフの端末が繋がって
+             いないことに誰も気づけなかったため */
+  .syncbar{
+    background: #eaf1ec; color: var(--muted);
+    font-size: 12px; padding: 5px 14px;
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  }
+.app-till .syncbar.bad{ background: #fdeceb; color: var(--red); font-weight: 700; }
+.app-till .syncbar button{
     background: none; border: none; color: inherit;
     font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: underline;
   }
@@ -1226,6 +1253,13 @@ body.practice #practiceNote{ display: block; }
   </div>
 </header>
 
+<!-- この端末の記録が他の端末にも届いているかを、シェフにも見えるようにする（2026-09-12）。
+     つながっていない端末は「This device only」と出る。 -->
+<div class="syncbar" id="tillSyncBar">
+  <span id="tillSyncText">Not connected</span>
+  <button onclick="doSync(true)">Sync now</button>
+</div>
+
 <!-- STEP 1: COUNT -->
 <div class="screen active" id="scr-count">
   <div class="step-title"><span id="st-count">STEP 1 — Count the money in the till</span>
@@ -1308,9 +1342,25 @@ body.practice #practiceNote{ display: block; }
   <div class="cap" style="text-align:center;margin:2px 0 8px">₵50, ₵100 and ₵200 go in the safe. Everything smaller stays in the till.</div>
   <div id="resultRows"></div>
 
+  <!-- 📋 POSの締めを読み取る（2026-09-11）。POSは同じタブレットの別アプリで、
+       別のアドレスなので保存領域を直接は読めない。POSの「Check & Close → Copy」で
+       クリップボードに入った締めサマリーを、ここで読み取って使う。
+       入るのは MoMo と現金売上の2つだけ。⚠️ 読み取った数字は必ず人が直せる形にしてある
+       （POSは打ち間違いが多いと現場から報告があるため、自動入力→手で確認までで1工程）。
+       POSが無い日・読めない日は空のままでよい。保存は止めない。 -->
+  <div class="pos-card" id="posCard">
+    <div class="pos-h">📋 From the POS</div>
+    <div class="cap">On the POS: <b>Check &amp; Close</b> → <b>Copy</b>. Then press the button below.</div>
+    <button class="bigbtn" id="posReadBtn" onclick="readPosFromClipboard()">📥 READ THE POS SUMMARY</button>
+    <button class="pos-clear" id="posPasteToggle" onclick="showPosPaste()">⌨ or paste it here instead</button>
+    <textarea id="posPaste" rows="3" style="display:none" placeholder="Paste the POS summary here" oninput="readPosFromPaste()"></textarea>
+    <div id="posResult"></div>
+  </div>
+
   <div class="field">
     <label>📱 MoMo received today (GH₵)</label>
-    <input type="number" id="momoOne" min="0" step="1" placeholder="0" inputmode="numeric" oninput="updateMomoTotal()">
+    <input type="number" id="momoOne" min="0" step="1" placeholder="0" inputmode="numeric" oninput="onMomoTyped()">
+    <div class="cap" id="momoSrc"></div>
   </div>
 
   <div id="bookSlip"></div>
@@ -1753,7 +1803,8 @@ body.practice #practiceNote{ display: block; }
 
   <div class="card">
     <h2>🔗 サーバー接続<span class="sub">複数端末で共有</span></h2>
-    <div class="hint">Google Apps Script のウェブアプリURLと接続キーを入れると、他の端末と同じデータを見られます。空のままでもこの端末だけで使えます。</div>
+    <div class="hint">ここを入れた端末どうしは、同じ記録を見ます。入れていない端末は、その端末の中だけに記録が残ります。<br>
+      <b>他の端末をつなぐときは、下の「つなぐリンクを作る」を使ってください。</b>打ち込む必要はありません。</div>
     <div class="field">
       <label>ウェブアプリURL</label>
       <input type="text" id="setGasUrl" placeholder="https://script.google.com/macros/s/.../exec">
@@ -1763,10 +1814,18 @@ body.practice #practiceNote{ display: block; }
       <input type="text" id="setToken" placeholder="CHANGE_ME_kofirice_safe_2026">
     </div>
     <div class="field">
-      <label>この端末の名前（履歴に残ります）</label>
-      <input type="text" id="setDevice" placeholder="例: 三好スマホ">
+      <label>この端末の名前（任意・履歴に残ります）</label>
+      <input type="text" id="setDevice" placeholder="空でも構いません">
     </div>
     <button class="bigbtn" onclick="saveConnection()">💾 保存して接続テスト</button>
+
+    <!-- 📲 他の端末をつなぐ（2026-09-12）。現場に長いURLと鍵を打たせないための道。 -->
+    <div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">
+      <div class="hint">このリンクを送って、相手の端末で一度開いてもらうだけでつながります。
+        <b>リンクには接続キーが入っています。</b>グループではなく本人に送ってください。</div>
+      <button class="bigbtn gray" onclick="copyConnectLink()">📲 つなぐリンクを作る</button>
+      <div id="connectLinkBox"></div>
+    </div>
   </div>
 
   <div class="card">
@@ -2683,6 +2742,173 @@ function updateMomoTotal(){
 function resetMomoRows(){
   const el = document.getElementById("momoOne");
   if (el) el.value = "";
+  clearPos();
+}
+
+// ---------- 📋 POSの締めを読み取る（2026-09-11） ----------
+// なぜ貼り付けなのか: POSは同じタブレットで動いているが、配信元が別（社長のWorker）
+// なので保存領域を直接は読めない。同じ端末ならクリップボードは通る。
+// POSが出す締めサマリーは1行1項目の決まった形なので、そこから読む。
+//   KOFIRICE TILL CLOSED / Store: … / Date: 2026-09-11 (Ghana)
+//   Cash:  GH₵ 955 / MoMo:  GH₵ 120 / TOTAL: GH₵ 1,075
+//   Orders: 63 / Guests: 70 / Float: … In: … Out: …
+//   Expected cash: … / Counted cash: … / Over/short: -5
+let posData = null;             // 読み取れた内容。null＝まだ読んでいない
+let momoEdited = false;         // 自動入力のあと人が打ち直したか
+
+const posNum = (s) => {
+  if (s === undefined || s === null) return null;
+  const v = parseFloat(String(s).replace(/[^0-9.\-]/g, ""));
+  return isNaN(v) ? null : Math.round(v * 100) / 100;
+};
+
+function parsePosSummary(text){
+  const raw = String(text || "").trim();
+  if (!raw) return { ok:false, why:"empty" };
+  const pick = (re) => { const m = re.exec(raw); return m ? m[1] : null; };
+  const cash = posNum(pick(/^[ \t]*Cash:[ \t]*(.+)$/mi));
+  const momo = posNum(pick(/^[ \t]*MoMo:[ \t]*(.+)$/mi));
+  if (cash === null && momo === null) return { ok:false, why:"notpos" };
+  return {
+    ok: true,
+    closed: /KOFIRICE TILL CLOSED/i.test(raw),
+    store: pick(/^[ \t]*Store:[ \t]*(.+)$/mi),
+    date: pick(/^[ \t]*Date:[ \t]*(\d{4}-\d{2}-\d{2})/mi),
+    cash: cash === null ? 0 : cash,
+    momo: momo === null ? 0 : momo,
+    total: posNum(pick(/^[ \t]*TOTAL:[ \t]*(.+)$/mi)),
+    orders: posNum(pick(/^[ \t]*Orders:[ \t]*(\d+)/mi)),
+    expected: posNum(pick(/^[ \t]*Expected cash:[ \t]*(.+)$/mi)),
+    counted: posNum(pick(/^[ \t]*Counted cash:[ \t]*(.+)$/mi))
+  };
+}
+
+function readPosFromClipboard(){
+  const fail = (msg) => {
+    showToast_T(msg, true);
+    showPosPaste();
+    const box = document.getElementById("posPaste");
+    if (box){ box.focus(); box.scrollIntoView({ behavior:"smooth", block:"center" }); }
+  };
+  try {
+    if (!navigator.clipboard || !navigator.clipboard.readText){
+      fail("⚠️ Paste it in the box below instead"); return;
+    }
+    navigator.clipboard.readText()
+      .then(t => { if (!applyPosText(t)) fail("⚠️ That was not a POS summary — press Copy on the POS first"); })
+      .catch(() => fail("⚠️ Paste it in the box below instead"));
+  } catch (e){ fail("⚠️ Paste it in the box below instead"); }
+}
+
+// 貼り付け欄はふだん隠しておく（毎晩押すのはボタン1つだけ）。
+// クリップボードが読めない端末・読み取りを断られたときだけ出す。
+function showPosPaste(){
+  const box = document.getElementById("posPaste");
+  const tog = document.getElementById("posPasteToggle");
+  if (box) box.style.display = "block";
+  if (tog) tog.style.display = "none";
+}
+
+function readPosFromPaste(){
+  const box = document.getElementById("posPaste");
+  if (!box) return;
+  if (!box.value.trim()){ clearPos(); renderPosResult(); return; }
+  applyPosText(box.value);
+}
+
+// 読み取れたら MoMo 欄に入れる。⚠️ 人が打ち直した値は上書きしない
+// （POSの数字が正しいとは限らない。最後に決めるのは人）。
+function applyPosText(text){
+  const d = parsePosSummary(text);
+  if (!d.ok){ renderPosResult(); return false; }
+  posData = d;
+  // ⚠️ 別の日・別の店のサマリーを読んでしまったときは何も入れない。
+  //    入れてしまうと、間違った数字が入ったことに誰も気づけない。
+  const el = document.getElementById("momoOne");
+  if (el && !momoEdited && !posMismatch().length){ el.value = d.momo ? String(d.momo) : "0"; }
+  renderPosResult();
+  renderBookSlip();
+  return true;
+}
+
+function onMomoTyped(){
+  if (posData) momoEdited = true;
+  renderPosResult();
+  updateMomoTotal();
+}
+
+function clearPos(){
+  posData = null;
+  momoEdited = false;
+  const box = document.getElementById("posPaste");
+  if (box) box.value = "";
+  const src = document.getElementById("momoSrc");
+  if (src) src.textContent = "";
+  const out = document.getElementById("posResult");
+  if (out) out.innerHTML = "";
+}
+
+// レジの現金売上（今夜の計数 − 今朝の額）と、POSの現金売上を引き比べる。
+// ＋＝レジのほうが多い（POSに打たれていない売上・釣り銭の渡し間違い）
+// −＝レジのほうが少ない（現金の抜け・POSの二重打ち）
+function posCashDiff(){
+  if (!posData || !lastResult) return null;
+  if (posMismatch().length) return null;
+  return Math.round((lastResult.sales - posData.cash) * 100) / 100;
+}
+
+// 今夜のレジと突き合わせてよいサマリーかどうか。
+// 中身が別の日・別の店なら、引き算そのものに意味が無い（＝比べない）。
+function posMismatch(){
+  if (!posData) return [];
+  const bad = [];
+  const now = new Date();
+  const ymd = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0") + "-" + String(now.getDate()).padStart(2,"0");
+  if (posData.date && posData.date !== ymd) bad.push("This POS summary is from " + posData.date + ", not today.");
+  if (posData.store && settings.store && posData.store.trim() !== String(settings.store).trim()){
+    bad.push("The POS says “" + posData.store + "” but this app is set to “" + settings.store + "”.");
+  }
+  return bad;
+}
+
+function renderPosResult(){
+  const out = document.getElementById("posResult");
+  const src = document.getElementById("momoSrc");
+  if (!out) return;
+  if (!posData){ out.innerHTML = ""; if (src) src.textContent = ""; return; }
+  if (src){
+    src.textContent = posMismatch().length
+      ? "⚠️ Not filled in — the POS summary is not for tonight. Type it by hand."
+      : (momoEdited
+        ? "✏️ Typed by hand. The POS said " + fmt_T(posData.momo) + "."
+        : "✅ Filled in from the POS. Change it if the POS is wrong.");
+  }
+  const wrong = posMismatch();
+  const warn = wrong.slice();
+  if (!posData.closed) warn.push("The POS is not closed yet — close it there first.");
+  const diff = wrong.length ? null : posCashDiff();
+  let verdict = "";
+  if (wrong.length){
+    verdict = '<div class="pos-verdict pos-bad">⚠️ Not tonight’s summary' +
+      '<div class="pos-note">Nothing filled in, nothing compared.</div></div>';
+  } else if (diff !== null){
+    // 出すのは差額そのものだけ。多い/少ないの言い方も、原因の説明も出さない
+    // （三好さんの指示 2026-09-12）。符号だけは残す ＋＝レジのほうが多い。
+    verdict = '<div class="pos-verdict ' + (diff === 0 ? "pos-ok" : "pos-bad") + '">DIFFERENCE' +
+      '<div style="font-size:30px;line-height:1.2;margin-top:2px">' +
+      (diff === 0 ? fmt_T(0) : (diff > 0 ? "+ " : "− ") + fmt_T(Math.abs(diff))) +
+      "</div></div>";
+  }
+  out.innerHTML =
+    '<div style="margin-top:10px">' +
+      '<div class="pos-line"><span>📋 POS cash sales</span><span class="amt">' + fmt_T(posData.cash) + "</span></div>" +
+      '<div class="pos-line"><span>💵 Cash sales counted here</span><span class="amt">' +
+        (lastResult ? fmt_T(lastResult.sales) : "—") + "</span></div>" +
+      '<div class="pos-line"><span>📱 POS MoMo</span><span class="amt">' + fmt_T(posData.momo) + "</span></div>" +
+      (posData.orders !== null ? '<div class="pos-line"><span>🧾 Orders on the POS</span><span class="amt">' + posData.orders + "</span></div>" : "") +
+    "</div>" + verdict +
+    (warn.length ? '<div class="warn" style="margin-top:8px">' + warn.map(esc_T).join("<br>") + "</div>" : "") +
+    '<div style="text-align:right;margin-top:6px"><button class="pos-clear" onclick="clearPos();renderPosResult();renderBookSlip()">↺ clear</button></div>';
 }
 
 // ---------- Sync code for the safe-manager app ----------
@@ -3281,6 +3507,7 @@ function goResult(){
   renderShortNotice();
   bookConfirmed = false;
   renderBookSlip();
+  renderPosResult();   // 📋 戻ってきたときも POS の読み取り結果を出し直す
 
   // 金種ごとに「レジ/金庫」を並べるのはやめた（2026-09-04）。規則が
   // 「大きい札は金庫、小さい札はレジ」だけになったので、2つの山を見せれば足りる。
@@ -3502,8 +3729,13 @@ function saveRecord(){
     sales: lastResult.sales,
     momo: momo,
     totalSales: Math.round((lastResult.sales + momo)*100)/100,
-    pos: null,          // POS申告の突き合わせは翌朝の Morning check に移した
-    diff: null
+    // 📋 POSから読み取れた日だけ入る（読まなければ今までどおり null）。
+    //    diff は「レジの現金売上 − POSの現金売上」。＋＝レジのほうが多い。
+    //    この2つは Lark の通知・同期コード(P)・履歴・CSV・金庫アプリが既に見ている。
+    pos: (posData && !posMismatch().length) ? posData.cash : null,
+    posMomo: (posData && !posMismatch().length) ? posData.momo : null,
+    posOrders: (posData && !posMismatch().length && posData.orders !== null) ? posData.orders : null,
+    diff: posCashDiff()
   };
   const hist = loadJSON_T(LS_HIST) || [];
   hist.unshift(rec);
@@ -3727,6 +3959,40 @@ let cfg = loadJSON_S(LS_CFG) || {
   usersRev: 0, usersDirty: false,
   currentStore: "S2"
 };
+// 📲 端末をつなぐリンク（#s=…）で開かれたら、この端末を自動でつなぐ（2026-09-12）。
+// 住所と接続キーを現場に打たせないための道。マネージャーの設定画面で作ったリンクを
+// 本人に送り、その端末で一度開くだけで終わる。
+// ⚠️ #より後ろはサーバーに送られない（GitHub側のログに鍵が残らない）。
+//    開いたあとURL欄からも消す。リンク自体には鍵が入るのでグループには流さない。
+let connectedByLink = false;
+function applyConnectLink(){
+  try {
+    const m = /[#&]s=([A-Za-z0-9_\-]+)/.exec(location.hash || "");
+    if (!m) return false;
+    const b64 = m[1].replace(/-/g, "+").replace(/_/g, "/");
+    const d = JSON.parse(decodeURIComponent(atob(b64)));
+    if (!d || !d.u) return false;
+    cfg.gasUrl = d.u;
+    cfg.token = d.t || "";
+    if (!cfg.device) cfg.device = "端末-" + Math.random().toString(36).slice(2, 6);
+    saveCfg();
+    connectedByLink = true;
+    history.replaceState(null, "", location.pathname + location.search);
+    return true;
+  } catch (e){ /* 壊れたリンクは黙って無視する。アプリは今までどおり動く */ }
+  return false;
+}
+applyConnectLink();
+
+// ⚠️ すでにアプリを開いている端末でリンクを踏むと、ブラウザは読み込み直さず
+//    #だけ差し替える。そのときも繋がるようにここでも受ける。
+window.addEventListener("hashchange", () => {
+  if (!applyConnectLink()) return;
+  showToast_S("✅ この端末をつなぎました。記録はみんなと同じ場所に入ります");
+  updateSyncBar();
+  doSync(true);
+});
+
 let movements = loadJSON_S(LS_MOV) || [];
 let queue = loadJSON_S(LS_Q) || [];
 let lastSeq = Number(localStorage.getItem(LS_SEQ) || 0);
@@ -6125,11 +6391,39 @@ function saveConnection(){
   cfg.gasUrl = document.getElementById("setGasUrl").value.trim();
   cfg.token = document.getElementById("setToken").value.trim();
   cfg.device = document.getElementById("setDevice").value.trim();
+  // 名前を考えさせない。空なら勝手に付ける（履歴が「(空)」だらけになるのを防ぐだけの用途）
+  if (cfg.gasUrl && !cfg.device) cfg.device = "端末-" + Math.random().toString(36).slice(2, 6);
   saveCfg();
   if (!cfg.gasUrl){ showToast_S("この端末だけで使う設定にしました"); updateSyncBar(); return; }
   showToast_S("接続を確認しています…");
   doSync(true);
 }
+// この端末の接続設定を、そのまま渡せるリンクにする。
+// #より後ろはサーバーに送られないので、途中のログに鍵が残らない。
+function buildConnectLink(){
+  const payload = btoa(encodeURIComponent(JSON.stringify({ u: cfg.gasUrl, t: cfg.token })))
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return location.origin + location.pathname + "#s=" + payload;
+}
+
+function copyConnectLink(){
+  if (!cfg.gasUrl){ showToast_S("先にURLと接続キーを保存してください", true); return; }
+  const link = buildConnectLink();
+  const box = document.getElementById("connectLinkBox");
+  // コピーできない端末でも渡せるよう、必ず画面にも出す
+  if (box){
+    box.innerHTML = '<div class="hint" style="margin-top:10px">このリンクを送ってください</div>' +
+      '<textarea readonly rows="3" style="width:100%;font-size:12px;padding:8px;' +
+      'border:1px solid var(--line);border-radius:8px;box-sizing:border-box">' +
+      esc_S(link) + "</textarea>";
+  }
+  try {
+    navigator.clipboard.writeText(link)
+      .then(() => showToast_S("✅ リンクをコピーしました"))
+      .catch(() => showToast_S("下の枠から選んでコピーしてください"));
+  } catch (e){ showToast_S("下の枠から選んでコピーしてください"); }
+}
+
 function saveLark(){
   cfg.larkWebhook = document.getElementById("setLark").value.trim();
   saveCfg();
@@ -6362,10 +6656,17 @@ function resetAllMovements(){
 // 共有している。どちらが開いているかで書き込み先のDOMを切り替える
 // （id を共有すると getElementById が常に最初の要素を拾ってしまうため、
 // 別々のidにしてここで振り分ける）。
+// 3つのアプリぶんの帯をまとめて塗る。開いている画面だけ塗ると、
+// 別のアプリに切り替えたときに古い表示が残るため（2026-09-12）。
 function updateSyncBar(){
-  const driver = __openApp === "driver";
-  const bar = document.getElementById(driver ? "drvSyncBar" : "syncBar");
-  const txt = document.getElementById(driver ? "drvSyncText" : "syncText");
+  paintSyncBar("syncBar", "syncText", false);
+  paintSyncBar("drvSyncBar", "drvSyncText", true);
+  paintSyncBar("tillSyncBar", "tillSyncText", true);
+}
+
+function paintSyncBar(barId, txtId, driver){
+  const bar = document.getElementById(barId);
+  const txt = document.getElementById(txtId);
   if (!bar || !txt) return;
   const L = driver
     ? { local: "This device only (not shared)", syncing: "Syncing…", fail: "⚠️ Could not sync", pend: n => ` (${n} not sent)`, ok: "✔ Synced ", none: "Not connected" }
@@ -6572,10 +6873,7 @@ function initSafe(){
   renderManual();
   renderAll();
   if (cfg.gasUrl) doSync();
-
-  setInterval(() => { if (!document.hidden && isAppOpen('safe')) doSync(); }, SYNC_INTERVAL_MS);
-  document.addEventListener("visibilitychange", () => { if (!document.hidden && isAppOpen('safe')) doSync(); });
-  window.addEventListener("online", () => { if (isAppOpen('safe')) doSync(); });
+  // ⚠️ タイマーはここに置かない。下の「どのアプリでも同期する」で1本にまとめた
 }
 // 2回目以降に開いたとき用
 function refreshSafe(){
@@ -6608,11 +6906,28 @@ function initDriver(){
   renderDriverStoreSelect();
   renderAllDriver();
   if (cfg.gasUrl) doSync();
-
-  setInterval(() => { if (!document.hidden && isAppOpen('driver')) doSync(); }, SYNC_INTERVAL_MS);
-  document.addEventListener("visibilitychange", () => { if (!document.hidden && isAppOpen('driver')) doSync(); });
-  window.addEventListener("online", () => { if (isAppOpen('driver')) doSync(); });
+  // ⚠️ タイマーはここに置かない（下の1本にまとめた）
 }
+
+// =============================================================
+// 📡 どのアプリを開いていても同期する（2026-09-12）
+// 以前は金庫・配送を開いているあいだだけ動かしていた。シェフの端末は
+// レジ締めしか開かないので、記録がその端末に溜まったまま誰にも見えなかった。
+// 「どのアプリからも記録できて、どの端末からも同じに見える」ためには、
+// 開いている画面に関係なく動かす必要がある。
+// 送る中身は前回の続きからの差分だけなので、回線への負担は増えない。
+// =============================================================
+function syncTick(){ if (!document.hidden && cfg.gasUrl) doSync(); }
+setInterval(syncTick, SYNC_INTERVAL_MS);
+document.addEventListener("visibilitychange", syncTick);
+window.addEventListener("online", () => { if (cfg.gasUrl) doSync(); });
+setTimeout(() => {
+  updateSyncBar();
+  if (connectedByLink){
+    showToast_S("✅ この端末をつなぎました。記録はみんなと同じ場所に入ります");
+  }
+  if (cfg.gasUrl) doSync();
+}, 700);
 // 2回目以降に開いたとき用
 function refreshDriver(){
   driverSession = requireDriverSession();
