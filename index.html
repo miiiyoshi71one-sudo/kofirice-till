@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0077A0">
 <!-- ⚠️ 版はここが唯一の正。直したら必ず上げる（JSはこの値を読むだけ）。
      更新の確認はファイルの先頭だけを読んで済ませるので、head の中に置くこと。 -->
-<meta name="build" content="2026-09-12b">
+<meta name="build" content="2026-09-12c">
 <title>KOFIRICE</title>
 <style>
 
@@ -1256,8 +1256,8 @@ body.practice #practiceNote{ display: block; }
 <!-- この端末の記録が他の端末にも届いているかを、シェフにも見えるようにする（2026-09-12）。
      つながっていない端末は「This device only」と出る。 -->
 <div class="syncbar" id="tillSyncBar">
-  <span id="tillSyncText">Not connected</span>
-  <button onclick="doSync(true)">Sync now</button>
+  <span id="tillSyncText">Checking…</span>
+  <button onclick="doSync(true)">Refresh</button>
 </div>
 
 <!-- STEP 1: COUNT -->
@@ -1442,8 +1442,8 @@ body.practice #practiceNote{ display: block; }
 </header>
 
 <div class="syncbar" id="syncBar">
-  <span id="syncText">未接続</span>
-  <button onclick="doSync(true)">今すぐ同期</button>
+  <span id="syncText">確認中…</span>
+  <button onclick="doSync(true)">今すぐ更新</button>
 </div>
 
 <!-- ================= ホーム ================= -->
@@ -1802,30 +1802,27 @@ body.practice #practiceNote{ display: block; }
   </div>
 
   <div class="card">
-    <h2>🔗 サーバー接続<span class="sub">複数端末で共有</span></h2>
-    <div class="hint">ここを入れた端末どうしは、同じ記録を見ます。入れていない端末は、その端末の中だけに記録が残ります。<br>
-      <b>他の端末をつなぐときは、下の「つなぐリンクを作る」を使ってください。</b>打ち込む必要はありません。</div>
-    <div class="field">
-      <label>ウェブアプリURL</label>
-      <input type="text" id="setGasUrl" placeholder="https://script.google.com/macros/s/.../exec">
-    </div>
-    <div class="field">
-      <label>接続キー（Code.gs の TOKEN と同じ文字列）</label>
-      <input type="text" id="setToken" placeholder="CHANGE_ME_kofirice_safe_2026">
-    </div>
-    <div class="field">
-      <label>この端末の名前（任意・履歴に残ります）</label>
-      <input type="text" id="setDevice" placeholder="空でも構いません">
-    </div>
-    <button class="bigbtn" onclick="saveConnection()">💾 保存して接続テスト</button>
-
-    <!-- 📲 他の端末をつなぐ（2026-09-12）。現場に長いURLと鍵を打たせないための道。 -->
-    <div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">
-      <div class="hint">このリンクを送って、相手の端末で一度開いてもらうだけでつながります。
-        <b>リンクには接続キーが入っています。</b>グループではなく本人に送ってください。</div>
-      <button class="bigbtn gray" onclick="copyConnectLink()">📲 つなぐリンクを作る</button>
-      <div id="connectLinkBox"></div>
-    </div>
+    <h2>🔗 記録の置き場<span class="sub">全端末で共通</span></h2>
+    <!-- 置き場はアプリに書いてある（2026-09-12）。ふつうは誰も何も入力しない。
+         欄を残してあるのは、置き場を移したときに手で直せるようにするためだけ。 -->
+    <div class="hint">ここで設定することはありません。アプリを開けば、どの端末も同じ記録につながります。</div>
+    <div id="connState" style="margin-top:8px;font-weight:700"></div>
+    <details style="margin-top:12px">
+      <summary style="cursor:pointer;font-size:13px;color:var(--muted)">ふだんは開きません（置き場を移すとき）</summary>
+      <div class="field" style="margin-top:10px">
+        <label>ウェブアプリURL</label>
+        <input type="text" id="setGasUrl" placeholder="https://script.google.com/macros/s/.../exec">
+      </div>
+      <div class="field">
+        <label>接続キー</label>
+        <input type="text" id="setToken" placeholder="">
+      </div>
+      <div class="field">
+        <label>この端末の名前（任意・履歴に残ります）</label>
+        <input type="text" id="setDevice" placeholder="空でも構いません">
+      </div>
+      <button class="bigbtn" onclick="saveConnection()">💾 保存して確認</button>
+    </details>
   </div>
 
   <div class="card">
@@ -1909,8 +1906,8 @@ body.practice #practiceNote{ display: block; }
 </header>
 
 <div class="syncbar" id="drvSyncBar">
-  <span id="drvSyncText">Not connected</span>
-  <button onclick="doSync(true)">Sync now</button>
+  <span id="drvSyncText">Checking…</span>
+  <button onclick="doSync(true)">Refresh</button>
 </div>
 
 <!-- ================= おつり（Change box） ================= -->
@@ -3922,7 +3919,10 @@ const LS_MOV  = LSK("kofirice_safe_mov_v1");   // サーバから取得した記
 const LS_Q    = LSK("kofirice_safe_queue_v1"); // サーバ未送信の記録
 const LS_SEQ  = LSK("kofirice_safe_seq_v1");   // 取得済みの最終seq
 
-const SYNC_INTERVAL_MS = 25000;
+// どの端末も常に取りに行くようになったので、間隔を25秒→60秒にした（2026-09-12）。
+// 置き場は Google Apps Script で、1日に動ける時間に上限がある。全端末が25秒ごとに
+// 叩くと上限に届きうる。夜の締めが1分遅れて見えることより、上限で止まるほうが重い。
+const SYNC_INTERVAL_MS = 60000;
 
 const TYPE_LABEL = {
   TAKE_CHANGE: "おつり払出（レジへ）",
@@ -3959,39 +3959,30 @@ let cfg = loadJSON_S(LS_CFG) || {
   usersRev: 0, usersDirty: false,
   currentStore: "S2"
 };
-// 📲 端末をつなぐリンク（#s=…）で開かれたら、この端末を自動でつなぐ（2026-09-12）。
-// 住所と接続キーを現場に打たせないための道。マネージャーの設定画面で作ったリンクを
-// 本人に送り、その端末で一度開くだけで終わる。
-// ⚠️ #より後ろはサーバーに送られない（GitHub側のログに鍵が残らない）。
-//    開いたあとURL欄からも消す。リンク自体には鍵が入るのでグループには流さない。
-let connectedByLink = false;
-function applyConnectLink(){
-  try {
-    const m = /[#&]s=([A-Za-z0-9_\-]+)/.exec(location.hash || "");
-    if (!m) return false;
-    const b64 = m[1].replace(/-/g, "+").replace(/_/g, "/");
-    const d = JSON.parse(decodeURIComponent(atob(b64)));
-    if (!d || !d.u) return false;
-    cfg.gasUrl = d.u;
-    cfg.token = d.t || "";
-    if (!cfg.device) cfg.device = "端末-" + Math.random().toString(36).slice(2, 6);
-    saveCfg();
-    connectedByLink = true;
-    history.replaceState(null, "", location.pathname + location.search);
-    return true;
-  } catch (e){ /* 壊れたリンクは黙って無視する。アプリは今までどおり動く */ }
-  return false;
-}
-applyConnectLink();
+// 🔗 記録の置き場（2026-09-12）。**アプリに直接書いてある。**
+//
+// なぜそうしたか: 端末ごとに住所と鍵を入れる作りは現場に伝わらず、入っていない端末の
+// 記録が誰にも見えないまま溜まっていた。「同期」「設定」「端末をつなぐ」という説明が
+// ぜんぶここから生まれていた。書いておけば、開いた瞬間にどの端末も同じ台帳につながる。
+//
+// ⚠️ このファイルは公開の置き場から配られる＝ここの値は誰でも読める。
+//    三好さんの了解のうえで、試作のあいだだけこの形にしている（2026-09-12）。
+//    会社側（kofirice-apps）へ移すときに、住所も鍵も会社のものに作り直すこと。
+// ⚠️ **公開リポジトリにはプレースホルダのまま置く。** 本物の値は配信するファイルにだけ
+//    差し込む（Code.gs と同じ扱い）。だから下が https で始まらなければ何もしない。
+// ⚠️ 練習モード（localhost）では絶対に使わない。本物の台帳に触らせないため。
+const BUILTIN_GAS_URL = "https://script.google.com/macros/s/AKfycbwlXqNcWWiSFZPdXKfQ5Q66-kecJfhDs2SJNaLYO5TBxAvMvfzvO3Wqok-iNrELdxv_Kg/exec";
+const BUILTIN_GAS_TOKEN = "kofirice-safe-3ztkd5kij3";
 
-// ⚠️ すでにアプリを開いている端末でリンクを踏むと、ブラウザは読み込み直さず
-//    #だけ差し替える。そのときも繋がるようにここでも受ける。
-window.addEventListener("hashchange", () => {
-  if (!applyConnectLink()) return;
-  showToast_S("✅ この端末をつなぎました。記録はみんなと同じ場所に入ります");
-  updateSyncBar();
-  doSync(true);
-});
+(function applyBuiltinConnection(){
+  if (PRACTICE) return;
+  if (!/^https:\/\//.test(BUILTIN_GAS_URL)) return;   // プレースホルダのまま＝何もしない
+  if (cfg.gasUrl) return;                              // 既に入っている端末はそのまま
+  cfg.gasUrl = BUILTIN_GAS_URL;
+  cfg.token = BUILTIN_GAS_TOKEN;
+  if (!cfg.device) cfg.device = "端末-" + Math.random().toString(36).slice(2, 6);
+  saveCfg();
+})();
 
 let movements = loadJSON_S(LS_MOV) || [];
 let queue = loadJSON_S(LS_Q) || [];
@@ -6342,6 +6333,13 @@ function toggleLarkOff(){
 
 function renderSettings_S(){
   renderLarkOff();
+  const st = document.getElementById("connState");
+  if (st){
+    st.textContent = cfg.gasUrl
+      ? "✔ つながっています" + (cfg.device ? "（この端末: " + cfg.device + "）" : "")
+      : "⚠️ つながっていません。この端末の記録は共有されません";
+    st.style.color = cfg.gasUrl ? "var(--green)" : "var(--red)";
+  }
   document.getElementById("setGasUrl").value = cfg.gasUrl || "";
   document.getElementById("setToken").value = cfg.token || "";
   document.getElementById("setDevice").value = cfg.device || "";
@@ -6398,32 +6396,6 @@ function saveConnection(){
   showToast_S("接続を確認しています…");
   doSync(true);
 }
-// この端末の接続設定を、そのまま渡せるリンクにする。
-// #より後ろはサーバーに送られないので、途中のログに鍵が残らない。
-function buildConnectLink(){
-  const payload = btoa(encodeURIComponent(JSON.stringify({ u: cfg.gasUrl, t: cfg.token })))
-    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  return location.origin + location.pathname + "#s=" + payload;
-}
-
-function copyConnectLink(){
-  if (!cfg.gasUrl){ showToast_S("先にURLと接続キーを保存してください", true); return; }
-  const link = buildConnectLink();
-  const box = document.getElementById("connectLinkBox");
-  // コピーできない端末でも渡せるよう、必ず画面にも出す
-  if (box){
-    box.innerHTML = '<div class="hint" style="margin-top:10px">このリンクを送ってください</div>' +
-      '<textarea readonly rows="3" style="width:100%;font-size:12px;padding:8px;' +
-      'border:1px solid var(--line);border-radius:8px;box-sizing:border-box">' +
-      esc_S(link) + "</textarea>";
-  }
-  try {
-    navigator.clipboard.writeText(link)
-      .then(() => showToast_S("✅ リンクをコピーしました"))
-      .catch(() => showToast_S("下の枠から選んでコピーしてください"));
-  } catch (e){ showToast_S("下の枠から選んでコピーしてください"); }
-}
-
 function saveLark(){
   cfg.larkWebhook = document.getElementById("setLark").value.trim();
   saveCfg();
@@ -6668,9 +6640,11 @@ function paintSyncBar(barId, txtId, driver){
   const bar = document.getElementById(barId);
   const txt = document.getElementById(txtId);
   if (!bar || !txt) return;
+  // 「同期」「未接続」という言い方をやめた（2026-09-12）。中の仕組みではなく、
+  // 見ている数字が最新かどうかだけを言う。
   const L = driver
-    ? { local: "This device only (not shared)", syncing: "Syncing…", fail: "⚠️ Could not sync", pend: n => ` (${n} not sent)`, ok: "✔ Synced ", none: "Not connected" }
-    : { local: "この端末のみ（共有なし）", syncing: "同期中…", fail: "⚠️ 同期できていません", pend: n => `（未送信 ${n}件）`, ok: "✔ 同期ずみ ", none: "未接続" };
+    ? { local: "Not shared", syncing: "Loading…", fail: "⚠️ Offline", pend: n => ` (${n} to send)`, ok: "✔ Up to date ", none: "Checking…" }
+    : { local: "共有されていません", syncing: "読み込み中…", fail: "⚠️ いま繋がっていません", pend: n => `（あとで送ります ${n}件）`, ok: "✔ 最新です ", none: "確認中…" };
   if (!cfg.gasUrl){
     bar.classList.remove("bad");
     txt.textContent = L.local;
@@ -6923,9 +6897,6 @@ document.addEventListener("visibilitychange", syncTick);
 window.addEventListener("online", () => { if (cfg.gasUrl) doSync(); });
 setTimeout(() => {
   updateSyncBar();
-  if (connectedByLink){
-    showToast_S("✅ この端末をつなぎました。記録はみんなと同じ場所に入ります");
-  }
   if (cfg.gasUrl) doSync();
 }, 700);
 // 2回目以降に開いたとき用
