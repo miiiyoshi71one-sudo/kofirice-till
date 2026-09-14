@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0077A0">
 <!-- ⚠️ 版はここが唯一の正。直したら必ず上げる（JSはこの値を読むだけ）。
      更新の確認はファイルの先頭だけを読んで済ませるので、head の中に置くこと。 -->
-<meta name="build" content="2026-09-12c">
+<meta name="build" content="2026-09-14a">
 <title>KOFIRICE</title>
 <style>
 
@@ -4091,8 +4091,73 @@ function onStoreChange(){
 // =============================================================
 // 残高計算
 // =============================================================
-/** キャッシュ済み＋未送信キューをまとめた、サーバー上の全記録（ゴミ箱ぶんも含む）。 */
-function allMovementsRaw(){ return movements.concat(queue); }
+// 🗑 ゴミ箱は台帳に記録する（2026-09-14）。
+// 以前は端末ごとに hidden の印を付けるだけだったので、1台で消しても他の端末には残って見えた。
+// 全端末が同じ台帳を見るようになって、その食い違いが全員に見えるようになったため作り直した。
+//   VOID   … ref の記録を消す。note に理由、actor に消した人
+//   UNVOID … ref の記録を元に戻す
+// どちらも金額0で、残高・履歴・CSVには一切出さない（allMovementsRaw の段階で外す）。
+const META_TYPES = { VOID: 1, UNVOID: 1 };
+
+/** 台帳そのもの（VOID/UNVOID も含む） */
+function ledgerRaw(){ return movements.concat(queue); }
+
+/** 記録id → 消されていればその情報。最後の VOID/UNVOID が勝つ */
+function voidState(){
+  const map = {};
+  ledgerRaw().filter(m => META_TYPES[m.type]).sort(cmpMov).forEach(v => {
+    map[v.ref] = v.type === "VOID" ? { reason: v.note || "", at: v.ts, by: v.actor || "" } : null;
+  });
+  return map;
+}
+
+/** キャッシュ済み＋未送信キューをまとめた、サーバー上の全記録（ゴミ箱ぶんも含む）。
+ *  消えているかどうかは台帳の VOID から決め、hidden の印をその場で付け直す。 */
+function allMovementsRaw(){
+  const vs = voidState();
+  const out = [];
+  for (const m of ledgerRaw()){
+    if (META_TYPES[m.type]) continue;
+    const v = vs[m.id];
+    if (v){
+      m.hidden = true; m.hiddenReason = v.reason; m.hiddenAt = v.at; m.hiddenBy = v.by;
+      m.voidedOnServer = true;
+    } else if (m.voidedOnServer){
+      // 他の端末で元に戻された
+      m.hidden = false; delete m.hiddenReason; delete m.hiddenAt; delete m.hiddenBy;
+      delete m.voidedOnServer;
+    }
+    out.push(m);
+  }
+  return out;
+}
+
+/** VOID を1行記録する */
+function pushVoid(m, reason, by){
+  addMovement({
+    id: "void-" + uid(), compartment: "meta", type: "VOID", store: m.store,
+    notes: emptyNotes(), ref: m.id, note: reason || "",
+    actor: by || currentSessionName() || cfg.device || "", source: "void"
+  });
+}
+
+/** この端末で以前ゴミ箱に入れた記録を、全端末に反映する（1回だけ）。
+ *  台帳に記録する作りになる前に消したものは、その端末の中にしか印が無いため。 */
+function migrateLocalHidden(){
+  if (cfg.voidMigrated) return;
+  const voided = new Set(ledgerRaw().filter(m => m.type === "VOID").map(m => m.ref));
+  let n = 0;
+  for (const m of ledgerRaw()){
+    if (META_TYPES[m.type]) continue;
+    if (m.hidden && !m.voidedOnServer && !voided.has(m.id)){
+      pushVoid(m, m.hiddenReason || "以前この端末のゴミ箱で削除", m.hiddenBy);
+      n++;
+    }
+  }
+  cfg.voidMigrated = true;
+  saveCfg();
+  if (n) showToast_S("🗑 この端末で以前ゴミ箱に入れた " + n + " 件を、全端末に反映しました");
+}
 /**
  * 残高計算・履歴・CSV書き出しなど、通常の画面すべてがここを使う。
  * `hidden:true`（ゴミ箱に入れた記録）はここで除外されるので、削除した
@@ -4940,7 +5005,7 @@ function openRecordAction(id, mode){
   openModal(`
     <h3>${title}</h3>
     <div class="hint">${esc_S(dateJP(m.ts))} ／ ${esc_S(TYPE_LABEL[m.type] || m.type)} ／ 現在: ${esc_S(notesText(m.notes))}${m.note ? " ／ " + esc_S(m.note) : ""}</div>
-    ${!isCorrect ? `<div class="hint">履歴・残高から消えます（ゴミ箱タブから元に戻す・完全に削除するができます）。</div>` : ""}
+    ${!isCorrect ? `<div class="hint">履歴・残高から消えます。<b>全端末から消えます。</b>ゴミ箱タブから元に戻せます（元に戻すと全端末で戻ります）。</div>` : ""}
     ${denomSection}
     ${reasonFieldHTML("raReason")}
     <button class="bigbtn ${isCorrect ? "" : "red"}" onclick="confirmRecordAction('${esc_S(id)}','${mode}')">${isCorrect ? "💾 訂正を保存" : "🗑 ゴミ箱へ移動"}</button>
@@ -4958,12 +5023,13 @@ function updateRaTotal(){ updateDenomSubs("ra", "raTotal"); }
  * ないので purged フラグでゴミ箱からも隠す）ができる。
  */
 function hideMovement(m, reason){
+  // 台帳に VOID を記録する。これで全端末から消える（2026-09-14）
+  pushVoid(m, reason);
   m.hidden = true;
   m.hiddenReason = reason;
   m.hiddenAt = new Date().toISOString();
-  m.hiddenBy = cfg.device || "";
-  if (queue.some(x => x.id === m.id)) saveQueue();
-  if (movements.some(x => x.id === m.id)) saveMovs();
+  m.hiddenBy = currentSessionName() || cfg.device || "";
+  if (cfg.gasUrl) doSync();
 }
 function confirmRecordAction(id, mode){
   const reason = (document.getElementById("raReason").value || "").trim();
@@ -5096,7 +5162,7 @@ function openDeleteClose(baseId){
   if (!take && !salesIn && !box){ showToast_S("記録が見つかりません", true); return; }
   openModal(`
     <h3>🗑 このレジ締めをゴミ箱へ</h3>
-    <div class="hint">売上・おつり払出・おつり実測（3件とも）が履歴・残高から消えます。ゴミ箱タブから元に戻す・完全に削除するができます。</div>
+    <div class="hint">売上・おつり払出・おつり実測（3件とも）が履歴・残高から消えます。<b>全端末から消えます。</b>ゴミ箱タブから元に戻せます。</div>
     ${reasonFieldHTML("delReason")}
     <button class="bigbtn red" onclick="confirmDeleteClose('${esc_S(baseId)}')">🗑 ゴミ箱へ移動</button>
     <button class="bigbtn gray" onclick="closeModal()">キャンセル</button>
@@ -6263,6 +6329,16 @@ function trashItemHTML(m){
 function restoreFromTrash(id){
   const m = allMovementsRaw().find(x => x.id === id);
   if (!m) return;
+  // 台帳で消されている記録なら UNVOID を記録する。全端末で元に戻る（2026-09-14）
+  if (m.voidedOnServer){
+    addMovement({
+      id: "unvoid-" + uid(), compartment: "meta", type: "UNVOID", store: m.store,
+      notes: emptyNotes(), ref: m.id, note: "元に戻した",
+      actor: currentSessionName() || cfg.device || "", source: "void"
+    });
+    delete m.voidedOnServer;
+    if (cfg.gasUrl) doSync();
+  }
   m.hidden = false;
   m.hiddenReason = undefined;
   m.hiddenAt = undefined;
@@ -6703,6 +6779,9 @@ async function doSync(manual){
       }
       movements = Object.values(byId).sort((a, b) => (a.seq || 0) - (b.seq || 0));
     }
+
+    // サーバーの VOID を受け取ったあとでないと、どれが未反映か判断できないのでここで行う
+    migrateLocalHidden();
 
     // 店舗設定
     if (data.storesConflict){
