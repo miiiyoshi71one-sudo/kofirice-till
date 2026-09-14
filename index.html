@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0077A0">
 <!-- ⚠️ 版はここが唯一の正。直したら必ず上げる（JSはこの値を読むだけ）。
      更新の確認はファイルの先頭だけを読んで済ませるので、head の中に置くこと。 -->
-<meta name="build" content="2026-09-14a">
+<meta name="build" content="2026-09-14b">
 <title>KOFIRICE</title>
 <style>
 
@@ -5196,6 +5196,7 @@ function renderCollect(){
   const lots = lotStates(st.code);
   const pending = lots.filter(l => l.remainingAmount > 0.005);
   const done = lots.filter(l => l.remainingAmount <= 0.005 && l.takenAmount > 0).slice(0, 20);
+  const suspects = lotSuspicions(lots);
 
   document.getElementById("collectTotal").textContent =
     fmt_S(pending.reduce((s, l) => s + l.remainingAmount, 0));
@@ -5211,7 +5212,11 @@ function renderCollect(){
           <div class="meta">担当: ${esc_S(l.mov.actor || "—")}${l.mov.note ? " ／ " + esc_S(l.mov.note) : ""}</div>
           ${partial ? `<div class="meta">入庫 ${fmt_S(notesTotal_S(l.mov.notes))} のうち ${fmt_S(l.takenAmount)} は引き出しずみ</div>` : ""}
           <div class="notes">${esc_S(notesText(l.remaining))}</div>
+          ${(suspects[l.mov.id] || []).map(w =>
+            `<div class="meta" style="color:var(--red);font-weight:700">⚠️ ${esc_S(w)}</div>`).join("")}
           <button class="bigbtn" onclick="openCollect('${esc_S(l.mov.id)}')">💰 受け取る</button>
+          <button class="minibtn" style="background:#fdeceb;color:var(--red);border-color:#f3c5c1;margin-top:6px"
+                  onclick="openDeleteLot('${esc_S(l.mov.id)}')">🗑 ミスなので消す</button>
         </div>`;
       }).join("")
     : `<div class="empty">未受取の売上はありません 👍</div>`;
@@ -5230,6 +5235,77 @@ function renderCollect(){
         </div>`;
       }).join("")
     : `<div class="empty">まだありません</div>`;
+}
+
+// 🔎 実際には無さそうな売上に印を付ける（2026-09-15）。消すかどうかは人が決める。
+//   ・重複 … 同じ店で90分以内に、金庫へ入れた額か現金売上が同じ締めがもう1件ある
+//            （2026-09-11 に MoMo を入れ忘れて7分後に締め直した実例がある）
+//   ・マイナス … 現金売上がマイナス（今朝の額より少なく数えた＝数え間違い）
+function lotSuspicions(lots){
+  const out = {};
+  const ins = lots.map(l => l.mov).filter(m => m.type === "SALES_IN");
+  const cashOf = m => { const x = /現金売上\s*(-?[\d.]+)/.exec(m.note || ""); return x ? Number(x[1]) : null; };
+  for (const m of ins){
+    const why = [];
+    const c = cashOf(m);
+    if (c !== null && c < 0) why.push("現金売上がマイナス（" + c + "）です。数え間違いの可能性があります");
+    for (const o of ins){
+      if (o === m || o.store !== m.store) continue;
+      const gap = Math.abs(new Date(m.ts) - new Date(o.ts)) / 60000;
+      if (gap > 90) continue;
+      const sameAmt = Math.abs(notesTotal_S(m.notes) - notesTotal_S(o.notes)) < 0.005;
+      const oc = cashOf(o);
+      const sameCash = c !== null && oc !== null && Math.abs(c - oc) < 0.005;
+      if (!sameAmt && !sameCash) continue;
+      const earlier = new Date(m.ts) < new Date(o.ts);
+      why.push("重複かも：" + dateJP(o.ts) + " にも" + (sameAmt ? "同じ額" : "同じ現金売上") + "の締めがあります" +
+        (earlier ? "。締め直しなら、先に保存されたこちらを消します" : ""));
+    }
+    if (why.length) out[m.id] = why;
+  }
+  return out;
+}
+
+function openDeleteLot(lotId){
+  const lot = findLot(lotId);
+  if (!lot) return;
+  // 一部だけ受け取った売上を消すと、受け取りの記録だけが残って残高がマイナスになる
+  if (lot.takenAmount > 0){
+    showToast_S("一部を受け取りずみなので、ここでは消せません。履歴から訂正してください", true);
+    return;
+  }
+  const sus = lotSuspicions(lotStates(lot.mov.store))[lot.mov.id] || [];
+  const suggested = !sus.length ? "" : (sus.some(w => w.indexOf("重複") === 0) ? "重複した締めのため" : "数え間違いのため");
+  openModal(`
+    <h3>🗑 この売上を消す</h3>
+    <div class="hint"><b>${esc_S(dateJP(lot.mov.ts))} ／ ${fmt_S(lot.remainingAmount)} ／ 担当 ${esc_S(lot.mov.actor || "—")}</b>
+      ${lot.mov.note ? "<br>" + esc_S(lot.mov.note) : ""}</div>
+    <div class="hint">実際には無い売上（重複・打ち間違い・試し）のときだけ使います。
+      受け取り待ちからも残高からも消え、<b>全端末から消えます</b>。ゴミ箱から元に戻せます。</div>
+    ${reasonFieldHTML("lotDelReason")}
+    <button class="bigbtn red" onclick="confirmDeleteLot('${esc_S(lotId)}')">🗑 消す</button>
+    <button class="bigbtn gray" onclick="closeModal()">キャンセル</button>
+  `);
+  const r = document.getElementById("lotDelReason");
+  if (r && suggested) r.value = suggested;
+}
+
+function confirmDeleteLot(lotId){
+  const reason = (document.getElementById("lotDelReason").value || "").trim();
+  if (!reason){ showToast_S("理由を入れてください", true); return; }
+  const lot = findLot(lotId);
+  if (!lot) return;
+  // レジ締めから来た売上は、同じ締めの付随記録（おつり払出・箱の実測）もまとめて消す
+  const mt = /^(.+)-in$/.exec(lot.mov.id);
+  if (mt){
+    const { take, salesIn, box } = closeSubMovements(mt[1]);
+    for (const m of [take, salesIn, box]) if (m) hideMovement(m, reason);
+  } else {
+    hideMovement(lot.mov, reason);
+  }
+  closeModal();
+  renderAll();
+  showToast_S("🗑 消しました（ゴミ箱から元に戻せます）");
 }
 
 function findLot(lotId){
