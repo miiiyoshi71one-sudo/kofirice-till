@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0077A0">
 <!-- ⚠️ 版はここが唯一の正。直したら必ず上げる（JSはこの値を読むだけ）。
      更新の確認はファイルの先頭だけを読んで済ませるので、head の中に置くこと。 -->
-<meta name="build" content="2026-09-14b">
+<meta name="build" content="2026-09-15a">
 <title>KOFIRICE</title>
 <style>
 
@@ -1377,6 +1377,7 @@ body.practice #practiceNote{ display: block; }
     <div id="doneNote" style="color:var(--muted);font-size:14px;"></div>
     <div id="larkStatus" style="margin-top:10px;font-size:14px;color:var(--muted);"></div>
     <button class="bigbtn" onclick="resetAll()">🔄 New count</button>
+    <button class="bigbtn" id="doneMyDay" style="display:none;margin-top:10px" onclick="backToMyDay()">👤 Back to My Day</button>
   </div>
 </div>
 
@@ -2640,14 +2641,64 @@ setInterval(checkForUpdate, VERSION_CHECK_MS);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) checkForUpdate(); });
 // ホーム画面から復帰したとき（bfcache）。script が再実行されないので、ここで見に行く
 window.addEventListener("pageshow", (e) => { if (e.persisted) checkForUpdate(); });
+// ===== 👤 My Day から来たとき（2026-09-15）=====
+// #go=morning|till&who=<名前>&back=<My Day> … 名前とPINを飛ばして、その人でその画面へ直行する。
+// My Day（kofirice-apps の /me）でサーバー照合の PIN を入れた人だけが押せるリンクなので、ここでは聞き直さない。
+// # より後ろはサーバー（GitHub）に送られない。読んだらURL欄から消す（開き直しで再び直行しないように）。
+const MYDAY_BACK_KEY = LSK("kofirice_myday_back");
+function readMyDayLink(){
+  const h = location.hash || "";
+  if (h.indexOf("#go=") !== 0) return null;
+  const p = new URLSearchParams(h.slice(1));
+  const go = p.get("go"), who = (p.get("who") || "").trim();
+  let back = p.get("back") || "";
+  // 戻り先は My Day だけ（本番の Worker か、手元の練習用）。それ以外は捨てる
+  if (!/^https:\/\/lark-task-bot\.kiharajunpei\.workers\.dev\//.test(back) && !/^http:\/\/localhost(:\d+)?\//.test(back)) back = "";
+  try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+  if ((go !== "morning" && go !== "till") || !who) return null;
+  return { go, who, back };
+}
+function backToMyDay(){
+  const b = sessionStorage.getItem(MYDAY_BACK_KEY);
+  if (b) location.href = b;
+}
+function showMyDayBack(){
+  const el = document.getElementById("doneMyDay");
+  if (el) el.style.display = sessionStorage.getItem(MYDAY_BACK_KEY) ? "block" : "none";
+}
+function openFromMyDay(link){
+  // 改名前の名前（Elizabeth）で来ても通す
+  const alias = { Efie: "Elizabeth", Elizabeth: "Efie" };
+  const u = users.find(x => x.name === link.who) || users.find(x => x.name === alias[link.who]);
+  if (!u || ["chef", "manager"].indexOf(u.role) === -1) return false;
+  try {
+    if (link.back) sessionStorage.setItem(MYDAY_BACK_KEY, link.back);
+    else sessionStorage.removeItem(MYDAY_BACK_KEY);
+  } catch (e) {}
+  saveJSON_E(LS_SESSION_E, { name: u.name, role: u.role, at: new Date().toISOString() });
+  renderJobs(u); show_E("jobs");
+  if (link.go === "morning") startMorningCheck();
+  else { openApp("till"); resetAll(); }
+  return true;
+}
+
 (function init(){
   saveUsers();   // 初回は既定の一覧を保存しておく
+  // ⚠️ 直行はページを最後まで読んでから。この init はファイルの途中で走るので、ここで朝の確認を開くと
+  //    後ろにある const（金種など）がまだ無く、途中で落ちてレジ締めの画面が残る（2026-09-15 練習用の店で確認）
+  const link = readMyDayLink();
+  if (link) document.addEventListener("DOMContentLoaded", () => openFromMyDay(link));
   const s = loadJSON_E(LS_SESSION_E);
   const u = s && users.find(x => x.name === s.name && x.role === s.role);
   if (u){ renderJobs(u); show_E("jobs"); }
   else { renderPeople(); show_E("who"); }
   openApp("entry");
 })();
+
+window.addEventListener("hashchange", () => {
+  const link = readMyDayLink();
+  if (link) openFromMyDay(link);
+});
 
 document.getElementById("pinInput").addEventListener("keydown", e => {
   if (e.key === "Enter") submitPin();
@@ -3465,6 +3516,10 @@ function finishMorning(){
   }
   showToast_T(m.tillDiff === 0 ? "✅ Have a good day!" : "✅ Recorded. You can open the shop.");
   openApp("entry");
+  // My Day から来た人は My Day へ戻す（通知を送り出す時間を少し待つ）
+  let back = "";
+  try { back = sessionStorage.getItem(MYDAY_BACK_KEY) || ""; } catch (e) {}
+  if (back) setTimeout(() => { location.href = back; }, 1500);
 }
 
 // ---------- STEP1の「NEXT」で走る計算 ----------
@@ -3766,6 +3821,7 @@ function saveRecord(){
   if (rec.fromSafe > 0) note += " (You took " + fmt_T(rec.fromSafe) + " from the safe.)";
   if (rec.diff !== null) note += " — " + (rec.diff === 0 ? "Perfect match with POS ✔" : (rec.diff > 0 ? "Over by " + fmt_T(rec.diff) : "Short by " + fmt_T(-rec.diff)));
   document.getElementById("doneNote").textContent = note;
+  showMyDayBack();
   show_T("done");
   window.scrollTo(0,0);
 }
