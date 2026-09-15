@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0077A0">
 <!-- ⚠️ 版はここが唯一の正。直したら必ず上げる（JSはこの値を読むだけ）。
      更新の確認はファイルの先頭だけを読んで済ませるので、head の中に置くこと。 -->
-<meta name="build" content="2026-09-15a">
+<meta name="build" content="2026-09-16a">
 <title>KOFIRICE</title>
 <style>
 
@@ -3102,7 +3102,7 @@ function sendToLark(rec){
   const payload = JSON.stringify({ msg_type: "text", content: { text: buildLarkMessage(rec) } });
   // no-cors: request is delivered but the response is opaque (can't be read).
   // Body is sent as text/plain, which the Lark webhook accepts.
-  return fetch(url, { method: "POST", mode: "no-cors", body: payload })
+  return fetch(url, { method: "POST", mode: "no-cors", keepalive: true, body: payload })
     .then(() => true)
     .catch(() => false);
 }
@@ -3510,7 +3510,7 @@ function finishMorning(){
         (m.tillDiff === 0 ? " ／ 一致" : " ／ 差異 " + (m.tillDiff > 0 ? "+" : "−") + fmt_T(Math.abs(m.tillDiff))) + "）"
       + (m.tillDiff !== 0 ? "\n※ 数え直しても合いませんでした。開店は進めています。" : "");
     try {
-      fetch(url, { method: "POST", mode: "no-cors",
+      fetch(url, { method: "POST", mode: "no-cors", keepalive: true,   // 画面を移っても送り切る（2026-09-16）
         body: JSON.stringify({ msg_type: "text", content: { text } }) }).catch(() => {});
     } catch (e) { /* オフライン */ }
   }
@@ -6970,7 +6970,7 @@ function notifyLark(text){
   const url = (cfg.larkWebhook || "").trim();
   if (!url) return Promise.resolve(null);
   return fetch(url, {
-    method: "POST", mode: "no-cors",
+    method: "POST", mode: "no-cors", keepalive: true,
     body: JSON.stringify({ msg_type: "text", content: { text } })
   }).then(() => true).catch(() => false);
 }
