@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0077A0">
 <!-- ⚠️ 版はここが唯一の正。直したら必ず上げる（JSはこの値を読むだけ）。
      更新の確認はファイルの先頭だけを読んで済ませるので、head の中に置くこと。 -->
-<meta name="build" content="2026-09-17d">
+<meta name="build" content="2026-09-17e">
 <title>KOFIRICE</title>
 <style>
 
@@ -1513,6 +1513,17 @@ body.practice #practiceNote{ display: block; }
     <button class="bigbtn gray" onclick="document.getElementById('pasteBox').value='';previewPaste()">クリア</button>
   </div>
 
+  <div class="card" id="backfillCard">
+    <h2>✍️ 出し忘れの記入<span class="sub">朝の確認・レジ締め</span></h2>
+    <div class="hint">誰かが出し忘れた日を、日付を選んであとから記入します。台帳・Lark のレジ締めグループ・社長の売上の記録に<b>その日の分として</b>入ります。
+    締めを記入すると、次の日の朝の確認を比べ直し、合っていれば<b>差異なし</b>に直します。</div>
+    <div id="backfillDays"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button class="bigbtn" style="flex:1" onclick="openBackfill('morning','')">🌅 朝の確認を記入</button>
+      <button class="bigbtn" style="flex:1" onclick="openBackfill('close','')">💵 レジ締めを記入</button>
+    </div>
+  </div>
+
   <div class="card">
     <h2>✍️ 手入力で記録<span class="sub">レジ締めアプリのない店舗用</span></h2>
     <div class="field">
@@ -2657,7 +2668,7 @@ function readMyDayLink(){
   // 戻り先は My Day だけ（本番の Worker か、手元の練習用）。それ以外は捨てる
   if (!/^https:\/\/lark-task-bot\.kiharajunpei\.workers\.dev\//.test(back) && !/^http:\/\/localhost(:\d+)?\//.test(back)) back = "";
   try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
-  if (["morning", "till", "deliver", "collect", "redo"].indexOf(go) === -1 || !who) return null;
+  if (["morning", "till", "deliver", "collect", "redo", "backfill"].indexOf(go) === -1 || !who) return null;
   return { go, who, back, store: (p.get("store") || "").replace(/[^a-z0-9]/gi, "") };
 }
 function backToMyDay(){
@@ -2674,7 +2685,7 @@ function openFromMyDay(link){
   const u = users.find(x => x.name === link.who) || users.find(x => x.name === alias[link.who]);
   // 配送はドライバーの仕事（2026-09-17）。朝の確認・レジ締めはシェフとマネージャー
   // 売上の回収（受け取り）は日本人マネージャー（2026-09-17）
-  const okRoles = link.go === "deliver" ? ["driver"] : link.go === "collect" ? ["manager"] : ["chef", "manager"];
+  const okRoles = link.go === "deliver" ? ["driver"] : (link.go === "collect" || link.go === "backfill") ? ["manager"] : ["chef", "manager"];
   if (!u || okRoles.indexOf(u.role) === -1) return false;
   try {
     if (link.back) sessionStorage.setItem(MYDAY_BACK_KEY, link.back);
@@ -2683,13 +2694,14 @@ function openFromMyDay(link){
   saveJSON_E(LS_SESSION_E, { name: u.name, role: u.role, at: new Date().toISOString() });
   renderJobs(u); show_E("jobs");
   // My Day の店（lapaz 等）と同じ名前の店を選んでおく。見つからなければ今の店のまま
-  if ((link.go === "deliver" || link.go === "collect") && link.store){
+  if ((link.go === "deliver" || link.go === "collect" || link.go === "backfill") && link.store){
     const re = new RegExp(link.store, "i");
     const hit = (cfg.stores || []).find(x => re.test(x.name) || re.test(x.code));
     if (hit && cfg.currentStore !== hit.code){ cfg.currentStore = hit.code; saveCfg(); driverSelectedLots = {}; }
   }
   if (link.go === "deliver"){ openApp("driver"); show_D("deliver"); return true; }
   if (link.go === "collect"){ openApp("safe"); show_S("collect"); return true; }
+  if (link.go === "backfill"){ openApp("safe"); show_S("apply"); setTimeout(() => { const c = document.getElementById("backfillCard"); if (c) c.scrollIntoView({ block: "start" }); }, 300); return true; }
   if (link.go === "redo"){ openApp("till"); resetAll(); openRedoClose(); return true; }
   if (link.go === "morning") startMorningCheck();
   else { openApp("till"); resetAll(); }
@@ -3170,12 +3182,46 @@ function allocate(counts, floatTarget){
 function floatTargetTotal(ft){ return DENOMS_T.reduce((s,d)=> s + d * (ft[d]||0), 0); }
 
 /** 前夜の締めでレジに残した額。朝のチェックが「合っているか」を見る相手。 */
-function lastCloseTillTotal(){
+// ---------- 🧾 夜の締めで「レジに残した額」（2026-09-17e）----------
+// 台帳の TILL_LEFT。硬貨は金種に入らないので note の coins= に持つ
+function addTillLeft(baseId, ts, store, notes, coins, actor, source, extra){
+  return addMovement({
+    id: baseId + "-left", ts: ts, store: store, compartment: "float", type: "TILL_LEFT",
+    notes: notes, actor: actor || "", source: source,
+    note: "coins=" + (Math.round((Number(coins) || 0) * 100) / 100) + "｜レジに残した額 " +
+      fmt_S(notesTotal_S(notes) + (Number(coins) || 0)) + (extra ? "｜" + extra : "")
+  });
+}
+function tillLeftTotal(m){
+  const c = /coins=([\d.]+)/.exec(String(m.note || ""));
+  return Math.round((notesTotal_S(m.notes) + (c ? Number(c[1]) : 0)) * 100) / 100;
+}
+/** その店で、beforeMs より前の最後の締めでレジに残した額と時刻。台帳とこの端末の履歴の新しいほう。無ければ null */
+function lastCloseLeft(store, beforeMs){
+  const lim = beforeMs || Infinity;
+  let best = null;
+  let raw = [];
+  try { raw = allMovementsRaw(); } catch (e) {}
+  const hiddenIds = new Set(raw.filter(m => m.hidden).map(m => m.id));
+  for (const m of raw){
+    if (m.hidden || m.type !== "TILL_LEFT" || m.store !== store) continue;
+    const t = new Date(m.ts).getTime();
+    if (t < lim && (!best || t > best.t)) best = { t, total: tillLeftTotal(m), id: m.id };
+  }
   const hist = loadJSON_T(LS_HIST) || [];
   for (const r of hist){
-    if (typeof r.finalTotal === "number") return r.finalTotal;
+    if (typeof r.finalTotal !== "number") continue;
+    if ((r.storeCode || DEFAULT_STORE_CODE) !== store) continue;
+    const t = new Date(r.ts).getTime();
+    const base = store + "-" + Math.floor(t / 1000);
+    if (hiddenIds.has(base + "-in") || hiddenIds.has(base + "-left")) continue;   // ゴミ箱に入れた締め
+    if (t < lim && (!best || t > best.t)) best = { t, total: r.finalTotal, id: base };
   }
-  return floatTargetTotal(settings.float);
+  return best;
+}
+function lastCloseTillTotal(beforeMs){
+  const b = lastCloseLeft(settings.storeCode || DEFAULT_STORE_CODE, beforeMs);
+  return b ? b.total : floatTargetTotal(settings.float);
 }
 
 /** 今朝の Morning check で実際に数えたレジの額。無ければ null。 */
@@ -3712,8 +3758,10 @@ function toggleBook(){
 function syncTillRecordDirect(rec){
   const epoch = Math.floor(new Date(rec.ts).getTime() / 1000);
   const baseId = rec.storeCode + "-" + epoch;
-  const ids = [baseId + "-in", baseId + "-take", baseId + "-box"];
+  const ids = [baseId + "-in", baseId + "-take", baseId + "-box", baseId + "-left"];
   if (allMovements().some(x => ids.indexOf(x.id) > -1)) return;   // 二重登録防止
+  // 🧾 今晩レジに残した額（2026-09-17e）。翌朝の確認が、どの端末からでもこれと比べられるように台帳にも残す
+  if (typeof rec.finalTotal === "number") addTillLeft(baseId, rec.ts, rec.storeCode, rec.finalNotes || {}, rec.finalCoins || 0, rec.staff, "till-direct", "");
 
   if (notesNonZero(rec.safeNotes)){
     addMovement({
@@ -3754,8 +3802,8 @@ function lastCloseToday(storeCode){
   if (now.getTime() < cut) cut -= 86400000;
   const bases = {};
   for (const m of allMovements()){
-    if (m.source !== "till-direct" || m.store !== storeCode) continue;
-    const mm = /^(.+-\d+)-(in|take|box)$/.exec(String(m.id || ""));
+    if ((m.source !== "till-direct" && m.source !== "backfill") || m.store !== storeCode) continue;
+    const mm = /^(.+-\d+)-(in|take|box|left)$/.exec(String(m.id || ""));
     if (!mm) continue;
     const t = new Date(m.ts).getTime();
     if (!(t >= cut)) continue;
@@ -3797,7 +3845,7 @@ async function openRedoClose(){
     return;
   }
   const lot = c.in ? lotStates(store).find(l => l.mov.id === c.in.id) : null;
-  const who = (c.in || c.take || c.box).actor || "?";
+  const who = (c.in || c.take || c.box || c.left).actor || "?";
   const at = new Date(c.t).toISOString().slice(11, 16);
   if (lot && lot.takenAmount > 0.005){
     redoOverlay('<h3 style="margin:0 0 8px;color:#c0392b">You can\'t redo this close</h3>' +
@@ -3827,9 +3875,9 @@ function confirmRedoClose(baseId){
   const c = lastCloseToday(store);
   if (!c || c.baseId !== baseId){ redoBusy = false; closeRedo(); showToast_T("⚠️ That close is gone already. Check again.", true); return; }
   const by = selectedStaff || currentSessionName() || "";
-  const was = (c.in || c.take || c.box);
+  const was = (c.in || c.take || c.box || c.left);
   const reason = "Redo by " + (by || "staff") + " (till close mistake)";
-  for (const k of ["in", "take", "box"]) if (c[k]) hideMovement(c[k], reason);
+  for (const k of ["in", "take", "box", "left"]) if (c[k]) hideMovement(c[k], reason);
   // この端末の履歴からも外す（翌朝の「前の晩に残した額」がやり直した締めになるように）
   const epoch = Number(baseId.split("-").pop());
   const hist = (loadJSON_T(LS_HIST) || []).filter(r =>
@@ -4121,6 +4169,8 @@ const TYPE_LABEL = {
   TILL_SMALL_CHECK: "レジの小銭を確認",
   SALES_COUNT: "朝の確認：金庫の売上（実測）",
   FLOAT_COUNT: "朝の確認：レジ金（実測）",
+  TILL_LEFT:   "夜の締め：レジに残した額",
+  RECHECK:     "朝の確認の比べ直し",
   VOID:        "取消"
 };
 
@@ -4132,7 +4182,7 @@ const TYPE_LABEL = {
  * 帳尻が合わなくなり、受取画面の初期値と配送の引き当てが狂う。
  * ズレを実際に直すのは履歴タブの「訂正」。
  */
-const OBSERVE_ONLY = { SALES_COUNT: 1, FLOAT_COUNT: 1 };
+const OBSERVE_ONLY = { SALES_COUNT: 1, FLOAT_COUNT: 1, TILL_LEFT: 1 };
 
 let cfg = loadJSON_S(LS_CFG) || {
   gasUrl: "", token: "", device: "", larkWebhook: "",
@@ -4877,6 +4927,235 @@ function renderManual(){
 }
 function updateManTotal(){ updateDenomSubs("man", "manTotal"); }
 
+// =============================================================
+// ✍️ 出し忘れの記入（2026-09-17e）
+// =============================================================
+const BF_DAYS = 10;
+function bfDay(offset){ const d = new Date(); d.setUTCDate(d.getUTCDate() - offset); return d.toISOString().slice(0, 10); }
+function bfNextDay(day){ const d = new Date(day + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10); }
+function bfMD(day){ return Number(day.slice(5, 7)) + "/" + Number(day.slice(8, 10)); }
+// その日の朝の確認（レジ）があるか／その日の夜の締めがあるか（締めは翌朝5時までを同じ日に数える）
+function bfHasMorning(store, day){
+  return allMovements().some(m => m.store === store && m.type === "FLOAT_COUNT" && String(m.ts).slice(0, 10) === day);
+}
+function bfCloseOf(store, day){
+  const from = Date.parse(day + "T10:00:00Z"), to = Date.parse(bfNextDay(day) + "T05:00:00Z");
+  return allMovements().find(m => m.store === store && (m.type === "TILL_LEFT" || (m.type === "SALES_IN" && m.source !== "manual")) &&
+    new Date(m.ts).getTime() >= from && new Date(m.ts).getTime() < to) || null;
+}
+function renderBackfill(){
+  const st = currentStore();
+  const box = document.getElementById("backfillDays");
+  if (!st || !box) return;
+  const today = bfDay(0);
+  const nowH = new Date().getUTCHours();
+  let rows = "";
+  for (let i = BF_DAYS; i >= 0; i--){
+    const day = bfDay(i);
+    const mOk = bfHasMorning(st.code, day);
+    const cOk = !!bfCloseOf(st.code, day);
+    const closeDue = day !== today || nowH >= 23;   // 今日の締めはまだ時間前
+    if (mOk && (cOk || !closeDue)) continue;
+    rows += `<div class="row-between" style="padding:8px 0;border-top:1px solid #eee;gap:6px;flex-wrap:wrap">
+      <span><b>${bfMD(day)}</b>${day === today ? "（今日）" : ""}</span>
+      <span style="display:flex;gap:6px;flex-wrap:wrap">
+        ${mOk ? '<span class="cap">🌅 ✅</span>' : `<button class="minibtn" onclick="openBackfill('morning','${day}')">🌅 朝が抜け → 記入</button>`}
+        ${cOk ? '<span class="cap">💵 ✅</span>' : closeDue ? `<button class="minibtn" onclick="openBackfill('close','${day}')">💵 締めが抜け → 記入</button>` : '<span class="cap">💵 まだ時間前</span>'}
+      </span></div>`;
+  }
+  box.innerHTML = rows
+    ? `<div class="cap" style="margin-top:8px">直近${BF_DAYS}日で抜けている日（${esc_S(st.name)}・休みの日も出ます）</div>` + rows
+    : `<div class="empty" style="margin-top:8px">直近${BF_DAYS}日に抜けはありません 👍</div>`;
+}
+function bfStaffOptions(){
+  const names = (users || []).filter(u => u.role === "chef" || u.role === "manager").map(u => u.name);
+  return names.map(n => `<option value="${esc_S(n)}">${esc_S(n)}</option>`).join("");
+}
+let bfKind = "";
+function openBackfill(kind, day){
+  const st = currentStore();
+  if (!st) return;
+  bfKind = kind;
+  const d = day || bfDay(1);
+  const common = `
+    <div class="field"><label>日付（ガーナ）</label><input type="date" id="bfDate" value="${d}" max="${bfDay(0)}" oninput="updateBackfill()"></div>
+    <div class="field"><label>時刻</label><input type="time" id="bfTime" value="${kind === "morning" ? "09:00" : "22:00"}" oninput="updateBackfill()"></div>
+    <div class="field"><label>${kind === "morning" ? "数えた人" : "締めた人"}（記録に残る名前）</label>
+      <select id="bfStaff">${bfStaffOptions()}</select></div>`;
+  if (kind === "morning"){
+    openModal(`<h3>🌅 朝の確認を記入（${esc_S(st.name)}）</h3>
+      <div class="hint">その日の朝に数えた枚数を入れます。わからない側は空のままで構いません。</div>
+      ${common}
+      <div class="field"><label>💰 金庫の前日売上（枚数）</label><div class="denom-grid" id="bfsDenoms"></div>
+        <div class="row-between total"><span>合計</span><span id="bfsTotal">GH₵ 0</span></div></div>
+      <div class="field"><label>🧾 レジの釣り銭（枚数）</label><div class="denom-grid" id="bftDenoms"></div>
+        <div class="row-between total"><span>合計</span><span id="bftTotal">GH₵ 0</span></div></div>
+      <div id="bfCheck"></div>
+      <button class="bigbtn" onclick="saveBackfill()">💾 この日付で記録する</button>
+      <button class="bigbtn gray" onclick="closeModal()">キャンセル</button>`);
+    denomInputs("bfsDenoms", "bfs", null, "updateBackfill");
+    denomInputs("bftDenoms", "bft", null, "updateBackfill");
+  } else {
+    openModal(`<h3>💵 レジ締めを記入（${esc_S(st.name)}）</h3>
+      <div class="hint">その夜、<b>金庫に入れた枚数</b>と<b>レジに残した枚数</b>を入れます（翌朝に数えた数でも構いません）。売上は「レジにあった合計 − その日の朝の額」で出します。</div>
+      ${common}
+      <div class="field"><label>💰 金庫に入れた枚数</label><div class="denom-grid" id="bfsDenoms"></div>
+        <div class="row-between total"><span>合計</span><span id="bfsTotal">GH₵ 0</span></div></div>
+      <div class="field"><label>🧾 レジに残した枚数</label><div class="denom-grid" id="bftDenoms"></div>
+        <div class="row-between total"><span>合計</span><span id="bftTotal">GH₵ 0</span></div></div>
+      <div class="field"><label>🪙 レジに残した硬貨（合計額）</label><input type="number" id="bfCoins" min="0" step="0.5" placeholder="0" oninput="updateBackfill()"></div>
+      <div class="field"><label>📱 MoMo の売上（必須・無ければ 0）</label><input type="number" id="bfMomo" min="0" step="1" placeholder="0 と打つ" oninput="updateBackfill()"></div>
+      <div id="bfCheck"></div>
+      <button class="bigbtn" onclick="saveBackfill()">💾 この日付で記録する</button>
+      <button class="bigbtn gray" onclick="closeModal()">キャンセル</button>`);
+    denomInputs("bfsDenoms", "bfs", null, "updateBackfill");
+    denomInputs("bftDenoms", "bft", null, "updateBackfill");
+  }
+  updateBackfill();
+}
+function bfTs(){
+  const d = (document.getElementById("bfDate") || {}).value || "";
+  const t = (document.getElementById("bfTime") || {}).value || "12:00";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return null;
+  const ms = Date.parse(d + "T" + t + ":00Z");
+  return isNaN(ms) ? null : ms;
+}
+// その日の朝の額（締めの売上の起点）: その日の朝の確認（レジ）の最後 → 無ければ前の締めで残した額 → レジ金の設定
+function bfOpening(store, ms){
+  const day = new Date(ms).toISOString().slice(0, 10);
+  const fc = allMovements().filter(m => m.store === store && m.type === "FLOAT_COUNT" &&
+    String(m.ts).slice(0, 10) === day && new Date(m.ts).getTime() < ms).sort(cmpMov);
+  if (fc.length) return { total: notesTotal_S(fc[fc.length - 1].notes), from: "その日の朝の確認" };
+  const b = lastCloseLeft(store, ms);
+  if (b) return { total: b.total, from: "前の晩に残した額" };
+  const st = cfg.stores.find(x => x.code === store);
+  return { total: notesTotal_S((st && st.tillFloat) || {}), from: "レジ金の設定" };
+}
+function updateBackfill(){
+  const st = currentStore();
+  if (!st || !document.getElementById("bfCheck")) return;
+  const s = updateDenomSubs("bfs", "bfsTotal");
+  const t = updateDenomSubs("bft", "bftTotal");
+  const ms = bfTs();
+  const el = document.getElementById("bfCheck");
+  if (ms === null){ el.innerHTML = ""; return; }
+  if (bfKind === "morning"){
+    const b = lastCloseLeft(st.code, ms);
+    if (!notesNonZero(t)){ el.innerHTML = '<div class="hint">レジを入れると、前夜の締めと比べます。</div>'; return; }
+    if (!b){ el.innerHTML = '<div class="hint">比べる前夜の締めが見つかりません（締めも抜けているなら、先に締めを記入してください）。</div>'; return; }
+    const diff = Math.round((notesTotal_S(t) - b.total) * 100) / 100;
+    el.innerHTML = `<div class="warn${diff ? " bad" : ""}">前夜の締め（${esc_S(dateJP(new Date(b.t).toISOString()))}）で残した額 ${fmt_S(b.total)} → ${diff === 0 ? "<b>一致</b>" : "<b>差異 " + (diff > 0 ? "+" : "−") + fmt_S(Math.abs(diff)) + "</b>"}</div>`;
+  } else {
+    const coins = Number((document.getElementById("bfCoins") || {}).value) || 0;
+    const momoRaw = String((document.getElementById("bfMomo") || {}).value || "").trim();
+    const op = bfOpening(st.code, ms);
+    const total = notesTotal_S(s) + notesTotal_S(t) + coins;
+    const cash = Math.round((total - op.total) * 100) / 100;
+    el.innerHTML = `<div class="warn" style="background:#F5F8FA">
+      レジにあった合計 ${fmt_S(total)} − 朝の額 ${fmt_S(op.total)}（${esc_S(op.from)}）＝ <b>現金売上 ${fmt_S(cash)}</b><br>
+      MoMo ${momoRaw === "" ? '<b style="color:var(--red)">未入力</b>' : fmt_S(Number(momoRaw))} ／ 合計売上 ${momoRaw === "" ? "—" : fmt_S(cash + Number(momoRaw))}</div>`;
+  }
+}
+let bfBusy = false;
+async function saveBackfill(){
+  if (bfBusy) return;
+  const st = currentStore();
+  if (!st) return;
+  const ms = bfTs();
+  if (ms === null){ showToast_S("日付を入れてください", true); return; }
+  if (ms > Date.now()){ showToast_S("これから先の時刻は記入できません", true); return; }
+  const staff = (document.getElementById("bfStaff") || {}).value || "";
+  const by = currentSessionName() || cfg.device || "";
+  const s = readDenoms("bfs"), t = readDenoms("bft");
+  const day = new Date(ms).toISOString().slice(0, 10);
+  const ts = new Date(ms).toISOString();
+  const lateTag = " (late entry for " + day + ")";
+  bfBusy = true;
+  await syncFirst();   // ほかの端末で記入ずみではないか、先に取り込む
+  bfBusy = false;
+
+  if (bfKind === "morning"){
+    if (!notesNonZero(s) && !notesNonZero(t)){ showToast_S("数えた枚数を入れてください", true); return; }
+    if (bfHasMorning(st.code, day) && !confirm(bfMD(day) + " の朝の確認はもうあります。もう1件記入しますか？")) return;
+    const b = lastCloseLeft(st.code, ms);
+    const diff = b && notesNonZero(t) ? Math.round((notesTotal_S(t) - b.total) * 100) / 100 : null;
+    const tag = "（あとから記入・" + by + "）";
+    if (notesNonZero(s)) addMovement({ ts, store: st.code, compartment: "sales", type: "SALES_COUNT", notes: s, actor: staff,
+      note: "朝の確認（金庫の前日売上）" + tag, source: "backfill" });
+    let fcNote = "";
+    if (notesNonZero(t)){
+      fcNote = diff === null ? "比べる締めなし" : diff === 0 ? "前夜の締めどおり" : "差異 " + (diff > 0 ? "+" : "−") + fmt_S(Math.abs(diff)) + "（前夜の締め " + fmt_S(b.total) + "）";
+      addMovement({ ts, store: st.code, compartment: "float", type: "FLOAT_COUNT", notes: t, actor: staff,
+        note: "朝の確認（レジ）" + tag + " ── " + fcNote, source: "backfill" });
+    }
+    postTillGroup("🌅 Morning check ── " + st.name + lateTag +
+      "\n担当: " + staff + "（記入: " + by + "）" +
+      (notesNonZero(s) ? "\n金庫の前日売上: " + fmt_S(notesTotal_S(s)) : "") +
+      (notesNonZero(t) ? "\nレジ: " + fmt_S(notesTotal_S(t)) + "（" + fcNote + "）" : ""));
+  } else {
+    const momoRaw = String((document.getElementById("bfMomo") || {}).value || "").trim();
+    if (momoRaw === ""){ showToast_S("MoMo の売上を入れてください（無ければ 0）", true); return; }
+    if (!notesNonZero(s) && !notesNonZero(t)){ showToast_S("枚数を入れてください", true); return; }
+    if (bfCloseOf(st.code, day) && !confirm(bfMD(day) + " の締めはもうあります。もう1件記入しますか？")) return;
+    const coins = Number((document.getElementById("bfCoins") || {}).value) || 0;
+    const momo = Math.round(Number(momoRaw) * 100) / 100;
+    const op = bfOpening(st.code, ms);
+    const leftTotal = Math.round((notesTotal_S(t) + coins) * 100) / 100;
+    const total = Math.round((notesTotal_S(s) + leftTotal) * 100) / 100;
+    const cash = Math.round((total - op.total) * 100) / 100;
+    const baseId = st.code + "-" + Math.floor(ms / 1000);
+    const tag = "あとから記入・" + by;
+    if (notesNonZero(s)) addMovement({ id: baseId + "-in", ts, store: st.code, compartment: "sales", type: "SALES_IN",
+      notes: s, actor: staff, note: "現金売上 " + cash + " / MoMo " + momo + "（" + tag + "）", source: "backfill" });
+    addTillLeft(baseId, ts, st.code, t, coins, staff, "backfill", tag);
+    // 社長の売上の記録・My Day・回収待ちは、この1通をその日の分として読む（同期コードの時刻がその日）
+    const rec = { ts, store: st.name + lateTag, storeCode: st.code, staff, total, opening: op.total,
+      openingFrom: op.from === "その日の朝の確認" ? "morning" : "lastClose",
+      sales: cash, momo, totalSales: Math.round((cash + momo) * 100) / 100, toSafe: notesTotal_S(s), fromSafe: 0,
+      finalTotal: leftTotal, safeNotes: s, takeNotes: {}, boxCounts: {}, floatTarget: t, pos: null, diff: null };
+    postTillGroup(buildLarkMessage(rec) + "\n（あとから記入: " + by + "）");
+    const rc = recheckAfterClose(st, ms, leftTotal, day);
+    if (rc) postTillGroup("🔁 朝の確認を比べ直しました ── " + st.name + "\n" + rc);
+  }
+  doSync();
+  closeModal();
+  renderAll();
+  renderBackfill();
+  showToast_S("✅ " + bfMD(day) + " の分として記録しました");
+}
+
+// ---------- 🔁 朝の確認の比べ直し ----------
+function recheckMap(){
+  const map = {};
+  let raw = [];
+  try { raw = allMovements(); } catch (e) { return map; }
+  for (const m of raw.filter(x => x.type === "RECHECK").sort(cmpMov)){
+    map[m.ref] = { note: m.note || "", ok: /差異なし/.test(m.note || "") };
+  }
+  return map;
+}
+// 締めを記入したら、その次の朝の確認（締めのあと・次の締めより前で最初のもの）を比べ直す。文面を返す
+function recheckAfterClose(st, closeMs, leftTotal, day){
+  const next = allMovements().filter(m => m.store === st.code &&
+    (m.type === "TILL_LEFT" || m.type === "SALES_IN") && new Date(m.ts).getTime() > closeMs).sort(cmpMov)[0];
+  const until = next ? new Date(next.ts).getTime() : Infinity;
+  const fc = allMovements().filter(m => m.store === st.code && m.type === "FLOAT_COUNT" &&
+    new Date(m.ts).getTime() > closeMs && new Date(m.ts).getTime() < until).sort(cmpMov);
+  if (!fc.length) return "";
+  const firstDay = String(fc[0].ts).slice(0, 10);
+  const sameMorning = fc.filter(m => String(m.ts).slice(0, 10) === firstDay);
+  const last = sameMorning[sameMorning.length - 1];
+  const diff = Math.round((notesTotal_S(last.notes) - leftTotal) * 100) / 100;
+  const note = diff === 0
+    ? "差異なし（" + bfMD(day) + " の締めをあとから記入して解消。残した額 " + fmt_S(leftTotal) + "）"
+    : "差異 " + (diff > 0 ? "+" : "−") + fmt_S(Math.abs(diff)) + "（" + bfMD(day) + " の締めをあとから記入して比べ直し。残した額 " + fmt_S(leftTotal) + "）";
+  for (const m of sameMorning){
+    addMovement({ id: "recheck-" + uid(), ts: new Date().toISOString(), store: st.code, compartment: "meta", type: "RECHECK",
+      notes: emptyNotes(), ref: m.id, note: note, actor: currentSessionName() || cfg.device || "", source: "recheck" });
+  }
+  return bfMD(firstDay) + " の朝（" + (last.actor || "?") + "）: レジ " + fmt_S(notesTotal_S(last.notes)) + " → " + note;
+}
+
 function submitManual(){
   const notes = readDenoms("man");
   if (!notesNonZero(notes)){ showToast_S("枚数を入力してください", true); return; }
@@ -5062,6 +5341,7 @@ function movHTML(m, reversedIds, opts){
     ? `<span class="v">⇄ ${amt === 0 ? "±0" : (amt > 0 ? "+" : "−") + fmt_S(Math.abs(amt))}</span>`
     : `<span class="v ${amt >= 0 ? "plus" : "minus"}">${amt >= 0 ? "+" : "−"}${fmt_S(Math.abs(amt))}</span>`;
   const isCorrection = m.source === "correction";
+  const rc = m.type === "FLOAT_COUNT" ? recheckMap()[m.id] : null;
   const alreadyReversed = reversedIds ? reversedIds.has(m.id) : false;
   const reversedLine = alreadyReversed ? `<div class="m" style="color:var(--red);font-weight:700">↩️ 訂正ずみ</div>` : "";
   let actionBtns = "";
@@ -5090,6 +5370,7 @@ function movHTML(m, reversedIds, opts){
     </div>
     <div class="m">${esc_S(dateJP(m.ts))}${m.actor ? " ／ " + esc_S(m.actor) : ""}${cfg.stores.length > 1 ? " ／ " + esc_S(storeName(m.store)) : ""}</div>
     <div class="m">${esc_S(notesText(m.notes))}${m.note ? " ／ " + esc_S(m.note) : ""}</div>
+    ${rc ? `<div class="m" style="color:${rc.ok ? "var(--green)" : "var(--red)"};font-weight:700">🔁 ${esc_S(rc.note)}</div>` : ""}
     ${reversedLine}
     ${actionBtns}
   </div>`;
@@ -5105,11 +5386,11 @@ function movHTML(m, reversedIds, opts){
  * 3件が揃わないことがあるため、素のリストのまま出す）。
  */
 function groupCloseRecords(raw){
-  const re = /^(.+)-(in|take|box)$/;
+  const re = /^(.+)-(in|take|box|left)$/;
   const groups = {};
   const used = new Set();
   for (const m of raw){
-    if (m.source !== "till-direct" && m.source !== "sync") continue;
+    if (m.source !== "till-direct" && m.source !== "sync" && m.source !== "backfill") continue;
     const mt = re.exec(m.id);
     if (!mt) continue;
     const baseId = mt[1], kind = mt[2];
@@ -5119,12 +5400,13 @@ function groupCloseRecords(raw){
   const rows = [];
   for (const baseId in groups){
     const subs = groups[baseId];
-    const anchor = subs.in || subs.take || subs.box;
+    const anchor = subs.in || subs.take || subs.box || subs.left;
     if (!anchor) continue;
     rows.push({ kind: "group", baseId, subs, ts: anchor.ts, staff: anchor.actor, store: anchor.store });
     if (subs.in) used.add(subs.in.id);
     if (subs.take) used.add(subs.take.id);
     if (subs.box) used.add(subs.box.id);
+    if (subs.left) used.add(subs.left.id);
   }
   for (const m of raw){
     if (!used.has(m.id)) rows.push({ kind: "single", mov: m, ts: m.ts });
@@ -5138,7 +5420,7 @@ function toggleHistGroup(gid){
 function closeGroupHTML(g, reversedIds){
   const salesAmt = g.subs.in ? notesTotal_S(g.subs.in.notes) : 0;
   const anyReversed = ["in", "take", "box"].some(k => g.subs[k] && reversedIds.has(g.subs[k].id));
-  const detailRows = ["in", "take", "box"]
+  const detailRows = ["in", "take", "box", "left"]
     .map(k => g.subs[k] ? movHTML(g.subs[k], reversedIds, { noActions: true }) : "")
     .join("");
   const gid = "grp-" + g.baseId.replace(/[^A-Za-z0-9_-]/g, "_");
@@ -5261,7 +5543,8 @@ function closeSubMovements(baseId){
   return {
     take: allMovements().find(x => x.id === baseId + "-take"),
     salesIn: allMovements().find(x => x.id === baseId + "-in"),
-    box: allMovements().find(x => x.id === baseId + "-box")
+    box: allMovements().find(x => x.id === baseId + "-box"),
+    left: allMovements().find(x => x.id === baseId + "-left")
   };
 }
 function openCorrectClose(baseId){
@@ -5359,8 +5642,8 @@ function openDeleteClose(baseId){
 function confirmDeleteClose(baseId){
   const reason = (document.getElementById("delReason").value || "").trim();
   if (!reason){ showToast_S("理由を入れてください", true); return; }
-  const { take, salesIn, box } = closeSubMovements(baseId);
-  for (const m of [take, salesIn, box]){
+  const { take, salesIn, box, left } = closeSubMovements(baseId);
+  for (const m of [take, salesIn, box, left]){
     if (m) hideMovement(m, reason);
   }
   closeModal();
@@ -7354,7 +7637,7 @@ function show_S(name){
   const noTab = { settings: 1, morning: 1, apply: 1 };
   const tab = document.getElementById("tab-" + (noTab[name] ? "home" : name));
   if (tab) tab.classList.add("active");
-  if (name === "apply")   renderManual();
+  if (name === "apply"){ renderManual(); renderBackfill(); }
   // 「売上回収」は店にある売上と、ドライバーが運んでいる途中の分の両方を見る
   if (name === "collect"){ renderCollect(); renderDeliverConfirm(); }
   // 「おつり整理」は両替・実測・枚数の基準をまとめて持つ
