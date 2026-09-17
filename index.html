@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0077A0">
 <!-- ⚠️ 版はここが唯一の正。直したら必ず上げる（JSはこの値を読むだけ）。
      更新の確認はファイルの先頭だけを読んで済ませるので、head の中に置くこと。 -->
-<meta name="build" content="2026-09-16a">
+<meta name="build" content="2026-09-17d">
 <title>KOFIRICE</title>
 <style>
 
@@ -1359,7 +1359,7 @@ body.practice #practiceNote{ display: block; }
 
   <div class="field">
     <label>📱 MoMo received today (GH₵)</label>
-    <input type="number" id="momoOne" min="0" step="1" placeholder="0" inputmode="numeric" oninput="onMomoTyped()">
+    <input type="number" id="momoOne" min="0" step="1" placeholder="Type it — 0 if no MoMo today" inputmode="numeric" oninput="onMomoTyped()">
     <div class="cap" id="momoSrc"></div>
   </div>
 
@@ -1545,6 +1545,8 @@ body.practice #practiceNote{ display: block; }
     <h2>💰 前日ぶんの売上を受け取る</h2>
     <div class="hint">スタッフが金庫にしまった売上の一覧です。実際に受け取った枚数を入力して確定すると、金庫の残高から差し引かれます。日時はすべて<b>ガーナ時間</b>で表示しています。</div>
     <div class="row-between total"><span>未受取の合計</span><span id="collectTotal">GH₵ 0</span></div>
+    <div class="hint" id="collectTotalNote"></div>
+    <button class="bigbtn" id="collectAllBtn" style="display:none;margin-top:10px" onclick="openCollectAll()">💰 全部まとめて受け取る</button>
   </div>
   <div id="collectList"></div>
   <div class="card">
@@ -1965,7 +1967,7 @@ body.practice #practiceNote{ display: block; }
   </div>
 
   <div class="card">
-    <h2>🚚 Currently in transit<span class="sub">your deliveries, awaiting the office</span></h2>
+    <h2>🚚 Your deliveries<span class="sub">on the way · received by the office</span></h2>
     <div id="drvTransitList"></div>
   </div>
 </div>
@@ -2655,8 +2657,8 @@ function readMyDayLink(){
   // 戻り先は My Day だけ（本番の Worker か、手元の練習用）。それ以外は捨てる
   if (!/^https:\/\/lark-task-bot\.kiharajunpei\.workers\.dev\//.test(back) && !/^http:\/\/localhost(:\d+)?\//.test(back)) back = "";
   try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
-  if ((go !== "morning" && go !== "till") || !who) return null;
-  return { go, who, back };
+  if (["morning", "till", "deliver", "collect", "redo"].indexOf(go) === -1 || !who) return null;
+  return { go, who, back, store: (p.get("store") || "").replace(/[^a-z0-9]/gi, "") };
 }
 function backToMyDay(){
   const b = sessionStorage.getItem(MYDAY_BACK_KEY);
@@ -2670,13 +2672,25 @@ function openFromMyDay(link){
   // 改名前の名前（Elizabeth）で来ても通す
   const alias = { Efie: "Elizabeth", Elizabeth: "Efie" };
   const u = users.find(x => x.name === link.who) || users.find(x => x.name === alias[link.who]);
-  if (!u || ["chef", "manager"].indexOf(u.role) === -1) return false;
+  // 配送はドライバーの仕事（2026-09-17）。朝の確認・レジ締めはシェフとマネージャー
+  // 売上の回収（受け取り）は日本人マネージャー（2026-09-17）
+  const okRoles = link.go === "deliver" ? ["driver"] : link.go === "collect" ? ["manager"] : ["chef", "manager"];
+  if (!u || okRoles.indexOf(u.role) === -1) return false;
   try {
     if (link.back) sessionStorage.setItem(MYDAY_BACK_KEY, link.back);
     else sessionStorage.removeItem(MYDAY_BACK_KEY);
   } catch (e) {}
   saveJSON_E(LS_SESSION_E, { name: u.name, role: u.role, at: new Date().toISOString() });
   renderJobs(u); show_E("jobs");
+  // My Day の店（lapaz 等）と同じ名前の店を選んでおく。見つからなければ今の店のまま
+  if ((link.go === "deliver" || link.go === "collect") && link.store){
+    const re = new RegExp(link.store, "i");
+    const hit = (cfg.stores || []).find(x => re.test(x.name) || re.test(x.code));
+    if (hit && cfg.currentStore !== hit.code){ cfg.currentStore = hit.code; saveCfg(); driverSelectedLots = {}; }
+  }
+  if (link.go === "deliver"){ openApp("driver"); show_D("deliver"); return true; }
+  if (link.go === "collect"){ openApp("safe"); show_S("collect"); return true; }
+  if (link.go === "redo"){ openApp("till"); resetAll(); openRedoClose(); return true; }
   if (link.go === "morning") startMorningCheck();
   else { openApp("till"); resetAll(); }
   return true;
@@ -3663,7 +3677,7 @@ function renderBookSlip(){
       <h3>📝 WRITE THIS IN THE BOOK</h3>
       <div class="cap">Write this line, exactly like this, then sign</div>
       <div class="book-draft">
-        <div class="draft-line">${stamp}&nbsp;&nbsp;&nbsp;${name}&nbsp;&nbsp;&nbsp;to safe ${fmt_T(lastResult.safeTotal)}&nbsp;&nbsp;&nbsp;momo ${fmt_T(momo)}</div>
+        <div class="draft-line">${stamp}&nbsp;&nbsp;&nbsp;${name}&nbsp;&nbsp;&nbsp;to safe ${fmt_T(lastResult.safeTotal)}&nbsp;&nbsp;&nbsp;${String((document.getElementById("momoOne") || {}).value || "").trim() === "" ? '<span style="color:#d93a30">momo ？ (type it above)</span>' : "momo " + fmt_T(momo)}</div>
         <div class="draft-line total">Total sales ${fmt_T(total)}</div>
       </div>
       <div class="tick-row ${bookConfirmed ? "on" : ""}" id="tick-book" onclick="toggleBook()" style="margin-top:10px">
@@ -3732,6 +3746,108 @@ function syncTillRecordDirect(rec){
   doSync();
 }
 
+// ---------- ↩️ レジ締めのやり直し（2026-09-17d・退勤の画面の「Redo the till close」から）----------
+// 今日（業務日＝ガーナ1時から）この店で最後に保存した締め。台帳の till-direct の3件（-in / -take / -box）を1つにまとめる
+function lastCloseToday(storeCode){
+  const now = new Date();
+  let cut = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 1);
+  if (now.getTime() < cut) cut -= 86400000;
+  const bases = {};
+  for (const m of allMovements()){
+    if (m.source !== "till-direct" || m.store !== storeCode) continue;
+    const mm = /^(.+-\d+)-(in|take|box)$/.exec(String(m.id || ""));
+    if (!mm) continue;
+    const t = new Date(m.ts).getTime();
+    if (!(t >= cut)) continue;
+    const b = bases[mm[1]] || (bases[mm[1]] = { baseId: mm[1], t: t, ts: m.ts });
+    b[mm[2]] = m;
+  }
+  let best = null;
+  for (const k in bases) if (!best || bases[k].t > best.t) best = bases[k];
+  return best;
+}
+function redoOverlay(html){
+  let el = document.getElementById("redoBg");
+  if (!el){
+    el = document.createElement("div");
+    el.id = "redoBg";
+    el.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px";
+    document.body.appendChild(el);
+  }
+  el.innerHTML = '<div style="background:#fff;color:#1d2733;border-radius:16px;max-width:520px;width:100%;max-height:92vh;overflow:auto;padding:20px;font-size:16px;line-height:1.45">' + html + '</div>';
+  el.style.display = "flex";
+}
+function closeRedo(){ const el = document.getElementById("redoBg"); if (el) el.style.display = "none"; }
+function redoBack(){
+  closeRedo();
+  let back = "";
+  try { back = sessionStorage.getItem(MYDAY_BACK_KEY) || ""; } catch (e) {}
+  if (back) location.href = back;
+}
+let redoBusy = false;
+async function openRedoClose(){
+  const store = settings.storeCode || DEFAULT_STORE_CODE;
+  redoOverlay('<div style="text-align:center;padding:20px">⏳ Looking for your last till close…</div>');
+  await syncFirst();   // ほかのタブレットで締めた・もう取られた、を先に取り込む
+  const c = lastCloseToday(store);
+  const btnGray = 'style="display:block;width:100%;margin-top:10px;padding:14px;border-radius:12px;border:1px solid #cfd6de;background:#f3f5f7;font-size:16px;font-weight:700"';
+  if (!c){
+    redoOverlay('<h3 style="margin:0 0 8px">Nothing to redo</h3><div>There is no till close today on this shop yet. Do the till close now.</div>' +
+      '<button ' + btnGray + ' onclick="closeRedo()">OK</button>');
+    return;
+  }
+  const lot = c.in ? lotStates(store).find(l => l.mov.id === c.in.id) : null;
+  const who = (c.in || c.take || c.box).actor || "?";
+  const at = new Date(c.t).toISOString().slice(11, 16);
+  if (lot && lot.takenAmount > 0.005){
+    redoOverlay('<h3 style="margin:0 0 8px;color:#c0392b">You can\'t redo this close</h3>' +
+      '<div>The money from this close was already taken' + (lot.takenBy ? ' by <b>' + esc_S(lot.takenBy.actor || "?") + '</b>' : '') + '.<br>Tell the manager what was wrong. The manager will fix it.</div>' +
+      '<button ' + btnGray + ' onclick="redoBack()">Back</button>');
+    return;
+  }
+  const safeNotes = c.in ? c.in.notes : null;
+  const takeNotes = c.take ? negNotes(c.take.notes) : null;
+  let steps = '<li>This till close is <b>deleted on every tablet</b>.</li>';
+  if (safeNotes && notesNonZero(safeNotes))
+    steps += '<li>Take these notes <b>back OUT of the safe</b> and put them in the till:<br><b>' + esc_S(notesText(safeNotes)) + '</b> (' + fmt_S(notesTotal_S(safeNotes)) + ')</li>';
+  if (takeNotes && notesNonZero(takeNotes))
+    steps += '<li>Put these notes <b>back in the change box</b>:<br><b>' + esc_S(notesText(takeNotes)) + '</b></li>';
+  steps += '<li>Count the till again and finish the close. <b>Type the MoMo amount</b> too.</li>';
+  redoOverlay('<h3 style="margin:0 0 6px;color:#c0392b">↩️ Really redo the till close?</h3>' +
+    '<div style="background:#f3f5f7;border-radius:10px;padding:10px 12px;margin:8px 0">Closed by <b>' + esc_S(who) + '</b> at ' + at +
+    (safeNotes ? ' · put in safe <b>' + fmt_S(notesTotal_S(safeNotes)) + '</b>' : '') + '</div>' +
+    '<div style="font-weight:700;margin-top:10px">If you press YES:</div><ol style="margin:6px 0 14px;padding-left:22px">' + steps + '</ol>' +
+    '<button style="display:block;width:100%;padding:16px;border-radius:12px;border:0;background:#d93a30;color:#fff;font-size:17px;font-weight:800" onclick="confirmRedoClose(\'' + esc_S(c.baseId) + '\')">Yes, delete it and count again</button>' +
+    '<button ' + btnGray + ' onclick="redoBack()">No, keep it</button>');
+}
+function confirmRedoClose(baseId){
+  if (redoBusy) return;
+  redoBusy = true;
+  const store = settings.storeCode || DEFAULT_STORE_CODE;
+  const c = lastCloseToday(store);
+  if (!c || c.baseId !== baseId){ redoBusy = false; closeRedo(); showToast_T("⚠️ That close is gone already. Check again.", true); return; }
+  const by = selectedStaff || currentSessionName() || "";
+  const was = (c.in || c.take || c.box);
+  const reason = "Redo by " + (by || "staff") + " (till close mistake)";
+  for (const k of ["in", "take", "box"]) if (c[k]) hideMovement(c[k], reason);
+  // この端末の履歴からも外す（翌朝の「前の晩に残した額」がやり直した締めになるように）
+  const epoch = Number(baseId.split("-").pop());
+  const hist = (loadJSON_T(LS_HIST) || []).filter(r =>
+    !((r.storeCode || DEFAULT_STORE_CODE) === store && Math.floor(new Date(r.ts).getTime() / 1000) === epoch));
+  saveJSON_T(LS_HIST, hist);
+  // レジ締めのグループへ（👤 My Day・退勤ゲート・回収待ちが「まだ」に戻る。1行目に店の名前を入れること）
+  const url = postTillGroup("↩️ TILL CLOSE CANCELLED — " + settings.store + "\n👤 " + (by || "?") + " will redo it\n" +
+    "Was: closed by " + (was.actor || "?") + " at " + new Date(c.t).toISOString().slice(11, 16) +
+    (c.in ? ", put in safe " + fmt_S(notesTotal_S(c.in.notes)) : ""));
+  if ((cfg.larkWebhook || "").trim() && (cfg.larkWebhook || "").trim() !== url)
+    notifyLark("↩️ レジ締めのやり直し\n店舗: " + settings.store + "\nやり直す人: " + (by || "?") + "\n消した締め: " + (was.actor || "?") + " " + new Date(c.t).toISOString().slice(11, 16));
+  doSync();
+  redoBusy = false;
+  closeRedo();
+  resetAll();
+  showToast_T("↩️ Deleted. Put the notes back, then count the till again.");
+}
+
 function saveRecord(){
   if (!lastResult) return;
   if (!selectedStaff){ openApp('entry'); return; }
@@ -3742,6 +3858,16 @@ function saveRecord(){
     row.classList.remove("highlight-warn");
     void row.offsetWidth;
     row.classList.add("highlight-warn");
+    return;
+  }
+  // 📱 MoMo は記入必須（2026-09-17d 三好さん「打ち忘れが多い。0 を打たないと出られないように」）
+  const momoEl = document.getElementById("momoOne");
+  if (momoEl && String(momoEl.value).trim() === ""){
+    showToast_T("📱 Type the MoMo amount first. No MoMo today? Type 0.", true);
+    momoEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    momoEl.style.outline = "3px solid #d93a30";
+    setTimeout(() => { momoEl.style.outline = ""; }, 4000);
+    try { momoEl.focus(); } catch (e) {}
     return;
   }
   const momo = getMomoTotal();
@@ -4304,8 +4430,10 @@ function shortage(storeCode){
  */
 function lotStates(storeCode){
   const taken = {};                       // 入庫ID → すでに引き出した枚数
+  const takenBy = {};                     // 入庫ID → 最後に引き出した人（受け取り・配送）。2026-09-17
   for (const m of allMovements()){
     if (m.type !== "SALES_OUT" || !m.ref) continue;
+    takenBy[m.ref] = { actor: m.actor || "", source: m.source || "", ts: m.ts };
     if (!taken[m.ref]) taken[m.ref] = emptyNotes();
     for (const d of DENOMS_S) taken[m.ref][d] += Math.abs(Number(m.notes[d]) || 0);
   }
@@ -4322,7 +4450,8 @@ function lotStates(storeCode){
     lots.push({
       mov: m, taken: got, remaining,
       remainingAmount: Math.round(notesTotal_S(remaining) * 100) / 100,
-      takenAmount: notesTotal_S(got)
+      takenAmount: notesTotal_S(got),
+      takenBy: takenBy[m.id] || null
     });
   }
   lots.sort((a, b) => String(b.mov.ts).localeCompare(String(a.mov.ts)));
@@ -4341,11 +4470,13 @@ function transitBatches(){
   const all = allMovements();
   const takenByRef = {};
   const receivedByRef = {};   // ref → 受け取ったサイン（TRANSIT_OUTのactor。複数回に分けて受領した場合は最後の1件）
+  const receivedAtRef = {};   // ref → 受け取った時刻（ドライバーの画面に出す。2026-09-17）
   for (const m of all){
     if (m.compartment !== "transit" || m.type !== "TRANSIT_OUT" || !m.ref) continue;
     if (!takenByRef[m.ref]) takenByRef[m.ref] = emptyNotes();
     for (const d of DENOMS_S) takenByRef[m.ref][d] += Math.abs(Number(m.notes[d]) || 0);
     if (m.actor) receivedByRef[m.ref] = m.actor;
+    receivedAtRef[m.ref] = m.ts;
   }
   const batches = [];
   for (const m of all){
@@ -4357,7 +4488,8 @@ function transitBatches(){
       mov: m, received, remaining,
       remainingAmount: Math.round(notesTotal_S(remaining) * 100) / 100,
       receivedAmount: notesTotal_S(received),
-      receivedBy: receivedByRef[m.id] || ""
+      receivedBy: receivedByRef[m.id] || "",
+      receivedAt: receivedAtRef[m.id] || ""
     });
   }
   batches.sort((a, b) => String(b.mov.ts).localeCompare(String(a.mov.ts)));
@@ -5254,8 +5386,13 @@ function renderCollect(){
   const done = lots.filter(l => l.remainingAmount <= 0.005 && l.takenAmount > 0).slice(0, 20);
   const suspects = lotSuspicions(lots);
 
+  // 合計とまとめ受け取りは、重複らしい締め（消す側）を除いた額（2026-09-17）
+  const takeable = collectTakeable(st);
   document.getElementById("collectTotal").textContent =
-    fmt_S(pending.reduce((s, l) => s + l.remainingAmount, 0));
+    fmt_S(takeable.reduce((s, l) => s + l.remainingAmount, 0));
+  const nDup = pending.length - takeable.length;
+  document.getElementById("collectTotalNote").textContent = nDup ? "⚠️ 重複らしい締め " + nDup + " 件は合計に入れていません（下で確かめて消してください）" : "";
+  document.getElementById("collectAllBtn").style.display = takeable.length >= 2 ? "block" : "none";
 
   document.getElementById("collectList").innerHTML = pending.length
     ? pending.map(l => {
@@ -5265,7 +5402,8 @@ function renderCollect(){
             <span class="date">${esc_S(dateJP(l.mov.ts))}</span>
             <span class="amt">${fmt_S(l.remainingAmount)}</span>
           </div>
-          <div class="meta">担当: ${esc_S(l.mov.actor || "—")}${l.mov.note ? " ／ " + esc_S(l.mov.note) : ""}</div>
+          <div class="meta" style="font-size:15px;color:var(--ink,#222)">👤 締めた人: <b>${esc_S(l.mov.actor || "—")}</b></div>
+          ${l.mov.note ? `<div class="meta">${esc_S(l.mov.note)}</div>` : ""}
           ${partial ? `<div class="meta">入庫 ${fmt_S(notesTotal_S(l.mov.notes))} のうち ${fmt_S(l.takenAmount)} は引き出しずみ</div>` : ""}
           <div class="notes">${esc_S(notesText(l.remaining))}</div>
           ${(suspects[l.mov.id] || []).map(w =>
@@ -5286,7 +5424,10 @@ function renderCollect(){
             <span class="date">${esc_S(dateJP(l.mov.ts))}</span>
             <span class="amt">${fmt_S(l.takenAmount)}</span>
           </div>
-          <div class="meta">入庫額 ${fmt_S(exp)}</div>
+          <div class="meta">👤 締めた人: <b>${esc_S(l.mov.actor || "—")}</b> ／ 入庫額 ${fmt_S(exp)}</div>
+          ${l.takenBy ? `<div class="meta">${l.takenBy.source === "driver"
+            ? "🚚 運んだ人: <b>" + esc_S(l.takenBy.actor || "—") + "</b>（" + esc_S(dateJP(l.takenBy.ts)) + "）" + driverHandoverJP(l.takenBy)
+            : "✅ 受け取った人: <b>" + esc_S(l.takenBy.actor || "—") + "</b>（" + esc_S(dateJP(l.takenBy.ts)) + "）"}</div>` : ""}
           ${diff !== 0 ? `<div class="meta" style="color:var(--red);font-weight:700">差異 ${diff > 0 ? "+" : "−"}${fmt_S(Math.abs(diff))}</div>` : ""}
         </div>`;
       }).join("")
@@ -5321,6 +5462,79 @@ function lotSuspicions(lots){
   }
   return out;
 }
+
+// ドライバーの画面用（2026-09-17）。lotSuspicions と同じ判定を、文章ではなく形で返す。
+//   dupWith … 重複らしい相手の記録 ／ dropThis … 先に保存された方（消す側）／ negative … 現金売上がマイナス
+function lotFlags(lots){
+  const out = {};
+  const ins = lots.map(l => l.mov).filter(m => m.type === "SALES_IN");
+  const cashOf = m => { const x = /現金売上\s*(-?[\d.]+)/.exec(m.note || ""); return x ? Number(x[1]) : null; };
+  for (const m of ins){
+    const f = {};
+    const c = cashOf(m);
+    if (c !== null && c < 0) f.negative = c;
+    for (const o of ins){
+      if (o === m || o.store !== m.store) continue;
+      if (Math.abs(new Date(m.ts) - new Date(o.ts)) / 60000 > 90) continue;
+      const oc = cashOf(o);
+      const sameAmt = Math.abs(notesTotal_S(m.notes) - notesTotal_S(o.notes)) < 0.005;
+      const sameCash = c !== null && oc !== null && Math.abs(c - oc) < 0.005;
+      if (!sameAmt && !sameCash) continue;
+      f.dupWith = o;
+      if (new Date(m.ts) < new Date(o.ts)) f.dropThis = true;
+    }
+    if (f.negative !== undefined || f.dupWith) out[m.id] = f;
+  }
+  return out;
+}
+// ドライバーが運んだ売上が、オフィスで誰に受け取られたか（受取済みの一覧に出す）。
+// 売上の引き出し（SALES_OUT）と運ぶ記録（TRANSIT_IN）は同じ操作で続けて保存されるので、同じ人・1分以内で結びつける
+function driverHandoverJP(takenBy){
+  const t = new Date(takenBy.ts).getTime();
+  const b = transitBatches().find(x => x.mov.actor === takenBy.actor && Math.abs(new Date(x.mov.ts).getTime() - t) < 60000);
+  if (!b) return "";
+  if (b.remainingAmount > 0.005) return " → <b style=\"color:var(--red)\">まだオフィスで受け取っていません</b>（下の「🚚 配送の受領確認」）";
+  return " → ✅ 受け取った人: <b>" + esc_S(b.receivedBy || "—") + "</b>" + (b.receivedAt ? "（" + esc_S(dateJP(b.receivedAt)) + "）" : "");
+}
+// 回収を記録する直前に、サーバーから最新を取り直す（2026-09-17）。
+//   ほかの端末で誰かがもう取っていたら、ここで分かる。回線が無い・遅いときは6秒で諦めて手元の記録で進む
+async function syncFirst(){
+  if (!cfg.gasUrl || navigator.onLine === false) return;
+  try { await Promise.race([doSync(), new Promise(r => setTimeout(r, 6000))]); } catch (e) {}
+}
+// その売上をもう誰かが取っていたら「誰が・いつ」を返す
+function takenByText(storeCode, lotId, lang){
+  const l = lotStates(storeCode).find(x => x.mov.id === lotId);
+  const t = l && l.takenBy;
+  if (!t) return "";
+  return lang === "ja" ? (t.actor || "誰か") + "（" + dateJP(t.ts) + "）" : (t.actor || "someone") + " (" + dateEN(t.ts) + ")";
+}
+// レジ締めと同じ Lark グループへ（👤 My Day がここを読む。1行目に店の名前を入れること）
+function postTillGroup(text){
+  const url = larkUrl();
+  if (url){
+    try { fetch(url, { method: "POST", mode: "no-cors", keepalive: true,
+      body: JSON.stringify({ msg_type: "text", content: { text } }) }).catch(() => {}); } catch (e) {}
+  }
+  return url;
+}
+// My Day から来た人は、記録を送り終えてから戻す（遅い回線でも8秒で諦めて戻る）
+function backToMyDayAfter(p){
+  let back = "";
+  try { back = sessionStorage.getItem(MYDAY_BACK_KEY) || ""; } catch (e) {}
+  if (!back) return;
+  const go = () => { location.href = back; };
+  Promise.race([Promise.resolve(p), new Promise(r => setTimeout(r, 8000))]).then(() => setTimeout(go, 1200), () => setTimeout(go, 1200));
+}
+// 最後に誰がいつ売上を取ったか（ドライバーの「待っているものは無い」の下に出す）
+function lastTakenEN(storeCode){
+  let last = null;
+  for (const l of lotStates(storeCode)) if (l.takenBy && (!last || String(l.takenBy.ts) > String(last.ts))) last = l.takenBy;
+  if (!last) return "";
+  return `<div class="meta" style="text-align:center;margin-top:6px">Last collected by <b>${esc_S(last.actor || "?")}</b> · ${esc_S(dateEN(last.ts))}</div>`;
+}
+// 締めの1行（誰が・いつ・いくら）。運ぶ記録のメモと、額が合わないときの案内に使う
+function lotLineEN(l){ return dateEN(l.mov.ts) + " · closed by " + (l.mov.actor || "?") + " · " + fmt_S(l.remainingAmount); }
 
 function openDeleteLot(lotId){
   const lot = findLot(lotId);
@@ -5389,8 +5603,9 @@ function openCollect(lotId){
     <div class="row-between"><span>金庫にあるはずの額</span><span>${fmt_S(lot.remainingAmount)}</span></div>
     <div id="colDiff"></div>
     <div class="field">
-      <label>受け取った人（任意）</label>
-      <input type="text" id="colActor" value="${esc_S(cfg.device || "")}">
+      <label>受け取った人（必須）</label>
+      <input type="text" id="colActor" value="${esc_S(currentSessionName())}" placeholder="例: 三好 / 木原">
+      <div class="hint">締めた人: <b>${esc_S(lot.mov.actor || "—")}</b>。額が合わないときは、この人に確認します。</div>
     </div>
     <button class="bigbtn" onclick="confirmCollect('${esc_S(lotId)}')">✅ 受け取りを確定</button>
     <button class="bigbtn gray" onclick="closeModal()">キャンセル</button>
@@ -5413,12 +5628,25 @@ function updateCollectDiff(lotId){
       ? "予定より多く受け取っています。金庫にあるはずの額を超えています。"
       : "予定より少ないです。残りは未受取として残ります。"}</div>`;
 }
-function confirmCollect(lotId){
-  const lot = findLot(lotId);
+let collectBusy = false;
+async function confirmCollect(lotId){
+  if (collectBusy) return;
+  let lot = findLot(lotId);
   if (!lot) return;
   const got = readDenoms("col");
   if (!notesNonZero(got)){ showToast_S("受け取った枚数を入力してください", true); return; }
   const actor = (document.getElementById("colActor").value || "").trim();
+  if (!actor){ showToast_S("受け取った人の名前を入れてください", true); return; }
+  collectBusy = true;
+  showToast_S("⏳ ほかの端末で受け取られていないか確かめています…");
+  await syncFirst();
+  collectBusy = false;
+  lot = findLot(lotId);
+  if (!lot || lot.remainingAmount <= 0.005){
+    closeModal(); renderAll();
+    showToast_S("もう受け取られています：" + takenByText(currentStore().code, lotId, "ja"), true);
+    return;
+  }
   addMovement({
     ts: new Date().toISOString(), store: lot.mov.store,
     compartment: "sales", type: "SALES_OUT",
@@ -5426,9 +5654,111 @@ function confirmCollect(lotId){
     note: dateJP(lot.mov.ts) + " ぶんの売上を受取", source: "collect"
   });
   closeModal();
-  renderAll(); doSync();
+  renderAll();
+  const p = doSync();
   showToast_S("✅ 受け取りを記録しました");
-  notifyLark(`💰 売上を受け取りました\n店舗: ${storeName(lot.mov.store)}\n対象: ${dateJP(lot.mov.ts)}\n金額: ${fmt_S(notesTotal_S(got))}\n内訳: ${notesText(got)}${actor ? "\n担当: " + actor : ""}`);
+  const url = postTillGroup(`💰 ${actor} collected sales from ${storeName(lot.mov.store)}\nAmount: ${fmt_S(notesTotal_S(got))}\n• ${lotLineEN(lot)}`);
+  const jp = `💰 売上を受け取りました\n店舗: ${storeName(lot.mov.store)}\n対象: ${dateJP(lot.mov.ts)}\n金額: ${fmt_S(notesTotal_S(got))}\n内訳: ${notesText(got)}\n締めた人: ${lot.mov.actor || "—"}\n受け取った人: ${actor}`;
+  if ((cfg.larkWebhook || "").trim() && (cfg.larkWebhook || "").trim() !== url) notifyLark(jp);
+  backToMyDayAfter(p);
+}
+
+// ---------- ④ 全部まとめて受け取る（来られない日が続いて何日分も溜まったとき）----------
+function collectTakeable(st){
+  const lots = lotStates(st.code);
+  const flags = lotFlags(lots);
+  return lots.filter(l => l.remainingAmount > 0.005 && !(flags[l.mov.id] && flags[l.mov.id].dropThis));
+}
+let collectAllIds = [];
+function openCollectAll(){
+  const st = currentStore();
+  if (!st) return;
+  const lots = collectTakeable(st);
+  if (!lots.length) return;
+  collectAllIds = lots.map(l => l.mov.id);
+  const exp = emptyNotes();
+  for (const l of lots) for (const d of DENOMS_S) exp[d] += Math.max(0, l.remaining[d]);
+  const rows = DENOMS_S.map(d => `
+    <div class="denom-row">
+      <span class="note-mini" style="background:${COLORS_S[d]}">₵${d}</span>
+      <span class="lbl">予定 ${exp[d]} 枚</span>
+      <input type="number" min="0" step="1" inputmode="numeric" id="cal-${d}" value="${exp[d]}" oninput="updateCollectAllDiff()">
+      <span class="sub" id="calsub-${d}">GH₵ 0</span>
+    </div>`).join("");
+  openModal(`
+    <h3>💰 ${lots.length}日分をまとめて受け取る</h3>
+    <div class="hint">来られなかった日のぶんも含めて、金庫の売上を全部受け取ります。重複らしい締めは入っていません（先に消してください）。</div>
+    <div style="margin:8px 0">${lots.map(l => `<div class="meta">・${esc_S(dateJP(l.mov.ts))} ／ 👤 締めた人 <b>${esc_S(l.mov.actor || "—")}</b> ／ ${fmt_S(l.remainingAmount)}</div>`).join("")}</div>
+    <div class="denom-grid" style="margin-top:10px">${rows}</div>
+    <div class="row-between total"><span>受け取る合計</span><span id="calTotal">—</span></div>
+    <div class="row-between"><span>金庫にあるはずの額</span><span id="calExp">${fmt_S(notesTotal_S(exp))}</span></div>
+    <div id="calDiff"></div>
+    <div class="field">
+      <label>受け取った人（必須）</label>
+      <input type="text" id="calActor" value="${esc_S(currentSessionName())}" placeholder="例: 三好 / 木原">
+    </div>
+    <button class="bigbtn" onclick="confirmCollectAll()">✅ まとめて受け取りを確定</button>
+    <button class="bigbtn gray" onclick="closeModal()">キャンセル</button>
+  `);
+  updateCollectAllDiff();
+}
+function updateCollectAllDiff(){
+  const st = currentStore();
+  if (!st) return;
+  const lots = collectTakeable(st).filter(l => collectAllIds.indexOf(l.mov.id) > -1);
+  const expAmt = lots.reduce((a, l) => a + l.remainingAmount, 0);
+  const got = readDenoms("cal");
+  for (const d of DENOMS_S){ const el = document.getElementById("calsub-" + d); if (el) el.textContent = fmt_S(d * got[d]); }
+  const total = notesTotal_S(got);
+  document.getElementById("calTotal").textContent = fmt_S(total);
+  const diff = Math.round((total - expAmt) * 100) / 100;
+  document.getElementById("calDiff").innerHTML = diff === 0 ? "" :
+    `<div class="warn bad"><b>差異 ${diff > 0 ? "+" : "−"}${fmt_S(Math.abs(diff))}</b><br>数え直してください。それでも合わなければ、このまま確定すると締めた人の名前つきで Lark に出ます。</div>`;
+}
+async function confirmCollectAll(){
+  if (collectBusy) return;
+  const st = currentStore();
+  if (!st) return;
+  const got = readDenoms("cal");
+  if (!notesNonZero(got)){ showToast_S("受け取った枚数を入力してください", true); return; }
+  const actor = (document.getElementById("calActor").value || "").trim();
+  if (!actor){ showToast_S("受け取った人の名前を入れてください", true); return; }
+  collectBusy = true;
+  showToast_S("⏳ ほかの端末で受け取られていないか確かめています…");
+  await syncFirst();
+  collectBusy = false;
+  const lots = collectTakeable(st).filter(l => collectAllIds.indexOf(l.mov.id) > -1);
+  if (lots.length !== collectAllIds.length){
+    const gone = collectAllIds.filter(id => !lots.some(l => l.mov.id === id));
+    closeModal(); renderAll();
+    showToast_S("一部はもう受け取られています：" + gone.map(id => takenByText(st.code, id, "ja")).filter(Boolean).join("、") + "。もう一度開いてください", true);
+    return;
+  }
+  const expAmt = lots.reduce((a, l) => a + l.remainingAmount, 0);
+  const total = notesTotal_S(got);
+  const diff = Math.round((total - expAmt) * 100) / 100;
+  // 1件ずつ残りを全部引き当てる（ドライバーの引き取りと同じ割り切り。数えた額との差はメモと通知に残す）
+  for (const l of lots){
+    addMovement({
+      ts: new Date().toISOString(), store: st.code,
+      compartment: "sales", type: "SALES_OUT",
+      notes: negNotes(l.remaining), ref: l.mov.id, actor,
+      note: dateJP(l.mov.ts) + " ぶんの売上をまとめて受取" + (diff !== 0 ? "（まとめて数えた額との差 " + (diff > 0 ? "+" : "") + diff + "）" : ""),
+      source: "collect"
+    });
+  }
+  closeModal();
+  renderAll();
+  const p = doSync();
+  showToast_S("✅ " + lots.length + "日分の受け取りを記録しました");
+  const url = postTillGroup(`💰 ${actor} collected sales from ${st.name}\nAmount: ${fmt_S(total)} (${lots.length} days)\n` +
+    lots.map(l => "• " + lotLineEN(l)).join("\n") +
+    (diff !== 0 ? `\n⚠️ Counted ${diff > 0 ? "more" : "less"} than expected: ${diff > 0 ? "+" : "−"}${fmt_S(Math.abs(diff))} — closed by ${lots.map(l => l.mov.actor || "?").join(", ")}` : ""));
+  const jp = `💰 売上をまとめて受け取りました（${lots.length}日分）\n店舗: ${st.name}\n金額: ${fmt_S(total)}\n受け取った人: ${actor}\n` +
+    lots.map(l => "・" + dateJP(l.mov.ts) + " 締めた人 " + (l.mov.actor || "—") + " " + fmt_S(l.remainingAmount)).join("\n") +
+    (diff !== 0 ? `\n⚠️ 差異 ${diff > 0 ? "+" : "−"}${fmt_S(Math.abs(diff))}` : "");
+  if ((cfg.larkWebhook || "").trim() && (cfg.larkWebhook || "").trim() !== url) notifyLark(jp);
+  backToMyDayAfter(p);
 }
 
 // =============================================================
@@ -5517,20 +5847,39 @@ function updateConfirmDiff(batchId){
       ? "ドライバーの引き取り額より多く受け取っています。"
       : "ドライバーの引き取り額より少ないです。ドライバーに確認してください。"}</div>`;
 }
-function submitConfirmDelivery(batchId){
-  const b = findTransitBatch(batchId);
+let receiveBusy = false;
+async function submitConfirmDelivery(batchId){
+  if (receiveBusy) return;
+  let b = findTransitBatch(batchId);
   if (!b) return;
   const got = readDenoms("tc");
   if (!notesNonZero(got)){ showToast_S("受け取った枚数を入力してください", true); return; }
   const actor = (document.getElementById("tcActor").value || "").trim();
   if (!actor){ showToast_S("受け取ったサイン（名前）を入れてください", true); return; }
+  // ほかの端末でもう受け取っていないか、記録の直前に確かめる
+  receiveBusy = true;
+  showToast_S("⏳ ほかの端末で受け取られていないか確かめています…");
+  await syncFirst();
+  receiveBusy = false;
+  b = findTransitBatch(batchId);
+  if (!b || b.remainingAmount <= 0.005){
+    closeModal(); renderAll();
+    showToast_S("もう受け取られています" + (b && b.receivedBy ? "：" + b.receivedBy : ""), true);
+    return;
+  }
   confirmDelivery(batchId, b.mov.store, got, actor);
   closeModal();
-  renderAll(); doSync();
+  renderAll();
+  const p = doSync();
   showToast_S("✅ 受領を記録しました");
   const exp = b.remainingAmount;
   const diff = Math.round((notesTotal_S(got) - exp) * 100) / 100;
-  notifyLark(`🚚 配送を受領しました\nドライバー: ${b.mov.actor || "—"}\n店舗: ${storeName(b.mov.store)}\n受領額: ${fmt_S(notesTotal_S(got))}${diff !== 0 ? `\n⚠️ 引き取り額との差異: ${diff > 0 ? "+" : "−"}${fmt_S(Math.abs(diff))}` : ""}${actor ? "\n受領者: " + actor : ""}`);
+  // レジ締めと同じグループへ（👤 My Day の「🚚 運搬中」がこれで消える。1行目に店の名前を入れること）
+  const url = postTillGroup(`📥 ${actor} received sales from ${storeName(b.mov.store)}\nDriver: ${b.mov.actor || "—"}\nAmount: ${fmt_S(notesTotal_S(got))}` +
+    (diff !== 0 ? `\n⚠️ Different from what the driver took: ${diff > 0 ? "+" : "−"}${fmt_S(Math.abs(diff))}` : ""));
+  backToMyDayAfter(p);
+  if ((cfg.larkWebhook || "").trim() === url) return;   // 同じグループなら日本語の通知は重ねない
+  notifyLark(`🚚 配送を受領しました\nドライバー: ${b.mov.actor || "—"}\n店舗: ${storeName(b.mov.store)}\n受領額: ${fmt_S(notesTotal_S(got))}${b.mov.note ? "\n中身: " + b.mov.note : ""}${diff !== 0 ? `\n⚠️ 引き取り額との差異: ${diff > 0 ? "+" : "−"}${fmt_S(Math.abs(diff))}` : ""}${actor ? "\n受領者: " + actor : ""}`);
 }
 
 // =============================================================
@@ -7261,10 +7610,33 @@ function renderDriverDeliver(){
   if (!st || !driverSession) return;
 
   const pending = pendingLots(st.code);
+  const flags = lotFlags(lotStates(st.code));
+  const blocked = l => !!(flags[l.mov.id] && flags[l.mov.id].dropThis && !driverForcedLots[l.mov.id]);
+  const takeable = pending.filter(l => !blocked(l));
+  // 選べなくなった（重複の疑い）ものは選択からも外す
+  pending.forEach(l => { if (blocked(l)) delete driverSelectedLots[l.mov.id]; });
+  const nBlocked = pending.length - takeable.length;
   document.getElementById("drvPendingTotal").textContent =
-    fmt_S(pending.reduce((s, l) => s + l.remainingAmount, 0));
+    fmt_S(takeable.reduce((s, l) => s + l.remainingAmount, 0));
   document.getElementById("drvPendingList").innerHTML = pending.length
-    ? pending.map(l => {
+    ? (nBlocked ? `<div class="warn bad" style="margin:0 0 10px"><b>⛔ ${nBlocked} close${nBlocked === 1 ? " looks" : "s look"} like a mistake (saved twice).</b><br>It is not in the total above. Don't take it — the manager will check.</div>` : "") + (takeable.length ? "" : lastTakenEN(st.code)) +
+      pending.map(l => {
+        const f = flags[l.mov.id] || {};
+        const who = `<div style="font-size:16px;margin:4px 0 2px">👤 Closed by <b>${esc_S(l.mov.actor || "?")}</b></div>`;
+        const neg = f.negative !== undefined
+          ? `<div class="meta" style="color:var(--red);font-weight:700">⚠️ Cash sales were counted as minus (${esc_S(String(f.negative))}). Count this bag carefully.</div>` : "";
+        if (blocked(l)){
+          return `<div class="lot" style="opacity:.75;background:#f6f6f6;border-left-color:#bbb">
+            <div class="top" style="align-items:center;gap:10px">
+              <span style="flex:none;font-size:20px">⛔</span>
+              <span class="date" style="flex:1;text-decoration:line-through">${esc_S(dateEN(l.mov.ts))}</span>
+              <span class="amt" style="text-decoration:line-through">${fmt_S(l.remainingAmount)}</span>
+            </div>
+            ${who}
+            <div class="meta" style="color:var(--red);font-weight:700">Saved twice? The same close is also at ${esc_S(dateEN(f.dupWith.ts))}. Take the other one, not this.</div>
+            <button class="minibtn" style="margin-top:6px" onclick="forceDriverLot('${esc_S(l.mov.id)}')">It's real money — let me take it</button>
+          </div>`;
+        }
         const checked = !!driverSelectedLots[l.mov.id];
         // カード全体がタップ対象だと気づきにくかったので、実際のチェック
         // ボックスらしい見た目のマークを付け、未選択のときは「タップして
@@ -7275,11 +7647,14 @@ function renderDriverDeliver(){
             <span class="date" style="flex:1">${esc_S(dateEN(l.mov.ts))}</span>
             <span class="amt">${fmt_S(l.remainingAmount)}</span>
           </div>
+          ${who}
           <div class="notes">${esc_S(notesText(l.remaining))}</div>
+          ${f.dupWith && !f.dropThis ? `<div class="meta" style="font-weight:700">✔ Take this one (another close at ${esc_S(dateEN(f.dupWith.ts))} looks like a double save).</div>` : ""}
+          ${neg}
           ${checked ? "" : `<div class="meta" style="color:var(--blue);font-weight:700;margin-top:4px">👆 Tap this card to select</div>`}
         </div>`;
       }).join("")
-    : `<div class="empty">Nothing waiting at ${esc_S(st.name)} 👍</div>`;
+    : `<div class="empty">Nothing waiting at ${esc_S(st.name)} 👍</div>` + lastTakenEN(st.code);
 
   const selectedIds = Object.keys(driverSelectedLots).filter(id => driverSelectedLots[id]);
   const form = document.getElementById("drvDeliverForm");
@@ -7306,7 +7681,26 @@ function renderDriverDeliver(){
 
   // このドライバー自身の、まだオフィス未受領の配送
   const mine = pendingTransitBatches().filter(b => b.mov.actor === driverSession.name);
-  document.getElementById("drvTransitList").innerHTML = mine.length
+  // オフィスが受け取ったもの（直近7日）。受け取った人と時刻を見せる（2026-09-17 三好さん）
+  const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+  const handed = transitBatches().filter(b => b.mov.actor === driverSession.name && b.remainingAmount <= 0.005 &&
+    b.receivedAmount > 0 && new Date(b.receivedAt || b.mov.ts).getTime() > weekAgo);
+  const handedHTML = handed.length
+    ? `<h3 style="margin:14px 0 6px;font-size:15px">✅ The office received</h3>` + handed.map(b => {
+        const exp = notesTotal_S(b.mov.notes);
+        const diff = Math.round((b.receivedAmount - exp) * 100) / 100;
+        return `<div class="lot done">
+          <div class="top">
+            <span class="date">${esc_S(dateEN(b.mov.ts))}</span>
+            <span class="amt">${fmt_S(b.receivedAmount)}</span>
+          </div>
+          <div style="font-size:16px;margin:4px 0 2px">✅ Received by <b>${esc_S(b.receivedBy || "?")}</b>${b.receivedAt ? " · " + esc_S(dateEN(b.receivedAt)) : ""}</div>
+          <div class="meta">${esc_S(storeName(b.mov.store))}${b.mov.note ? " ／ " + esc_S(b.mov.note) : ""}</div>
+          ${diff !== 0 ? `<div class="meta" style="color:var(--red);font-weight:700">The office counted ${diff > 0 ? "more" : "less"}: ${diff > 0 ? "+" : "−"}${fmt_S(Math.abs(diff))}</div>` : ""}
+        </div>`;
+      }).join("")
+    : "";
+  document.getElementById("drvTransitList").innerHTML = (mine.length
     ? mine.map(b => `
       <div class="lot">
         <div class="top">
@@ -7315,13 +7709,22 @@ function renderDriverDeliver(){
         </div>
         <div class="meta">${esc_S(storeName(b.mov.store))}${b.mov.note ? " ／ " + esc_S(b.mov.note) : ""}</div>
         <div class="notes">${esc_S(notesText(b.remaining))}</div>
+        <div class="meta" style="font-weight:700">⏳ Waiting for the office to receive</div>
       </div>`).join("")
-    : `<div class="empty">Nothing in transit right now</div>`;
+    : `<div class="empty">Nothing in transit right now</div>`) + handedHTML;
 
   const badge = document.getElementById("drvBadge");
-  if (badge) badge.innerHTML = pending.length ? `<span class="badge">${pending.length}</span>` : "";
+  if (badge) badge.innerHTML = takeable.length ? `<span class="badge">${takeable.length}</span>` : "";
 }
 let driverCarryDenomsStale = true;
+let driverForcedLots = {};   // 重複の疑いがあるが「本当のお金」と言われたもの（この画面を開いているあいだだけ）
+function forceDriverLot(lotId){
+  if (!confirm("Only take it if this money is really in the safe.\nThe manager will be told.")) return;
+  driverForcedLots[lotId] = true;
+  driverSelectedLots[lotId] = true;
+  driverCarryDenomsStale = true;
+  renderDriverDeliver();
+}
 function toggleDriverLot(lotId){
   driverSelectedLots[lotId] = !driverSelectedLots[lotId];
   driverCarryDenomsStale = true;   // 選択が変わったら期待額の初期値も作り直す
@@ -7341,22 +7744,63 @@ function updateDriverCarryTotal(){ updateDenomSubs("dcarry", "drvCarryTotal");
   const diff = Math.round((notesTotal_S(carried) - notesTotal_S(expected)) * 100) / 100;
   document.getElementById("drvCarryCheck").innerHTML = diff === 0
     ? `<div class="warn" style="background:#E5F6FC;border-color:var(--green)"><b style="color:var(--green)">✔ Matches what's expected</b></div>`
-    : `<div class="warn bad"><b>${diff > 0 ? "Over" : "Short"} by ${fmt_S(Math.abs(diff))}</b><br>Count again before you leave — this is easier to fix here than at the office.</div>`;
+    : `<div class="warn bad"><b>${diff > 0 ? "Over" : "Short"} by ${fmt_S(Math.abs(diff))}</b><br>Count again before you leave — this is easier to fix here than at the office.<br>Still wrong? Tell the manager. The close${selectedIds.length === 1 ? " was" : "s were"} done by: <b>${esc_S(selectedIds.map(id => { const l = pending.find(x => x.mov.id === id); return l ? (l.mov.actor || "?") + " (" + dateEN(l.mov.ts) + ")" : ""; }).filter(Boolean).join(", "))}</b></div>`;
 }
-function submitDelivery(){
+let deliverBusy = false;
+async function submitDelivery(){
+  if (deliverBusy) return;
   const st = currentStore();
   if (!st || !driverSession) return;
   const selectedIds = Object.keys(driverSelectedLots).filter(id => driverSelectedLots[id]);
   if (!selectedIds.length){ showToast_S("Tick at least one day first", true); return; }
   const carried = readDenoms("dcarry");
   if (!notesNonZero(carried)){ showToast_S("Enter what you're carrying", true); return; }
-  const daysNote = selectedIds.length + (selectedIds.length === 1 ? " day" : " days") + " picked up from " + st.name;
+  // ほかの端末で誰か（日本人・別のドライバー）がもう取っていないか、記録の直前に確かめる
+  deliverBusy = true;
+  showToast_S("⏳ Checking nobody else took it…");
+  await syncFirst();
+  deliverBusy = false;
+  const still = pendingLots(st.code);
+  const gone = selectedIds.filter(id => !still.some(l => l.mov.id === id));
+  if (gone.length){
+    const who = gone.map(id => takenByText(st.code, id, "en")).filter(Boolean).join(", ");
+    gone.forEach(id => { delete driverSelectedLots[id]; });
+    driverCarryDenomsStale = true;
+    renderAllDriver();
+    showToast_S("Already collected by " + (who || "someone else") + ". Check the list again.", true);
+    return;
+  }
+  // どの日の・誰が締めた・いくらかをメモに残す（オフィスで受け取るときに、締めた人まで辿れるように）
+  const pend = pendingLots(st.code);
+  const lines = selectedIds.map(id => pend.find(l => l.mov.id === id)).filter(Boolean).map(lotLineEN);
+  const forced = selectedIds.filter(id => driverForcedLots[id]);
+  const daysNote = selectedIds.length + (selectedIds.length === 1 ? " day" : " days") + " picked up from " + st.name +
+    (lines.length ? " — " + lines.join(" / ") : "");
   createDelivery(st.code, selectedIds, carried, driverSession.name, daysNote);
   driverSelectedLots = {};
+  driverForcedLots = {};
   driverCarryDenomsStale = true;
-  renderAllDriver(); doSync();
+  renderAllDriver();
+  const syncP = doSync();
   showToast_S("✅ Delivery recorded — bring it to the office");
-  notifyLark(`🚚 ${driverSession.name} picked up sales from ${st.name}\nDays: ${selectedIds.length}\nCarrying: ${fmt_S(notesTotal_S(carried))}\nNotes: ${notesText(carried)}`);
+  // レジ締めと同じグループへ（👤 My Day がここを読んで ✓ を付ける。1行目に店の名前を入れること）
+  const text = `🚚 ${driverSession.name} picked up sales from ${st.name}\nCarrying: ${fmt_S(notesTotal_S(carried))}\nNotes: ${notesText(carried)}\n` +
+    lines.map(x => "• " + x).join("\n") +
+    (forced.length ? "\n⚠️ " + forced.length + " of them looked like a double save — the driver said it is real money. Please check." : "");
+  const url = larkUrl();
+  if (url){
+    try { fetch(url, { method: "POST", mode: "no-cors", keepalive: true,
+      body: JSON.stringify({ msg_type: "text", content: { text } }) }).catch(() => {}); } catch (e) {}
+  }
+  // 金庫アプリの通知先がレジ締めと別のグループなら、そちらにも今までどおり送る
+  if ((cfg.larkWebhook || "").trim() && (cfg.larkWebhook || "").trim() !== url) notifyLark(text);
+  // My Day から来た人は、記録をサーバーへ送り終えてから戻す（遅い回線でも8秒で諦めて戻る。残りは次に開いたときに送られる）
+  let back = "";
+  try { back = sessionStorage.getItem(MYDAY_BACK_KEY) || ""; } catch (e) {}
+  if (back){
+    const go = () => { location.href = back; };
+    Promise.race([Promise.resolve(syncP), new Promise(r => setTimeout(r, 8000))]).then(() => setTimeout(go, 1200), () => setTimeout(go, 1200));
+  }
 }
 
 // 数値入力にフォーカスしたままスクロールして値が変わるのを防ぐ
