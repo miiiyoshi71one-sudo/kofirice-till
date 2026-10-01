@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0077A0">
 <!-- ⚠️ 版はここが唯一の正。直したら必ず上げる（JSはこの値を読むだけ）。
      更新の確認はファイルの先頭だけを読んで済ませるので、head の中に置くこと。 -->
-<meta name="build" content="2026-09-17e">
+<meta name="build" content="2026-10-02a">
 <title>KOFIRICE</title>
 <style>
 
@@ -114,6 +114,11 @@ body.practice #practiceNote{ display: block; }
 .app-entry .job .go{ font-size: 22px; color: var(--muted); }
 .app-entry .job.safe{ border-left-color: var(--blue); }
 .app-entry .job.tool{ border-left-color: var(--purple); }
+/* ⛔ 朝はレジ締めに鍵（2026-10-02）。押せるが、押すと「夜だけ」の案内が出る */
+.app-entry .job.locked{ opacity: .5; border-left-color: #9aa5b1; background: #eef1f4; }
+.app-entry .job.now{ position: relative; border: 3px solid #f0a020; border-left-width: 6px; margin-top: 22px; }
+.app-entry .job .now-tag{ position: absolute; top: -14px; left: 12px; background: #f0a020; color: #fff;
+    font-size: 13px; font-weight: 900; padding: 3px 10px; border-radius: 999px; letter-spacing: .3px; }
 .app-entry .whoami{
     background: var(--card); border-radius: 14px;
     padding: 14px; margin-bottom: 16px;
@@ -396,6 +401,46 @@ body.practice #practiceNote{ display: block; }
 .app-till .dest b{ display: block; font-size: 18px; margin-top: 2px; }
 .app-till .dest.till{ background: #E5F6FC; color: var(--green-dark); }
 .app-till .dest.safe.active{ background: #fdeceb; color: var(--red); }
+/* 🧭 番号つきの手順（2026-10-02）。読むより「上から順に真似する」ための見た目 */
+.app-till .gnum{ display: inline-flex; align-items: center; justify-content: center; flex: none;
+    width: 30px; height: 30px; border-radius: 50%; background: var(--green); color: #fff;
+    font-weight: 900; font-size: 17px; margin-right: 10px; }
+.app-till .guide{ background: #fff; border-radius: 14px; padding: 8px 12px; margin: 10px 0 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.app-till .guide-row{ display: flex; align-items: center; padding: 7px 0; font-size: 16px; line-height: 1.35; }
+.app-till .guide-row + .guide-row{ border-top: 1px dashed #e3e8e4; }
+.app-till .mstep{ background: #fff; border-radius: 14px; padding: 12px 14px; margin: 18px 0 10px;
+    border-left: 6px solid var(--green); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.app-till .mstep-h{ display: flex; align-items: center; font-size: 19px; font-weight: 900; line-height: 1.25; }
+.app-till .mstep-b{ font-size: 16px; line-height: 1.6; margin: 8px 0 0 40px; }
+.app-till .mstep-alert{ margin: 10px 0 0; background: #fdeceb; border: 2px solid var(--red); border-radius: 10px;
+    padding: 10px 12px; font-size: 15.5px; line-height: 1.5; color: #7a1f16; }
+/* ⛔ ₵20 以下を金庫に入れない（2026-10-02）。締めの STEP2 の一番上 */
+.app-till .sort-rule{ background: var(--red); color: #fff; border-radius: 16px; padding: 14px 12px;
+    margin: 10px 0 14px; text-align: center; }
+.app-till .sort-rule .sr-big{ font-size: 27px; font-weight: 900; letter-spacing: .5px; line-height: 1.2; }
+.app-till .sort-rule .sr-txt{ font-size: 18px; line-height: 1.4; margin-top: 6px; }
+.app-till .sort-rule .sr-txt b{ color: #fff; background: rgba(255,255,255,.22); padding: 0 6px; border-radius: 6px; }
+.app-till .pile{ border-radius: 16px; padding: 14px; margin: 0 0 12px; text-align: center; border: 4px solid; }
+.app-till .pile.safe{ background: #fdeceb; border-color: var(--red); }
+.app-till .pile.till{ background: #e7f6ea; border-color: #1e8e3e; }
+.app-till .pile-h{ font-size: 21px; font-weight: 900; }
+.app-till .pile.safe .pile-h, .app-till .pile.safe .pile-amt{ color: var(--red); }
+.app-till .pile.till .pile-h, .app-till .pile.till .pile-amt{ color: #1e7a36; }
+.app-till .pile-sub{ font-size: 16px; font-weight: 800; margin-top: 2px; }
+.app-till .pile-notes{ display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 12px 0 4px; }
+.app-till .pile-note{ display: inline-flex; align-items: center; gap: 6px; background: #fff; border-radius: 10px;
+    padding: 6px 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+.app-till .pile-note .note-chip{ font-size: 16px; }
+.app-till .pile-note b{ font-size: 20px; }
+.app-till .pile-none{ font-size: 16px; color: var(--muted); margin: 12px 0 4px; }
+.app-till .pile-amt{ font-size: 34px; font-weight: 900; margin-top: 6px; }
+.app-till #tick-sort{ border: 3px solid var(--red); padding: 12px 10px; margin: 0 0 14px; }
+.app-till #tick-sort.on{ border-color: #1e8e3e; }
+.app-till #tick-sort.on .mark{ background: #1e8e3e; border-color: #1e8e3e; }
+.app-till .step-lab{ font-size: 16px !important; font-weight: 800; color: var(--text) !important; }
+.app-till .done-keep{ margin: 8px 0 14px; font-size: 15px; color: #1e7a36; font-weight: 700; }
+.app-till .done-keep b{ display: block; font-size: 24px; }
 .app-till .field{ margin: 10px 0; }
 .app-till .field label{ font-size: 13px; color: var(--muted); display: block; margin-bottom: 4px; }
 .app-till .field input{
@@ -1179,7 +1224,7 @@ body.practice #practiceNote{ display: block; }
 <div class="screen" id="scr-edituser">
   <div class="field">
     <label>名前（接続している全端末に出ます）</label>
-    <input type="text" id="euName" placeholder="例: Ruth / 三好">
+    <input type="text" id="euName" placeholder="例: Ruth / 日本人マネージャー">
   </div>
 
   <div class="field">
@@ -1243,7 +1288,7 @@ body.practice #practiceNote{ display: block; }
 <header>
   <div style="display:flex;align-items:center;gap:10px">
     <div style="flex:1;text-align:left">
-      <h1 style="font-size:18px">💵 TILL CLOSE</h1>
+      <h1 style="font-size:18px" id="tillHdrTitle">💵 TILL CLOSE</h1>
       <div class="store" id="storeName">KOFIRICE — Lapaz Branch</div>
     </div>
     <button onclick="openApp('entry')" title="Menu"
@@ -1265,11 +1310,12 @@ body.practice #practiceNote{ display: block; }
   <div class="step-title"><span id="st-count">STEP 1 — Count the money in the till</span>
     <small>How many of each note? Press + / −</small>
   </div>
-  <!-- 小さい札は全部レジに残る規則にしたので（2026-09-04）、夜に「足りない」状態は
-       起きない。箱と交換するのは営業中の話。ここではその念押しだけ。 -->
-  <div class="warn" style="text-align:center">
-    Ran out of ₵1 or ₵5 today? <b>Swap with the change box during the day</b>,
-    not now. Take small notes out, put the <b>same amount</b> back in big notes.
+  <!-- 🧭 何をするかを順番に見せる（2026-10-02 三好さん「見せながらフォローしてできるだけに」）。
+       昼の交換の念押し（小さい札は全部レジに残る規則なので夜に足りなくはならない）は下の小さい字へ移した。 -->
+  <div class="guide">
+    <div class="guide-row"><span class="gnum">1</span><span>Take <b>ALL</b> the money out of the till.</span></div>
+    <div class="guide-row"><span class="gnum">2</span><span>Count each note. Press <b>+</b> / <b>−</b> or type the number.</span></div>
+    <div class="guide-row"><span class="gnum">3</span><span>Press <b>NEXT</b>. The app shows what goes in the safe.<br><b>Do not put money in the safe yet.</b></span></div>
   </div>
   <div class="totalbar">
     <span class="lbl">TOTAL CASH</span>
@@ -1289,6 +1335,7 @@ body.practice #practiceNote{ display: block; }
     <div class="mid">Coins total (GH₵)<div class="subtotal">all pesewas + coins</div></div>
     <input type="number" id="coinsTotal" min="0" step="0.1" placeholder="0" inputmode="decimal" oninput="updateTotal()">
   </div>
+  <div class="cap" style="text-align:center;margin:10px 0 4px">Ran out of ₵1 or ₵5 today? Swap with the change box during the day, not now — same amount out, same amount in.</div>
   <button class="bigbtn" id="nx-count" onclick="goAfterCount()">NEXT ➜ STEP 2</button>
 </div>
 
@@ -1298,13 +1345,16 @@ body.practice #practiceNote{ display: block; }
         差があるかどうかはマネージャー側（金庫アプリ・Lark）で分かればよい。
         レジのほうは決めた額（₵200）を見せる。現場が自分で直せる数字だから。 -->
 <div class="screen" id="scr-morningen">
-  <div class="step-title"><span>MORNING CHECK</span>
-    <small>Before you open. Count two things.</small>
+  <div class="step-title"><span>🌅 MORNING CHECK</span>
+    <small>Do this FIRST, before you open. Follow 1 → 2 → 3.</small>
   </div>
 
-  <div class="warn" style="text-align:center">
-    <b>1. Money in the SAFE</b><br>
-    Count yesterday's sales money in the safe.<br>Do NOT count the change box.
+  <!-- 🧭 2026-10-02: 番号つきの手順に。金庫に ₵20 以下が入っていたら前夜のミスなので、数える前にレジへ戻させる
+       （台帳上その札はレジに残したことになっている。戻せば朝のレジの数が合う） -->
+  <div class="mstep">
+    <div class="mstep-h"><span class="gnum">1</span>Open the SAFE. Count the sales money.</div>
+    <div class="mstep-b">✅ Count only <b>₵200 · ₵100 · ₵50</b><br>❌ Do NOT count the change box</div>
+    <div class="mstep-alert">⚠️ Is there <b>₵20, ₵10, ₵5 or ₵1</b> in the safe?<br>That is a mistake. <b>Put it in the TILL now</b>, then count.</div>
   </div>
   <div class="totalbar">
     <span class="lbl">IN THE SAFE</span>
@@ -1312,9 +1362,9 @@ body.practice #practiceNote{ display: block; }
   </div>
   <div id="mgSafeList"></div>
 
-  <div class="warn" style="text-align:center;margin-top:18px">
-    <b>2. Money in the TILL</b><br>
-    Count the change left in the till from last night.
+  <div class="mstep">
+    <div class="mstep-h"><span class="gnum">2</span>Open the TILL. Count ALL the notes.</div>
+    <div class="mstep-b">✅ Every note in the till:<br><b>₵50 · ₵20 · ₵10 · ₵5 · ₵1</b></div>
   </div>
   <div class="totalbar">
     <span class="lbl">IN THE TILL</span>
@@ -1323,6 +1373,10 @@ body.practice #practiceNote{ display: block; }
   <div id="mgTillCheck"></div>
   <div id="mgTillList"></div>
 
+  <div class="mstep">
+    <div class="mstep-h"><span class="gnum">3</span>Press CHECK.</div>
+    <div class="mstep-b">The app tells you if the till is right.</div>
+  </div>
   <button class="bigbtn" id="mgCheckBtn" onclick="checkMorning()">🔍 CHECK</button>
   <div class="cap" style="text-align:center;margin:6px 0 10px">Every count you check is saved.</div>
   <button class="bigbtn" id="mgDoneBtn" style="display:none" onclick="doneMorning()">✅ DONE — open the shop</button>
@@ -1334,13 +1388,18 @@ body.practice #practiceNote{ display: block; }
      翌朝ちがう人が金庫とレジを数える工程（Morning check）を入れたので、
      締めた本人にもう一度数えさせる意味がなくなった。 -->
 <div class="screen" id="scr-result">
-  <div class="step-title"><span id="st-result">STEP 2 — Put the big notes in the safe, then write it in the book</span>
-    <small>🔴 ₵50 / ₵100 / ₵200 &nbsp;→ safe &nbsp;&nbsp; 🟢 ₵20 and smaller &nbsp;→ stays in the till</small>
+  <div class="step-title"><span id="st-result">STEP 2 — Sort the money</span>
+    <small>Do ① → ② → ③ → ④ from the top</small>
   </div>
-  <div id="splitSummary"></div>
   <div id="shortNotice"></div>
-  <div class="cap" style="text-align:center;margin:2px 0 8px">₵50, ₵100 and ₵200 go in the safe. Everything smaller stays in the till.</div>
+  <!-- ⛔ 2026-10-02: 締めで ₵20 以下まで金庫に入れてしまうミスが続いた（三好さん）。規則を一番上に大きく出し、
+       「金庫へ」「レジに残す」を大きな2枚に分け、確認のチェックを押さないと保存できないようにした。 -->
+  <div class="sort-rule">
+    <div class="sr-big">⛔ ₵20 · ₵10 · ₵5 · ₵1</div>
+    <div class="sr-txt">NEVER go in the safe.<br>They <b>STAY IN THE TILL</b> for tomorrow.</div>
+  </div>
   <div id="resultRows"></div>
+  <div id="splitSummary"></div>
 
   <!-- 📋 POSの締めを読み取る（2026-09-11）。POSは同じタブレットの別アプリで、
        別のアドレスなので保存領域を直接は読めない。POSの「Check & Close → Copy」で
@@ -1358,7 +1417,7 @@ body.practice #practiceNote{ display: block; }
   </div>
 
   <div class="field">
-    <label>📱 MoMo received today (GH₵)</label>
+    <label class="step-lab">③ 📱 Type the MoMo received today (GH₵)</label>
     <input type="number" id="momoOne" min="0" step="1" placeholder="Type it — 0 if no MoMo today" inputmode="numeric" oninput="onMomoTyped()">
     <div class="cap" id="momoSrc"></div>
   </div>
@@ -1372,7 +1431,8 @@ body.practice #practiceNote{ display: block; }
   <div class="done-wrap">
     <div class="check">✅</div>
     <h2>Till closed. Well done!</h2>
-    <div class="done-safe">Put this in the DROP SAFE:<span class="big" id="doneSafe">GH₵ 0</span></div>
+    <div class="done-safe">In the DROP SAFE (only ₵50 · ₵100 · ₵200):<span class="big" id="doneSafe">GH₵ 0</span></div>
+    <div class="done-keep">🟢 Left in the TILL (₵20 and smaller):<b id="doneKeep">GH₵ 0</b></div>
     <div class="done-sum" id="doneSummary"></div>
     <div id="doneNote" style="color:var(--muted);font-size:14px;"></div>
     <div id="larkStatus" style="margin-top:10px;font-size:14px;color:var(--muted);"></div>
@@ -1423,7 +1483,7 @@ body.practice #practiceNote{ display: block; }
 </div>
 
 <nav>
-  <button id="tab-count" class="active" onclick="show_T('count')"><span class="ico">🧮</span>Close till</button>
+  <button id="tab-count" class="active" onclick="tillTabClose()"><span class="ico">🧮</span>Close till</button>
   <button id="tab-till-history" onclick="show_T('history')"><span class="ico">📒</span>Record</button>
   <button id="tab-settings" onclick="show_T('settings')"><span class="ico">⚙️</span>Settings</button>
 </nav>
@@ -2087,19 +2147,18 @@ const ROLES = {
 function roleLabel(u){ return (u && u.title) || ROLES[u.role].label; }
 
 // 2号店（Lapaz 2nd Branch）のシフト表に載っている4人＋配送・管理チーム。
-// ⚠️ Elizabeth は 2026-08-13 に Efie へ改名済み。本番の kofirice-apps 側にも
-//    ROSTER_PEOPLE_SEED = { Elizabeth: 'Efie' } という対応表が入っている。
+// ⚠️ Elizabeth は 2026-08-13 に Efie へ改名、2026-09-29 に本当の名前 Afriyie へ。本番の kofirice-apps 側にも
+//    ROSTER_PEOPLE_SEED = { Elizabeth: 'Afriyie' } という対応表が入っている。
 // ⚠️ リチャードは肩書きが「マネージャー」でも、できる仕事はドライバーと同じ
 //    （role:"driver"）。日本人マネージャー（金庫の全体管理・人の管理・日本語
-//    表示）は三好・木原の2人だけ。
+//    表示）は個人名にせず「日本人マネージャー」1つ（2026-09-29 三好さん「今後のためにも」）。
 const DEFAULT_USERS = [
-  { name: "三好",     role: "manager", pin: "" },
-  { name: "木原",     role: "manager", pin: "" },
+  { name: "日本人マネージャー", role: "manager", pin: "" },
   { name: "Richard",  role: "driver",  title: "Manager", pin: "" },
   { name: "Abdul",    role: "driver",  pin: "" },
   { name: "Ruth",     role: "chef",    pin: "" },
   { name: "Evelyn",   role: "chef",    pin: "" },
-  { name: "Efie",     role: "chef",    pin: "" },
+  { name: "Afriyie",  role: "chef",    pin: "" },
   { name: "Jacky",    role: "chef",    pin: "" }
 ];
 
@@ -2113,6 +2172,33 @@ function stripPhotos(list){
   });
 }
 let users = stripPhotos(loadJSON_E(LS_USERS) || DEFAULT_USERS.slice());
+// 👥 名前の付け替え（2026-09-29 三好さん）。Efie/Elizabeth は本当の名前 Afriyie、日本人は個人名をやめて1つに。
+//    PIN・肩書きは引き継ぐ（同じ名前に2人が寄ったら、一覧で先の人のPINを残す）
+const RENAME_USERS = { "Efie": "Afriyie", "Elizabeth": "Afriyie", "三好": "日本人マネージャー", "木原": "日本人マネージャー" };
+function migrateUserNames(list){
+  const out = [];
+  let changed = false;
+  for (const u0 of list || []){
+    if (!u0 || !u0.name) continue;
+    const to = RENAME_USERS[u0.name];
+    const u = to ? { ...u0, name: to } : u0;
+    if (to) changed = true;
+    const have = out.find(x => x.name === u.name);
+    if (have){ if (!have.pin && u.pin) have.pin = u.pin; changed = true; continue; }
+    out.push(u);
+  }
+  return { list: out, changed };
+}
+(function migrateSavedUsers(){
+  const r = migrateUserNames(users);
+  if (r.changed){ users = r.list; saveJSON_E(LS_USERS, users); }
+  // いまサインインしている人も付け替える（三好で入ったままの端末が、消えた名前のまま動かないように）
+  try {
+    const k = LSK("kofirice_session_v1");
+    const ses = JSON.parse(localStorage.getItem(k) || "null");
+    if (ses && RENAME_USERS[ses.name]){ ses.name = RENAME_USERS[ses.name]; localStorage.setItem(k, JSON.stringify(ses)); }
+  } catch (e) {}
+})();
 // 既に人の一覧を保存している端末は、そちらが優先される（PINや肩書きを消さない
 // ため）。そのままだと、あとから DEFAULT_USERS に人を足しても保存済みの端末は
 // 一生気づけない。名前が無ければ追加だけする（既存の人はいじらない）。
@@ -2314,8 +2400,8 @@ function signOut(){
 // =============================================================
 const JOBS = {
   // 出勤したら最初にこれ。英語（数えるのはガーナ人スタッフなので）。
-  morning: { ico: "🌅", cls: "",     b: "Morning check",             s: "Before you open — count the safe and the till",   fn: "startMorningCheck()" },
-  till:    { ico: "🧮", cls: "",     b: "Till close",                s: "Count the till, put money in the safe",           app: "till" },
+  morning: { ico: "🌅", cls: "",     b: "Morning check",             s: "Before you open — count the safe and the till",   fn: "openMorningCheck()" },
+  till:    { ico: "🧮", cls: "",     b: "Till close",                s: "At night — count the till, big notes in the safe", fn: "openTillClose()" },
   // ドライバー用。金庫アプリ本体（日本語・全体管理）とは別の、英語の簡易画面。
   deliver: { ico: "🚚", cls: "safe", b: "Change & delivery",         s: "Change box status, refill, deliver sales to the office", app: "driver" },
   safe:    { ico: "🏦", cls: "safe", b: "金庫・全体管理",             s: "在庫・配送の確認、受領確認、店舗設定",             app: "safe" },
@@ -2334,6 +2420,71 @@ const JOBS = {
 // 「safe」job → 店舗編集 →「📤 この設定を店舗に送る」でコードを作り、
 // 続けて「till」job → ⚙️ Settings（manager役割のときだけ出るタブ）から
 // 直接編集することもできるし、貼り付けコードで反映することもできる。
+// ⛔ 朝はシェフのレジ締めに鍵（2026-10-02 三好さん「朝から締めをできないように。マネージャーはできるように」）。
+// 台帳の実例: 朝の確認のつもりで締めた日が 9/18・9/22・9/26（4回）・9/30。本物の夜の締めは 22:54〜翌0:02。
+// ガーナ時間＝UTC。4:00〜16:59 は止める。0時を過ぎてからの締めは通す。早く閉める日は日本人マネージャーが締める。
+const TILL_CLOSE_LOCK_FROM = 4, TILL_CLOSE_OPENS_AT = 17;
+function tillCloseLockedNow(){
+  const h = new Date().getUTCHours();
+  return h >= TILL_CLOSE_LOCK_FROM && h < TILL_CLOSE_OPENS_AT;
+}
+function tillCloseBlockedFor(role){ return role !== "manager" && tillCloseLockedNow(); }
+function sessionRole(){ const s = loadJSON_E(LS_SESSION_E); return s && s.role; }
+function openTillClose(){
+  if (tillCloseBlockedFor(sessionRole())){ showTillLocked(); return; }
+  openApp("till");
+}
+// レジ締めアプリの下のタブ「Close till」（朝の確認の画面からも押せてしまう）
+function tillTabClose(){
+  if (tillCloseBlockedFor(sessionRole())){ showTillLocked(); return; }
+  show_T("count");
+}
+function showTillLocked(){
+  let el = document.getElementById("tillLockBg");
+  if (!el){
+    el = document.createElement("div");
+    el.id = "tillLockBg";
+    el.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px";
+    document.body.appendChild(el);
+  }
+  el.innerHTML = `<div style="background:#fff;color:#1d2733;border-radius:18px;max-width:480px;width:100%;padding:22px 20px;text-align:center;font-size:17px;line-height:1.5">
+    <div style="font-size:54px;line-height:1">⛔</div>
+    <div style="font-size:24px;font-weight:900;color:#c0392b;margin:8px 0 4px">TILL CLOSE IS AT NIGHT</div>
+    <div>It is morning now.<br>Till close opens at <b>${TILL_CLOSE_OPENS_AT - 12} PM</b>.</div>
+    <div style="margin:14px 0;padding:12px;border-radius:12px;background:#E5F6FC;font-weight:800;font-size:19px">👉 In the morning, do the<br>🌅 MORNING CHECK</div>
+    <button onclick="closeTillLocked();startMorningCheck()" style="display:block;width:100%;padding:16px;border:0;border-radius:12px;background:#0077A0;color:#fff;font-size:18px;font-weight:800">🌅 START MORNING CHECK</button>
+    <button onclick="closeTillLocked();openApp('entry')" style="display:block;width:100%;margin-top:10px;padding:14px;border-radius:12px;border:1px solid #cfd6de;background:#f3f5f7;color:#1d2733;font-size:16px;font-weight:700">⬅ Back</button>
+    <div style="font-size:13px;color:#6b7785;margin-top:12px">Closing the shop early today? Ask the Japanese manager.</div>
+  </div>`;
+}
+function closeTillLocked(){ const el = document.getElementById("tillLockBg"); if (el) el.remove(); }
+// 🌙 夜は朝の確認に鍵（2026-10-02 三好さん「夜もモーニングチェックできないようにして」）。
+// レジ締めの鍵のちょうど裏返し: シェフは 4:00〜16:59 は朝の確認だけ、17:00〜翌3:59 はレジ締めだけ。マネージャーは通す。
+// 朝の確認を出し忘れた日は、日本人マネージャーが「出し忘れの記入」で日付を選んで入れる。
+function morningCheckBlockedFor(role){ return role !== "manager" && !tillCloseLockedNow(); }
+function openMorningCheck(){
+  if (morningCheckBlockedFor(sessionRole())){ showMorningLocked(); return; }
+  startMorningCheck();
+}
+function showMorningLocked(){
+  showTillLocked();
+  document.getElementById("tillLockBg").innerHTML = `<div style="background:#fff;color:#1d2733;border-radius:18px;max-width:480px;width:100%;padding:22px 20px;text-align:center;font-size:17px;line-height:1.5">
+    <div style="font-size:54px;line-height:1">⛔</div>
+    <div style="font-size:24px;font-weight:900;color:#c0392b;margin:8px 0 4px">MORNING CHECK IS IN THE MORNING</div>
+    <div>It is night now.<br>Morning check opens at <b>${TILL_CLOSE_LOCK_FROM} AM</b>.</div>
+    <div style="margin:14px 0;padding:12px;border-radius:12px;background:#E5F6FC;font-weight:800;font-size:19px">👉 At night, do the<br>🧮 TILL CLOSE</div>
+    <button onclick="closeTillLocked();openTillClose()" style="display:block;width:100%;padding:16px;border:0;border-radius:12px;background:#0077A0;color:#fff;font-size:18px;font-weight:800">🧮 START TILL CLOSE</button>
+    <button onclick="closeTillLocked();openApp('entry')" style="display:block;width:100%;margin-top:10px;padding:14px;border-radius:12px;border:1px solid #cfd6de;background:#f3f5f7;color:#1d2733;font-size:16px;font-weight:700">⬅ Back</button>
+    <div style="font-size:13px;color:#6b7785;margin-top:12px">Forgot the morning check today? Tell the Japanese manager.</div>
+  </div>`;
+}
+// 入口を開きっぱなしでも 17:00 になったら鍵が外れて見えるように、1分ごとに描き直す
+let jobsUser = null;
+setInterval(() => {
+  const a = document.getElementById("scr-jobs");
+  if (jobsUser && __openApp === "entry" && a && a.classList.contains("active")) renderJobs(jobsUser);
+}, 60000);
+
 const ROLE_JOBS = {
   chef:    ["morning", "till"],
   driver:  ["deliver"],
@@ -2345,10 +2496,23 @@ function renderJobs(u){
   document.getElementById("jobName").innerHTML =
     esc_E(u.name) + `<span class="rl">${esc_E(roleLabel(u))}</span>`;
 
+  // ⛔ 朝はシェフの Till close に鍵・Morning check に「👉 DO THIS NOW」、夜はその逆（2026-10-02）
+  jobsUser = u;
+  const tillLocked = tillCloseBlockedFor(u.role);
+  const morningLocked = morningCheckBlockedFor(u.role);
   document.getElementById("jobList").innerHTML = (ROLE_JOBS[u.role] || []).map(k => {
     const j = JOBS[k];
     const go = j.fn ? j.fn : j.app ? `openApp('${j.app}')` : `show_E('${j.action}')`;
-    return `<button class="job ${j.cls}" onclick="${go}">
+    const lockMsg = k === "till" && tillLocked ? `Not now — night only. Opens at ${TILL_CLOSE_OPENS_AT - 12} PM.`
+      : k === "morning" && morningLocked ? `Not now — morning only. Opens at ${TILL_CLOSE_LOCK_FROM} AM.` : "";
+    if (lockMsg) return `<button class="job locked" onclick="${go}">
+      <span class="ico">🔒</span>
+      <span class="t"><b>${esc_E(j.b)}</b><span>${lockMsg}</span></span>
+      <span class="go">›</span>
+    </button>`;
+    const now = (k === "morning" && tillLocked) || (k === "till" && morningLocked);
+    return `<button class="job ${j.cls}${now ? " now" : ""}" onclick="${go}">
+      ${now ? '<span class="now-tag">👉 DO THIS NOW</span>' : ""}
       <span class="ico">${j.ico}</span>
       <span class="t"><b>${esc_E(j.b)}</b><span>${esc_E(j.s)}</span></span>
       <span class="go">›</span>
@@ -2680,9 +2844,8 @@ function showMyDayBack(){
   if (el) el.style.display = sessionStorage.getItem(MYDAY_BACK_KEY) ? "block" : "none";
 }
 function openFromMyDay(link){
-  // 改名前の名前（Elizabeth）で来ても通す
-  const alias = { Efie: "Elizabeth", Elizabeth: "Efie" };
-  const u = users.find(x => x.name === link.who) || users.find(x => x.name === alias[link.who]);
+  // 改名前の名前（Elizabeth・Efie → Afriyie、三好・木原 → 日本人マネージャー）で来ても通す
+  const u = users.find(x => x.name === link.who) || users.find(x => x.name === RENAME_USERS[link.who]);
   // 配送はドライバーの仕事（2026-09-17）。朝の確認・レジ締めはシェフとマネージャー
   // 売上の回収（受け取り）は日本人マネージャー（2026-09-17）
   const okRoles = link.go === "deliver" ? ["driver"] : (link.go === "collect" || link.go === "backfill") ? ["manager"] : ["chef", "manager"];
@@ -2702,6 +2865,9 @@ function openFromMyDay(link){
   if (link.go === "deliver"){ openApp("driver"); show_D("deliver"); return true; }
   if (link.go === "collect"){ openApp("safe"); show_S("collect"); return true; }
   if (link.go === "backfill"){ openApp("safe"); show_S("apply"); setTimeout(() => { const c = document.getElementById("backfillCard"); if (c) c.scrollIntoView({ block: "start" }); }, 300); return true; }
+  // ⛔ 朝はシェフの締め・締め直しを止める（2026-10-02）
+  if ((link.go === "till" || link.go === "redo") && tillCloseBlockedFor(u.role)){ showTillLocked(); return true; }
+  if (link.go === "morning" && morningCheckBlockedFor(u.role)){ showMorningLocked(); return true; }
   if (link.go === "redo"){ openApp("till"); resetAll(); openRedoClose(); return true; }
   if (link.go === "morning") startMorningCheck();
   else { openApp("till"); resetAll(); }
@@ -3264,7 +3430,7 @@ function openingTillTotal(){
 // 日数で警告するので、レジ締めの工程で催促する必要がなくなった。
 const STEP_LABEL = {
   count:  "Count the money in the till",
-  result: "Put the sales in the safe, then write it in the book"
+  result: "Sort the money"
 };
 let tonightPlan = ["count", "result"];
 
@@ -3307,6 +3473,10 @@ function show_T(name){
   // idにずらしてある（scr-tillsettings / scr-tillhistory）。
   const tillScreenId = { settings: "tillsettings", history: "tillhistory" }[name] || name;
   document.getElementById("scr-" + tillScreenId).classList.add("active");
+  const isMorning = name === "morningen";
+  document.getElementById("tillHdrTitle").textContent = isMorning ? "🌅 MORNING CHECK" : "💵 TILL CLOSE";
+  const tillNav = document.querySelector("#app-till nav");
+  if (tillNav) tillNav.style.display = isMorning ? "none" : "";
   document.querySelectorAll("#app-till nav button").forEach(b => b.classList.remove("active"));
   const closeSteps = ["sales", "count", "adjust", "box", "result", "final", "done"];
   const tillTabId = { history: "till-history" }[name] || (closeSteps.includes(name) ? "count" : name);
@@ -3454,6 +3624,7 @@ function renderMorningEN(){
 function checkMorning(){
   const staff = selectedStaff || currentSessionName() || "";
   if (!staff){ openApp("entry"); return; }
+  { const ss = loadSession(); if (morningCheckBlockedFor(ss && ss.role)){ showMorningLocked(); return; } }
   const safeNotes = readMg("mgs");
   const tillNotes = readMg("mgt");
   if (!notesNonZero(safeNotes) && !notesNonZero(tillNotes)){
@@ -3538,6 +3709,8 @@ function checkMorning(){
         The till does not match last night.<br>
         <b>COUNT THE TILL AGAIN</b>, then press <b>CHECK AGAIN</b>.
       </div>
+      ${tillDiff < 0 ? `<div style="font-size:15px;line-height:1.5;margin-top:10px;background:#fff;border-radius:10px;padding:10px">
+        💡 Look in the SAFE. Are there <b>₵20, ₵10, ₵5 or ₵1</b> notes?<br>Move them to the TILL, then count again.</div>` : ""}
       <div class="cap" style="margin-top:8px">The numbers below have been cleared.</div>
     </div>`;
     doneBtn.style.display = "none";
@@ -3618,23 +3791,36 @@ function goResult(){
   renderSplitSummary();
   renderShortNotice();
   bookConfirmed = false;
+  sortConfirmed = false;
   renderBookSlip();
   renderPosResult();   // 📋 戻ってきたときも POS の読み取り結果を出し直す
 
   // 金種ごとに「レジ/金庫」を並べるのはやめた（2026-09-04）。規則が
   // 「大きい札は金庫、小さい札はレジ」だけになったので、2つの山を見せれば足りる。
-  const pile = (list, label, cls) => list.length
-    ? `<div class="split-row-card">
-         <div class="mid">
-           <div class="split-counted"><b>${label}</b></div>
-           <div class="split-dest">${list.map(row =>
-             `<span class="dest ${cls} active"><span class="note-chip" style="background:${COLORS_T[row.d]};margin-right:4px">₵${row.d}</span><b>${row.counted}</b></span>`).join("")}</div>
-         </div>
-       </div>`
-    : `<div class="split-row-card"><div class="mid"><div class="split-counted"><b>${label}</b> — none</div></div></div>`;
-  document.getElementById("resultRows").innerHTML =
-    pile(r.rows.filter(x => x.safe > 0), "🔴 PUT IN THE SAFE", "safe") +
-    pile(r.rows.filter(x => x.keep > 0), "🟢 LEAVE IN THE TILL", "till");
+  // ⛔ 2026-10-02: 山を大きな2枚に。金庫の枚には大きい札しか載らないこと、レジの枚には「金庫に入れない」を大きく書く。
+  //    その下の ✋ を押さないと保存できない（saveRecord）。
+  const chips = list => list.map(x =>
+    `<span class="pile-note"><span class="note-chip" style="background:${COLORS_T[x.d]}">₵${x.d}</span><b>× ${x.n}</b></span>`).join("");
+  const safeList = r.rows.filter(x => x.safe > 0).map(x => ({ d: x.d, n: x.safe }));
+  const keepList = r.rows.filter(x => x.keep > 0).map(x => ({ d: x.d, n: x.keep }));
+  const coinChip = r.coins ? `<span class="pile-note"><span class="note-chip" style="background:#8d6e63">🪙</span><b>${fmt_T(r.coins)}</b></span>` : "";
+  document.getElementById("resultRows").innerHTML = `
+    <div class="pile safe">
+      <div class="pile-h">① 🔴 PUT IN THE SAFE</div>
+      <div class="pile-sub">Only ₵200 · ₵100 · ₵50</div>
+      ${safeList.length ? `<div class="pile-notes">${chips(safeList)}</div>` : `<div class="pile-none">Nothing for the safe tonight.</div>`}
+      <div class="pile-amt">${fmt_T(r.safeTotal)}</div>
+    </div>
+    <div class="pile till">
+      <div class="pile-h">② 🟢 LEAVE IN THE TILL</div>
+      <div class="pile-sub">❌ Do NOT put these in the safe</div>
+      ${keepList.length || coinChip ? `<div class="pile-notes">${chips(keepList)}${coinChip}</div>` : `<div class="pile-none">Nothing stays in the till.</div>`}
+      <div class="pile-amt">${fmt_T(r.keepTotal + r.coins)}</div>
+    </div>
+    <div class="tick-row ${sortConfirmed ? "on" : ""}" id="tick-sort" onclick="toggleSort()">
+      <span class="qty" style="font-size:15px;line-height:1.4">✋ I looked in the safe:<br>only ₵50 · ₵100 · ₵200 inside.<br>₵20 and smaller are in the till.</span>
+      <span class="mark">✓</span>
+    </div>`;
   show_T("result");
   window.scrollTo(0,0);
 }
@@ -3680,16 +3866,12 @@ function renderSplitSummary(){
   // 「前夜の締め」なのかで意味が変わるので、そこも書く（2026-09-04）。
   const fromLabel = r.openingFrom === "morning"
     ? "counted this morning" : "left last night";
+  // ⛔ 2026-10-02: 「金庫へ」の引き算カードは上の大きな2枚に置き換えた。売上は赤にしない（金庫の額と取り違えないよう）
   document.getElementById("splitSummary").innerHTML = `
-    <div class="split-card">
-      <div class="split-row"><span>💵 Total counted</span><span class="amt">${fmt_T(r.total)}</span></div>
-      <div class="split-row minus"><span>🟢 Stays in the till</span><span class="amt">− ${fmt_T(r.keepTotal + r.coins)}</span></div>
-      <div class="split-row total"><span>🔴 Goes in the DROP SAFE</span><span class="amt big">${fmt_T(r.safeTotal)}</span></div>
-    </div>
-    <div class="split-card" style="margin-top:8px">
+    <div class="split-card" style="margin-top:4px">
       <div class="split-row"><span>💵 Total counted</span><span class="amt">${fmt_T(r.total)}</span></div>
       <div class="split-row minus"><span>Was in the till this morning<br><span class="cap">${fromLabel}</span></span><span class="amt">− ${fmt_T(r.opening)}</span></div>
-      <div class="split-row total"><span>📈 SALES TODAY</span><span class="amt big">${fmt_T(r.sales)}</span></div>
+      <div class="split-row total" style="border-top-color:#cfd6de"><span>📈 Cash sales today<br><span class="cap">for your information</span></span><span class="amt big" style="color:var(--text)">${fmt_T(r.sales)}</span></div>
     </div>`;
 }
 
@@ -3720,7 +3902,7 @@ function renderBookSlip(){
   const name = esc_T(selectedStaff || "—");
   document.getElementById("bookSlip").innerHTML = `
     <div class="book-card">
-      <h3>📝 WRITE THIS IN THE BOOK</h3>
+      <h3>④ 📝 WRITE THIS IN THE BOOK</h3>
       <div class="cap">Write this line, exactly like this, then sign</div>
       <div class="book-draft">
         <div class="draft-line">${stamp}&nbsp;&nbsp;&nbsp;${name}&nbsp;&nbsp;&nbsp;to safe ${fmt_T(lastResult.safeTotal)}&nbsp;&nbsp;&nbsp;${String((document.getElementById("momoOne") || {}).value || "").trim() === "" ? '<span style="color:#d93a30">momo ？ (type it above)</span>' : "momo " + fmt_T(momo)}</div>
@@ -3731,6 +3913,11 @@ function renderBookSlip(){
         <span class="mark">✓</span>
       </div>
     </div>`;
+}
+let sortConfirmed = false;   // ✋ 金庫には大きい札だけ、を本人が確かめた（2026-10-02）
+function toggleSort(){
+  sortConfirmed = !sortConfirmed;
+  document.getElementById("tick-sort").classList.toggle("on", sortConfirmed);
 }
 function toggleBook(){
   bookConfirmed = !bookConfirmed;
@@ -3899,6 +4086,17 @@ function confirmRedoClose(baseId){
 function saveRecord(){
   if (!lastResult) return;
   if (!selectedStaff){ openApp('entry'); return; }
+  // ⛔ 朝はシェフには保存させない（2026-10-02）。画面に入れてしまった場合の最後の止め
+  { const ss = loadSession(); if (tillCloseBlockedFor(ss && ss.role)){ showTillLocked(); return; } }
+  if (!sortConfirmed){
+    showToast_T("✋ Look in the safe: only ₵50 · ₵100 · ₵200. Then tick ✋", true);
+    const row = document.getElementById("tick-sort");
+    row.scrollIntoView({ behavior: "smooth", block: "center" });
+    row.classList.remove("highlight-warn");
+    void row.offsetWidth;
+    row.classList.add("highlight-warn");
+    return;
+  }
   if (!bookConfirmed){
     showToast_T("⚠️ Write it in the book first, then tick ✍️", true);
     const row = document.getElementById("tick-book");
@@ -3986,6 +4184,7 @@ function saveRecord(){
   }
 
   document.getElementById("doneSafe").textContent = fmt_T(rec.toSafe);
+  document.getElementById("doneKeep").textContent = fmt_T(rec.keep);
   document.getElementById("doneSummary").innerHTML = `
     <div class="row"><span>💵 Cash sales</span><span>${fmt_T(rec.sales)}</span></div>
     <div class="row"><span>📱 MoMo sales</span><span>${fmt_T(rec.momo)}</span></div>
@@ -4011,6 +4210,7 @@ function resetAll(){
   lastResult = null;
   boxCounts = null;
   bookConfirmed = false;
+  sortConfirmed = false;
   tonightPlan = ["count", "result"];
   updateTotal();
   show_T("count");
@@ -5887,7 +6087,7 @@ function openCollect(lotId){
     <div id="colDiff"></div>
     <div class="field">
       <label>受け取った人（必須）</label>
-      <input type="text" id="colActor" value="${esc_S(currentSessionName())}" placeholder="例: 三好 / 木原">
+      <input type="text" id="colActor" value="${esc_S(currentSessionName())}" placeholder="例: 日本人マネージャー">
       <div class="hint">締めた人: <b>${esc_S(lot.mov.actor || "—")}</b>。額が合わないときは、この人に確認します。</div>
     </div>
     <button class="bigbtn" onclick="confirmCollect('${esc_S(lotId)}')">✅ 受け取りを確定</button>
@@ -5978,7 +6178,7 @@ function openCollectAll(){
     <div id="calDiff"></div>
     <div class="field">
       <label>受け取った人（必須）</label>
-      <input type="text" id="calActor" value="${esc_S(currentSessionName())}" placeholder="例: 三好 / 木原">
+      <input type="text" id="calActor" value="${esc_S(currentSessionName())}" placeholder="例: 日本人マネージャー">
     </div>
     <button class="bigbtn" onclick="confirmCollectAll()">✅ まとめて受け取りを確定</button>
     <button class="bigbtn gray" onclick="closeModal()">キャンセル</button>
@@ -6106,7 +6306,7 @@ function openConfirmDelivery(batchId){
     <div id="tcDiff"></div>
     <div class="field">
       <label>受け取ったサイン（受領者名・必須）</label>
-      <input type="text" id="tcActor" value="${esc_S(currentSessionName())}" placeholder="例: 三好 / 木原">
+      <input type="text" id="tcActor" value="${esc_S(currentSessionName())}" placeholder="例: 日本人マネージャー">
       <div class="hint">実際に受け取ったマネージャーの名前を入れてください。誰が受け取ったかの記録として残ります。</div>
     </div>
     <button class="bigbtn" onclick="submitConfirmDelivery('${esc_S(batchId)}')">✅ 受領を確定</button>
@@ -7569,7 +7769,9 @@ async function doSync(manual){
       showToast_S("⚠️ 他の端末が先に人の一覧を変えていたため、そちらを優先しました", true);
     } else if (data.users){
       if (cfg.usersDirty) cfg.usersDirty = false;
-      const next = stripPhotos(data.users);
+      const mig = migrateUserNames(stripPhotos(data.users));
+      if (mig.changed) cfg.usersDirty = true;   // 付け替えた一覧を次の同期で押し上げる
+      const next = mig.list;
       if (JSON.stringify(next) !== JSON.stringify(users)){
         users = next; saveUsers(); refreshPeopleUI();
       }
